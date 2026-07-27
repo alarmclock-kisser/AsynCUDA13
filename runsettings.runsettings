@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+	<ResultsFolder>.\TestResults\</ResultsFolder>
+  </RunConfiguration>
+  <LoggerRunSettings>
+	<Loggers>
+	  <Logger friendlyName="trx">
+		<Configuration>
+		  <LogSummary>true</LogSummary>
+		  <CollectSourceInformation>false</CollectSourceInformation>
+		</Configuration>
+	  </Logger>
+	</Loggers>
+  </LoggerRunSettings>
+</RunSettings>

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.3.2" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <ProjectReference Include="..\AsynCUDA13.Api\AsynCUDA13.Api.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.Runtime\AsynCUDA13.Runtime.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.Shared\AsynCUDA13.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestRunReports\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="AsynCUDA13.Tests.runsettings">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

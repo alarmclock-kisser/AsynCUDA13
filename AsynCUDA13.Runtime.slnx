@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="AsynCUDA13.Api/AsynCUDA13.Api.csproj" Id="58ab7ba6-b2c4-418b-bd58-7e9d4b550b77" />
+  <Project Path="AsynCUDA13.Media/AsynCUDA13.Media.csproj" />
+  <Project Path="AsynCUDA13.Runtime/AsynCUDA13.Runtime.csproj" />
+  <Project Path="AsynCUDA13.Shared/AsynCUDA13.Shared.csproj" />
+  <Project Path="AsynCUDA13.Tests/AsynCUDA13.Tests.csproj" />
+</Solution>

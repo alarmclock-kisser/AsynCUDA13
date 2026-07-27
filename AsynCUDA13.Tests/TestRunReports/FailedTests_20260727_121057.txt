@@ -1,0 +1,76 @@
+=== Fehlgeschlagene Tests ===
+Datum: 2026-07-27 12:10:57
+Anzahl: 18
+============================================================
+
+Test: PushAsync_WhenExceptionThrown_Returns500
+Klasse: Unknown
+----------------------------------------
+
+Test: PushAsync_With1DPayload_Success_Returns200
+Klasse: Unknown
+----------------------------------------
+
+Test: PushAsync_WhenPayloadNull_Returns400
+Klasse: Unknown
+----------------------------------------
+
+Test: PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200
+Klasse: Unknown
+----------------------------------------
+
+Test: FreeMemory_WhenInvalidPointer_Returns400
+Klasse: Unknown
+----------------------------------------
+
+Test: GenericKernelSwitchesLoadedKernelAndPreservesArgumentOrder
+Klasse: Unknown
+----------------------------------------
+
+Test: GenericKernelCanUnloadAfterExecution
+Klasse: Unknown
+----------------------------------------
+
+Test: ValidKernelCallReturnsExpectedResult
+Klasse: Unknown
+----------------------------------------
+
+Test: PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200
+Klasse: Unknown
+----------------------------------------
+
+Test: GenericKernelSupportsOutOfPlaceResultPointer
+Klasse: Unknown
+----------------------------------------
+
+Test: PushAsync_With2DPayload_Success_Returns200
+Klasse: Unknown
+----------------------------------------
+
+Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
+Klasse: Unknown
+----------------------------------------
+
+Test: GetDevices_DeviceIdsAreUnique
+Klasse: Unknown
+----------------------------------------
+
+Test: GetDevices_MultipleDevices_ReturnsAll
+Klasse: Unknown
+----------------------------------------
+
+Test: GetDevices_ReturnsValidDeviceInfoStructure
+Klasse: Unknown
+----------------------------------------
+
+Test: GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll
+Klasse: Unknown
+----------------------------------------
+
+Test: GetMemoryList_WhenOnlineWithMemory_Returns200
+Klasse: Unknown
+----------------------------------------
+
+Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
+Klasse: Unknown
+----------------------------------------
