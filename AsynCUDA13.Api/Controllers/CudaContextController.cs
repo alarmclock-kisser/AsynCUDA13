@@ -21,7 +21,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpGet("devices")]
         public ActionResult<IEnumerable<CudaDeviceInfo>> GetDevices()
         {
-            if (CudaAvailabilityTester.IsCudaAvailable() == false)
+            if (!this.cuda.IsCudaAvailable())
             {
                 var pd = new ProblemDetails
                 {
@@ -34,18 +34,7 @@ namespace AsynCUDA13.Api.Controllers
 
             try
             {
-                // Dict<int, CudaDeviceProperties> CudaService.GetAvailableDeviceProperties(), where CudaDeviceProperties contains PropertyFields (whomst with reflection their .Name.ToString()) with values (which will be ToString()), this in info-DTOs Dict<string, string> Properties. DeviceId in DTO is the key of the Dict<int, CudaDeviceProperties>. DeviceName in DTO is CudaDeviceProperties.DeviceName.ToString().
-                var deviceInfos = CudaService.GetAvailableDevicesProperties()
-                    .Select(kvp => new CudaDeviceInfo
-                    {
-                        DeviceId = kvp.Key,
-                        DeviceName = kvp.Value.DeviceName.ToString(),
-                        Properties = kvp.Value.GetType()
-                            .GetProperties()
-                            .ToDictionary(
-                                prop => prop.Name,
-                                prop => prop.GetValue(kvp.Value)?.ToString() ?? string.Empty)
-                    });
+                var deviceInfos = this.cuda.GetAllDeviceInfos();
 
                 if (!deviceInfos.Any())
                 {
@@ -75,7 +64,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpGet("device/{deviceId}")]
         public ActionResult<CudaDeviceInfo> GetDevice(int deviceId)
         {
-            if (CudaAvailabilityTester.IsCudaAvailable() == false)
+            if (!this.cuda.IsCudaAvailable())
             {
                 var pd = new ProblemDetails
                 {
@@ -87,8 +76,9 @@ namespace AsynCUDA13.Api.Controllers
             }
             try
             {
-                var deviceProperties = CudaService.GetAvailableDevicesProperties();
-                if (!deviceProperties.ContainsKey(deviceId))
+                var devices = this.cuda.GetAllDeviceInfos();
+                var deviceInfo = devices.FirstOrDefault(d => d.DeviceId == deviceId);
+                if (deviceInfo == null)
                 {
                     var pd = new ProblemDetails
                     {
@@ -99,16 +89,6 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(404, pd);
                 }
 
-                var deviceInfo = new CudaDeviceInfo
-                {
-                    DeviceId = deviceId,
-                    DeviceName = deviceProperties[deviceId].DeviceName.ToString(),
-                    Properties = deviceProperties[deviceId].GetType()
-                        .GetProperties()
-                        .ToDictionary(
-                            prop => prop.Name,
-                            prop => prop.GetValue(deviceProperties[deviceId])?.ToString() ?? string.Empty)
-                };
                 return this.Ok(deviceInfo);
             }
             catch (Exception ex)

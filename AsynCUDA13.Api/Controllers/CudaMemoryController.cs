@@ -219,22 +219,22 @@ namespace AsynCUDA13.Api.Controllers
 
                 var startDate = DateTime.Now;
 
-                dynamic data = request.Payload is CudaPayload1D p1 ? DataParser.ParseAsync(p1, request.ElementType) :
-                               request.Payload is CudaPayload2D p2 ? DataParser.ParseAsync(p2, request.ElementType) :
-                               throw new ArgumentException("Unsupported payload type.");
-                if (data == null)
-                {
-                    return this.StatusCode(400, new ProblemDetails
-                    {
-                        Title = "Invalid request",
-                        Detail = "The request payload could not be parsed.",
-                        Status = 400
-                    });
-                }
+                                dynamic data = request.Payload is CudaPayload1D p1 ? await DataParser.ParseAsync(p1, request.ElementType) :
+                                               request.Payload is CudaPayload2D p2 ? await DataParser.ParseAsync(p2, request.ElementType) :
+                                               throw new ArgumentException("Unsupported payload type.");
+                                if (data == null)
+                                {
+                                    return this.StatusCode(400, new ProblemDetails
+                                    {
+                                        Title = "Invalid request",
+                                        Detail = "The request payload could not be parsed.",
+                                        Status = 400
+                                    });
+                                }
 
-                CudaMem? mem = request.Payload is CudaPayload1D pd1 ? await this.cuda.PushDataAsync(data) :
-                              request.Payload is CudaPayload2D pd2 ? await this.cuda.PushChunksAsync(data) :
-                              throw new ArgumentException("Unsupported payload type.");
+                                CudaMem? mem = request.Payload is CudaPayload1D pd1 ? await this.cuda.PushDataAsync(data) :
+                                              request.Payload is CudaPayload2D pd2 ? await this.cuda.PushChunksAsync(data) :
+                                              throw new ArgumentException("Unsupported payload type.");
                 if (mem == null)
                 {
                     return this.StatusCode(500, new ProblemDetails
@@ -322,8 +322,8 @@ namespace AsynCUDA13.Api.Controllers
 
                 // Reflection get <T> generic method for the given element type
                 var method = memInfo.Count == 1
-                    ? typeof(CudaService).GetMethod(nameof(CudaService.PullDataAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t)
-                    : typeof(CudaService).GetMethod(nameof(CudaService.PullChunksAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t);
+                    ? typeof(ICudaService).GetMethod(nameof(ICudaService.PullDataAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t)
+                    : typeof(ICudaService).GetMethod(nameof(ICudaService.PullChunksAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t);
                 if (method == null)
                 {
                     throw new InvalidOperationException("Failed to find CUDA pull method.");

@@ -11,13 +11,14 @@ namespace AsynCUDA13.Tests.Api
     [TestClass]
     public class CudaDeviceControllerTests : TestBase
     {
+        private Mock<ICudaService> _mockCuda = null!;
         private CudaDeviceController _controller = null!;
 
         [TestInitialize]
         public void SetUp()
         {
-            var mockCuda = new Mock<ICudaService>();
-            _controller = new CudaDeviceController(mockCuda.Object);
+            _mockCuda = new Mock<ICudaService>();
+            _controller = new CudaDeviceController(_mockCuda.Object);
         }
 
         // =====================================================================
@@ -48,11 +49,24 @@ namespace AsynCUDA13.Tests.Api
         [TestMethod]
         public void GetDevices_WhenCudaAvailable_Returns200WithDevices()
         {
-            // Arrange — when CUDA is available
-            if (!CudaAvailabilityTester.IsCudaAvailable())
+            // Arrange — mock CUDA as available
+            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+
+            var mockDeviceInfos = new CudaDeviceInfo[]
             {
-                Assert.Inconclusive("CUDA runtime is not available; this test requires CUDA to be available.");
-            }
+                new CudaDeviceInfo
+                {
+                    DeviceId = 0,
+                    DeviceName = "Mock CUDA Device 0",
+                    Properties = new Dictionary<string, string>
+                    {
+                        { "DeviceName", "Mock CUDA Device 0" },
+                        { "TotalGlobalMemory", "8589934592" }
+                    }
+                }
+            };
+
+            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
             var result = _controller.GetDevices();
@@ -61,8 +75,9 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
             deviceInfos.ShouldNotBeEmpty();
+            deviceInfos.Length.ShouldBe(1);
 
             foreach (var info in deviceInfos)
             {
@@ -75,38 +90,42 @@ namespace AsynCUDA13.Tests.Api
         [TestMethod]
         public void GetDevices_WhenCudaAvailableButNoDevices_Returns404()
         {
-            // This test is theoretical — if CUDA runtime is available but reports 0 devices.
-            if (!CudaAvailabilityTester.IsCudaAvailable())
-            {
-                Assert.Inconclusive("CUDA runtime is not available; this test requires CUDA to be available.");
-            }
+            // Arrange — mock CUDA as available but return empty array
+            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns([]);
 
             // Act
             var result = _controller.GetDevices();
 
-            // Assert — if devices exist, we get 200; if none, 404
-            if (result.Result is ObjectResult objectResult)
-            {
-                // CUDA available with devices — 200 is expected
-                objectResult.StatusCode.ShouldBe(200);
-            }
-            else if (result.Result is ObjectResult notFoundResult)
-            {
-                // CUDA available but no devices — 404
-                notFoundResult.StatusCode.ShouldBe(404);
-                var problemDetails = (notFoundResult.Value as ProblemDetails)!;
-                problemDetails.Title?.ShouldContain("No CUDA devices found");
-            }
+            // Assert
+            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            objectResult.StatusCode.ShouldBe(404);
+
+            var problemDetails = (objectResult.Value as ProblemDetails)!;
+            problemDetails.Title?.ShouldContain("No CUDA devices found");
         }
 
         [TestMethod]
         public void GetDevices_ReturnsValidDeviceInfoStructure()
         {
-            // Arrange
-            if (!CudaAvailabilityTester.IsCudaAvailable())
+            // Arrange — mock CUDA as available
+            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+
+            var mockDeviceInfos = new CudaDeviceInfo[]
             {
-                Assert.Inconclusive("CUDA runtime is not available; this test requires CUDA to be available.");
-            }
+                new CudaDeviceInfo
+                {
+                    DeviceId = 0,
+                    DeviceName = "Test Device",
+                    Properties = new Dictionary<string, string>
+                    {
+                        { "DeviceName", "Test Device" },
+                        { "TotalGlobalMemory", "4294967296" }
+                    }
+                }
+            };
+
+            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
             var result = _controller.GetDevices();
@@ -115,7 +134,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
             var firstDevice = deviceInfos.First();
 
             // Verify the DTO structure is properly populated
@@ -131,17 +150,16 @@ namespace AsynCUDA13.Tests.Api
         [TestMethod]
         public void GetDevices_MultipleDevices_ReturnsAll()
         {
-            // Arrange
-            if (!CudaAvailabilityTester.IsCudaAvailable())
-            {
-                Assert.Inconclusive("CUDA runtime is not available; this test requires CUDA to be available.");
-            }
+            // Arrange — mock CUDA as available
+            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
-            var expectedCount = CudaService.DeviceCount;
-            if (expectedCount <= 0)
+            var mockDeviceInfos = new CudaDeviceInfo[]
             {
-                Assert.Inconclusive("No CUDA devices found on the system.");
-            }
+                new CudaDeviceInfo { DeviceId = 0, DeviceName = "Device 0", Properties = new Dictionary<string, string>() },
+                new CudaDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = new Dictionary<string, string>() }
+            };
+
+            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
             var result = _controller.GetDevices();
@@ -150,25 +168,31 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
-            deviceInfos.Count().ShouldBe(expectedCount);
+            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
+            deviceInfos.Length.ShouldBe(2);
         }
 
         [TestMethod]
         public void GetDevices_DeviceIdsAreUnique()
         {
-            // Arrange
-            if (!CudaAvailabilityTester.IsCudaAvailable())
+            // Arrange — mock CUDA as available
+            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+
+            var mockDeviceInfos = new CudaDeviceInfo[]
             {
-                Assert.Inconclusive("CUDA runtime is not available; this test requires CUDA to be available.");
-            }
+                new CudaDeviceInfo { DeviceId = 0, DeviceName = "Device 0", Properties = new Dictionary<string, string>() },
+                new CudaDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = new Dictionary<string, string>() },
+                new CudaDeviceInfo { DeviceId = 2, DeviceName = "Device 2", Properties = new Dictionary<string, string>() }
+            };
+
+            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
             var result = _controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
 
             var deviceIds = deviceInfos.Select(d => d.DeviceId).ToList();
             Assert.IsTrue(deviceIds.Distinct().Count() == deviceIds.Count, "Device IDs should be unique.");
@@ -177,27 +201,19 @@ namespace AsynCUDA13.Tests.Api
         [TestMethod]
         public void GetDevices_WhenExceptionThrown_Returns500()
         {
-            // Arrange — this test verifies the exception handling path.
-            // Since we cannot easily mock static calls, we verify that the controller
-            // returns a valid result (either 200 or 503 depending on CUDA availability).
-            // A 500 would only occur if an unexpected exception is thrown.
+            // Arrange — mock CUDA as available and throws exception
+            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Throws(new InvalidOperationException("Test exception"));
 
             // Act
             var result = _controller.GetDevices();
 
-            // Assert — result should never be null
-            result.ShouldNotBeNull();
+            // Assert
+            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            objectResult.StatusCode.ShouldBe(500);
 
-            // The result should be either Ok (200) or a StatusCodeResult
-            if (result.Result is ObjectResult objResult)
-            {
-                objResult.StatusCode.ShouldBe(200);
-            }
-            else if (result.Result is ObjectResult notFoundResult)
-            {
-                // Should be 503 (CUDA not available) or 404 (no devices), never 500
-                notFoundResult.StatusCode.ShouldNotBe(500);
-            }
+            var problemDetails = (objectResult.Value as ProblemDetails)!;
+            problemDetails.Detail.ShouldContain("Test exception");
         }
     }
 }
