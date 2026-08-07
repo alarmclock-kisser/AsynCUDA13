@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Api.Payloads;
+using AsynCUDA13.Shared.CudaDtos;
 using ManagedCuda;
 
 namespace AsynCUDA13.Runtime
@@ -34,7 +35,19 @@ namespace AsynCUDA13.Runtime
 		Task<CudaMem?> PushChunksAsync<T>(IEnumerable<T[]> data) where T : unmanaged;
 		Task<T[]?> PullDataAsync<T>(nint indexPointer, bool keepBuffer = false) where T : unmanaged;
 		Task<IEnumerable<T[]>?> PullChunksAsync<T>(nint indexPointer, bool keepBuffer = false) where T : unmanaged;
-	}
+
+		/// <summary>
+			/// Checks if CUDA is available on the system.
+			/// </summary>
+			/// <returns>True if CUDA is available, false otherwise.</returns>
+			bool IsCudaAvailable();
+
+			/// <summary>
+			/// Gets information about all available CUDA devices on the system.
+			/// </summary>
+			/// <returns>Array of device information, or empty array if CUDA is not available.</returns>
+			CudaDeviceInfo[] GetAllDeviceInfos();
+		}
 
 	/// <summary>
 	/// High-level public facade for the AsynCUDA12 runtime. A <see cref="CudaService"/> owns the CUDA primary
@@ -710,6 +723,40 @@ namespace AsynCUDA13.Runtime
 			}
 			return await Task.Run(() => this.Register.FreeMemory(indexPointer));
 		}
+
+		/// <summary>
+			/// Checks if CUDA is available on the system.
+			/// </summary>
+			/// <returns>True if CUDA is available, false otherwise.</returns>
+			public bool IsCudaAvailable()
+			{
+				return CudaAvailabilityTester.IsCudaAvailable();
+			}
+
+			/// <summary>
+			/// Gets information about all available CUDA devices on the system.
+			/// </summary>
+			/// <returns>Array of device information, or empty array if CUDA is not available.</returns>
+			public CudaDeviceInfo[] GetAllDeviceInfos()
+			{
+				if (!CudaAvailabilityTester.IsCudaAvailable())
+				{
+					return [];
+				}
+
+				var infos = GetAvailableDevicesProperties().Select(props => new CudaDeviceInfo
+				{
+					DeviceId = props.Key,
+					DeviceName = props.Value.DeviceName,
+					Properties = props.Value.GetType()
+						.GetProperties()
+						.ToDictionary(
+							prop => prop.Name,
+							prop => prop.GetValue(props.Value)?.ToString() ?? string.Empty)
+				}).ToArray();
+
+				return infos;
+			}
 
 	}
 }

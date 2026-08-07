@@ -1,4 +1,6 @@
+using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -13,6 +15,9 @@ namespace AsynCUDA13.Tests
     [TestClass]
     public class TestRunReportWriter
     {
+        // Maximale Anzahl der FailedTests-Report-Dateien, die behalten werden
+        private const int MaxReportFiles = 10;
+
         // Statischer Puffer für gesammelte Testergebnisse
         private static readonly List<TestResultEntry> _collectedResults = new();
         private static readonly object _lockObj = new();
@@ -67,52 +72,93 @@ namespace AsynCUDA13.Tests
 
                 if (trxFiles.Count > 0)
                 {
-                    // Neueste TRX-Datei verwenden
-                    var latestTrx = trxFiles
+                    // ALLE TRX-Dateien analysieren, um alle fehlgeschlagenen Tests zu sammeln
+                    var allFailedTests = new List<TestResultEntry>();
+
+                    // Sortiere TRX-Dateien nach Änderungsdatum (neueste zuerst) für bessere Berichterstattung
+                    var sortedTrxFiles = trxFiles
                         .Select(f => new { Path = f, Time = new FileInfo(f).LastWriteTime })
                         .OrderByDescending(x => x.Time)
-                        .First().Path;
+                        .ToList();
 
-                    var trxContent = File.ReadAllText(latestTrx);
-                    var doc = XDocument.Parse(trxContent);
-
-                    var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
-                    var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? Enumerable.Empty<XElement>();
-
-                    failedTests = testEntries
-                        .Where(e => e.Attribute("outcome")?.Value == "Failed")
-                        .Select(e =>
+                    foreach (var trxFile in sortedTrxFiles)
+                    {
+                        try
                         {
-                            var testName = e.Attribute("testName")?.Value ?? "Unknown";
-                            // fullName ist kein Attribut — extrahiere Klasse aus testName oder aus ErrorInfo
-                            var fullyQualifiedName = e.Attribute("testId")?.Value ?? "Unknown";
-                            var output = e.Element(ns + "Output");
-                            var errorInfo = output?.Element(ns + "ErrorInfo");
-                            var message = errorInfo?.Element(ns + "Message")?.Value
-                                ?? output?.Element(ns + "ErrorMessage")?.Value
-                                ?? string.Empty;
-                            var stackTrace = errorInfo?.Element(ns + "StackTrace")?.Value
-                                ?? output?.Element(ns + "StackTrace")?.Value
-                                ?? string.Empty;
-                            // Extrahiere Klassenname aus der Message (z.B. "AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync...")
-                            var className = "Unknown";
-                            if (message.Contains("AsynCUDA13.Tests"))
+                            var trxContent = File.ReadAllText(trxFile.Path);
+                            var doc = XDocument.Parse(trxContent);
+
+                            var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
+                            var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? Enumerable.Empty<XElement>();
+
+                            // Baue eine Lookup-Tabelle für TestDefinitions (testId -> className)
+                            var testDefinitions = doc.Root?.Descendants(ns + "UnitTest") ?? Enumerable.Empty<XElement>();
+                            var testClassLookup = new Dictionary<string, string>();
+
+                            foreach (var unitTest in testDefinitions)
                             {
-                                var idx = message.IndexOf("AsynCUDA13.Tests");
-                                var dotIdx = message.IndexOf('.', idx + 16);
-                                if (dotIdx > 0)
+                                var testId = unitTest.Attribute("id")?.Value;
+                                var testMethod = unitTest.Element(ns + "TestMethod");
+                                var className = testMethod?.Attribute("className")?.Value;
+
+                                if (!string.IsNullOrEmpty(testId) && !string.IsNullOrEmpty(className))
                                 {
-                                    className = message.Substring(idx, dotIdx - idx);
+                                    testClassLookup[testId] = className;
                                 }
                             }
-                            return new TestResultEntry
-                            {
-                                TestName = testName,
-                                FullyQualifiedName = className,
-                                ErrorMessage = message,
-                                StackTrace = stackTrace,
-                            };
-                        })
+
+                            var failedFromThisTrx = testEntries
+                                .Where(e => e.Attribute("outcome")?.Value == "Failed")
+                                .Select(e =>
+                                {
+                                    var testName = e.Attribute("testname")?.Value ?? e.Attribute("testName")?.Value ?? "Unknown";
+                                    var testId = e.Attribute("testid")?.Value ?? e.Attribute("testId")?.Value ?? string.Empty;
+
+                                    // Versuche, die Klasse aus den TestDefinitions zu finden
+                                    var fullyQualifiedName = testClassLookup.TryGetValue(testId, out var className)
+                                        ? className
+                                        : ExtractTestClassFromStackTrace(e, ns);
+
+                                    var output = e.Element(ns + "Output");
+                                    var errorInfo = output?.Element(ns + "ErrorInfo");
+                                    var stackTrace = errorInfo?.Element(ns + "StackTrace")?.Value
+                                        ?? output?.Element(ns + "StackTrace")?.Value
+                                        ?? string.Empty;
+
+                                    // Versuche, die Fehlermeldung aus dem Message-Element zu extrahieren
+                                    var message = errorInfo?.Element(ns + "Message")?.Value
+                                        ?? output?.Element(ns + "ErrorMessage")?.Value
+                                        ?? string.Empty;
+
+                                    // Wenn die Fehlermeldung nicht ausreichend ist, extrahiere sie aus dem Stacktrace
+                                    if (string.IsNullOrEmpty(message) || message.Contains("Test failed"))
+                                    {
+                                        message = ExtractErrorMessageFromStackTrace(stackTrace);
+                                    }
+
+                                    return new TestResultEntry
+                                    {
+                                        TestName = testName,
+                                        FullyQualifiedName = fullyQualifiedName,
+                                        ErrorMessage = message,
+                                        StackTrace = stackTrace,
+                                    };
+                                })
+                                .ToList();
+
+                            allFailedTests.AddRange(failedFromThisTrx);
+                        }
+                        catch (Exception ex)
+                        {
+                            // TRX-Datei konnte nicht gelesen werden - überspringen
+                            Console.WriteLine($"Warnung: TRX-Datei '{trxFile.Path}' konnte nicht analysiert werden: {ex.Message}");
+                        }
+                    }
+
+                    // Entferne Duplikate basierend auf TestName und FullyQualifiedName
+                    failedTests = allFailedTests
+                        .GroupBy(t => new { t.TestName, t.FullyQualifiedName })
+                        .Select(g => g.First())
                         .ToArray();
                 }
                 else
@@ -155,6 +201,57 @@ namespace AsynCUDA13.Tests
             File.WriteAllText(filePath, sb.ToString());
         }
 
+        /// <summary>
+        /// Extrahiert eine aussagekräftige Fehlermeldung aus dem Stacktrace.
+        /// </summary>
+        private static string ExtractErrorMessageFromStackTrace(string stackTrace)
+        {
+            if (string.IsNullOrEmpty(stackTrace))
+            {
+                return string.Empty;
+            }
+
+            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Sammle alle Zeilen, die zur Fehlermeldung gehören
+            var messageLines = new List<string>();
+            bool inMessage = false;
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+
+                // Starte die Fehlermeldung bei "Shouldly.ShouldAssertException:"
+                if (trimmedLine.StartsWith("Shouldly.ShouldAssertException:", StringComparison.OrdinalIgnoreCase))
+                {
+                    inMessage = true;
+                    var message = trimmedLine.Substring("Shouldly.ShouldAssertException:".Length).Trim();
+                    messageLines.Add(message);
+                }
+                else if (inMessage)
+                {
+                    // Prüfe auf Fortsetzungen der Fehlermeldung
+                    if (trimmedLine.StartsWith("at ") || trimmedLine.StartsWith("   at "))
+                    {
+                        // Ende der Fehlermeldung
+                        break;
+                    }
+                    else
+                    {
+                        // Fortsetzung der Fehlermeldung (mehrzeilige Nachricht)
+                        messageLines.Add(trimmedLine);
+                    }
+                }
+            }
+
+            if (messageLines.Count > 0)
+            {
+                return string.Join(" ", messageLines.Select(l => l.Trim()));
+            }
+
+            return string.Empty;
+        }
+
         private static void WriteFailedReport(TestResultEntry[] failedTests)
         {
             var reportsDir = GetReportsDir();
@@ -176,16 +273,184 @@ namespace AsynCUDA13.Tests
                 sb.AppendLine($"Test: {result.TestName}");
                 sb.AppendLine($"Klasse: {result.FullyQualifiedName}");
 
-                if (!string.IsNullOrEmpty(result.ErrorMessage))
-                    sb.AppendLine($"Fehler: {result.ErrorMessage}");
+                // Erstelle eine aussagekräftige Fehlermeldung
+                var displayError = CreateErrorMessage(result.ErrorMessage, result.StackTrace);
+                sb.AppendLine($"Fehler: {displayError}");
 
                 if (!string.IsNullOrEmpty(result.StackTrace))
-                    sb.AppendLine($"Stacktrace: {result.StackTrace}");
+                {
+                    var assertInfo = ExtractAssertInfoFromStackTrace(result.StackTrace);
+                    if (!string.IsNullOrEmpty(assertInfo))
+                    {
+                        sb.AppendLine($"Assert: {assertInfo}");
+                    }
+                    sb.AppendLine("Stacktrace:");
+                    sb.AppendLine(result.StackTrace.Trim());
+                }
 
                 sb.AppendLine(new string('-', 40));
             }
 
             File.WriteAllText(filePath, sb.ToString());
+
+            // Bereinige alte Reports
+            CleanupOldReports(reportsDir);
+        }
+
+        /// <summary>
+        /// Erstellt eine aussagekräftige Fehlermeldung aus ErrorMessage und Stacktrace.
+        /// Versucht, die Assert-Information aus dem Stacktrace zu extrahieren.
+        /// </summary>
+        private static string CreateErrorMessage(string? errorMessage, string? stackTrace)
+        {
+            // Wenn bereits eine spezifische Fehlermeldung vorhanden ist, verwende sie
+            if (!string.IsNullOrEmpty(errorMessage) && !errorMessage.Contains("Test failed"))
+            {
+                return errorMessage.Trim();
+            }
+
+            // Versuche, die Assert-Information aus dem Stacktrace zu extrahieren
+            if (!string.IsNullOrEmpty(stackTrace))
+            {
+                var assertInfo = ExtractAssertInfoFromStackTrace(stackTrace);
+                if (!string.IsNullOrEmpty(assertInfo))
+                {
+                    return assertInfo;
+                }
+
+                // Falls keine Shouldly-Affirmation gefunden, extrahiere die Test-Assertion
+                var testAssertInfo = ExtractTestAssertionInfo(stackTrace);
+                if (!string.IsNullOrEmpty(testAssertInfo))
+                {
+                    return testAssertInfo;
+                }
+            }
+
+            // Fallback: Zeige die Fehlermeldung aus dem Stacktrace an
+            if (!string.IsNullOrEmpty(errorMessage))
+            {
+                return errorMessage.Trim();
+            }
+
+            return "Test failed";
+        }
+
+        /// <summary>
+        /// Extrahiert die Test-Assertion-Information aus dem Stacktrace.
+        /// </summary>
+        private static string? ExtractTestAssertionInfo(string stackTrace)
+        {
+            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                // Suche nach der Testmethode im Stacktrace
+                var atMatch = System.Text.RegularExpressions.Regex.Match(
+                    line,
+                    @"at\s+([\w\.]+)\s*\(",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (atMatch.Success)
+                {
+                    var className = atMatch.Groups[1].Value;
+
+                    // Extrahiere Datei und Zeilennummer
+                    var fileMatch = System.Text.RegularExpressions.Regex.Match(
+                        line,
+                        @"in\s+(.+?)\s*:\s*line\s+(\d+)",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                    if (fileMatch.Success)
+                    {
+                        var filePath = fileMatch.Groups[1].Value;
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        var lineNumber = fileMatch.Groups[2].Value;
+                        return $"Assertion in {className} in {fileName}.cs Zeile {lineNumber}";
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Extrahiert die Assert-Information aus dem Stacktrace (z.B. "ShouldBe", "ShouldNotBeNull", etc.)
+        /// </summary>
+        private static string? ExtractAssertInfoFromStackTrace(string stackTrace)
+        {
+            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Suche nach Shouldly-Affirmationen im Stacktrace
+            foreach (var line in lines)
+            {
+                // Shouldly-Affirmationen extrahieren (z.B. "ShouldBe", "ShouldNotBeNull", "ShouldNotBeEmpty")
+                var match = System.Text.RegularExpressions.Regex.Match(
+                    line,
+                    @"(\w+)\s*\(\s*\)",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    var methodName = match.Groups[1].Value;
+                    if (methodName.StartsWith("Should", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Versuche den Kontext zu extrahieren
+                        var contextMatch = System.Text.RegularExpressions.Regex.Match(
+                            line,
+                            @"at\s+([\w\.]+)\s*\(",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                        if (contextMatch.Success)
+                        {
+                            // Extrahiere Datei und Zeilennummer
+                            var fileMatch = System.Text.RegularExpressions.Regex.Match(
+                                line,
+                                @"in\s+(.+?)\s*:\s*line\s+(\d+)",
+                                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                            if (fileMatch.Success)
+                            {
+                                var filePath = fileMatch.Groups[1].Value;
+                                var fileName = Path.GetFileNameWithoutExtension(filePath);
+                                var lineNumber = fileMatch.Groups[2].Value;
+                                return $"{methodName}() in {fileName}.cs Zeile {lineNumber}";
+                            }
+                            return $"{methodName}() in {contextMatch.Groups[1].Value}";
+                        }
+                        return $"{methodName}()";
+                    }
+                }
+            }
+
+            // Falls keine Shouldly-Affirmation gefunden, versuche die Testmethode zu extrahieren
+            foreach (var line in lines)
+            {
+                var atMatch = System.Text.RegularExpressions.Regex.Match(
+                    line,
+                    @"at\s+([\w\.]+)\s*\(",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (atMatch.Success)
+                {
+                    var className = atMatch.Groups[1].Value;
+
+                    // Extrahiere Datei und Zeilennummer
+                    var fileMatch = System.Text.RegularExpressions.Regex.Match(
+                        line,
+                        @"in\s+(.+?)\s*:\s*line\s+(\d+)",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                    if (fileMatch.Success)
+                    {
+                        var filePath = fileMatch.Groups[1].Value;
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        var lineNumber = fileMatch.Groups[2].Value;
+                        return $"Test-Assertion in {className} in {fileName}.cs Zeile {lineNumber}";
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -254,16 +519,92 @@ namespace AsynCUDA13.Tests
             var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
             var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? Enumerable.Empty<XElement>();
 
+            // Baue eine Lookup-Tabelle für TestDefinitions (testId -> className)
+            var testDefinitions = doc.Root?.Descendants(ns + "UnitTest") ?? Enumerable.Empty<XElement>();
+            var testClassLookup = new Dictionary<string, string>();
+
+            foreach (var unitTest in testDefinitions)
+            {
+                var testId = unitTest.Attribute("id")?.Value;
+                var testMethod = unitTest.Element(ns + "TestMethod");
+                var className = testMethod?.Attribute("className")?.Value;
+
+                if (!string.IsNullOrEmpty(testId) && !string.IsNullOrEmpty(className))
+                {
+                    testClassLookup[testId] = className;
+                }
+            }
+
             return testEntries
                 .Where(e => e.Attribute("outcome")?.Value == "Failed")
-                .Select(e => new TestResultEntry
+                .Select(e =>
                 {
-                    TestName = e.Attribute("testName")?.Value ?? "Unknown",
-                    FullyQualifiedName = e.Attribute("fullName")?.Value ?? "Unknown",
-                    ErrorMessage = e.Element(ns + "Output")?.Element(ns + "ErrorMessage")?.Value ?? string.Empty,
-                    StackTrace = e.Element(ns + "Output")?.Element(ns + "StackTrace")?.Value ?? string.Empty,
+                    var testName = e.Attribute("testname")?.Value ?? e.Attribute("testName")?.Value ?? "Unknown";
+                    var testId = e.Attribute("testid")?.Value ?? e.Attribute("testId")?.Value ?? string.Empty;
+
+                    // Versuche, die Klasse aus den TestDefinitions zu finden
+                    var fullyQualifiedName = testClassLookup.TryGetValue(testId, out var className)
+                        ? className
+                        : ExtractTestClassFromStackTrace(e, ns);
+
+                    var output = e.Element(ns + "Output");
+                    var errorInfo = output?.Element(ns + "ErrorInfo");
+                    var stackTrace = errorInfo?.Element(ns + "StackTrace")?.Value
+                        ?? output?.Element(ns + "StackTrace")?.Value
+                        ?? string.Empty;
+
+                    // Versuche, die Fehlermeldung aus dem Message-Element zu extrahieren
+                    var message = errorInfo?.Element(ns + "Message")?.Value
+                        ?? output?.Element(ns + "ErrorMessage")?.Value
+                        ?? string.Empty;
+
+                    // Wenn die Fehlermeldung nicht ausreichend ist, extrahiere sie aus dem Stacktrace
+                    if (string.IsNullOrEmpty(message) || message.Contains("Test failed"))
+                    {
+                        message = ExtractErrorMessageFromStackTrace(stackTrace);
+                    }
+
+                    return new TestResultEntry
+                    {
+                        TestName = testName,
+                        FullyQualifiedName = fullyQualifiedName,
+                        ErrorMessage = message,
+                        StackTrace = stackTrace,
+                    };
                 })
                 .ToArray();
+        }
+
+        /// <summary>
+        /// Extrahiert die Testklasse aus dem Stacktrace (Fallback-Methode).
+        /// </summary>
+        private static string ExtractTestClassFromStackTrace(XElement element, XNamespace ns)
+        {
+            var stackTrace = element.Element(ns + "Output")?.Element(ns + "ErrorInfo")?.Element(ns + "StackTrace")?.Value
+                ?? element.Element(ns + "Output")?.Element(ns + "StackTrace")?.Value;
+
+            if (string.IsNullOrEmpty(stackTrace))
+                return "Unknown";
+
+            // Suche nach der ersten "at" Zeile im Stacktrace, die die Testklasse enthält
+            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var match = Regex.Match(line, @"at\s+([\w\.]+)\s*\(", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var className = match.Groups[1].Value;
+                    // Filtere bekannte Systemklassen heraus
+                    if (!className.StartsWith("System.") &&
+                        !className.StartsWith("Microsoft.") &&
+                        !className.StartsWith("ManagedCuda"))
+                    {
+                        return className;
+                    }
+                }
+            }
+
+            return "Unknown";
         }
 
         /// <summary>
@@ -324,6 +665,40 @@ namespace AsynCUDA13.Tests
             // Kurze Pause damit alle TestCleanup-Calls den Puffer gefüllt haben
             Thread.Sleep(2000);
             WriteReportFromTrx();
+        }
+
+        /// <summary>
+        /// Bereinigt alte FailedTests-Report-Dateien, indem ältere Dateien gelöscht werden,
+        /// wenn mehr als MaxReportFiles Dateien vorhanden sind.
+        /// </summary>
+        private static void CleanupOldReports(string reportsDir)
+        {
+            try
+            {
+                var reportFiles = new DirectoryInfo(reportsDir)
+                    .GetFiles("FailedTests_*.txt")
+                    .OrderByDescending(f => f.LastWriteTime)
+                    .Skip(MaxReportFiles)
+                    .ToList();
+
+                foreach (var file in reportFiles)
+                {
+                    try
+                    {
+                        file.Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        // Ignoriere Fehler beim Löschen alter Dateien
+                        System.Diagnostics.Debug.WriteLine($"Fehler beim Löschen alter Report-Datei {file.Name}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Ignoriere Fehler beim Bereinigen
+                System.Diagnostics.Debug.WriteLine($"Fehler beim Bereinigen alter Reports: {ex.Message}");
+            }
         }
     }
 }

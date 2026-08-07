@@ -24,7 +24,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                if (!CudaAvailabilityTester.IsCudaAvailable())
+                if (!this.cuda.IsCudaAvailable())
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
@@ -34,7 +34,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                var devices = CudaInfosBuilder.BuildCudaAllDeviceInfos();
+                var devices = this.cuda.GetAllDeviceInfos();
                 if (devices.Length == 0)
                 {
                     return this.StatusCode(404, new ProblemDetails

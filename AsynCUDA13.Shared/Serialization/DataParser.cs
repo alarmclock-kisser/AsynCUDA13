@@ -23,8 +23,20 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
             var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(CudaPayload1D) });
-            var result = method?.MakeGenericMethod(t).Invoke(null, new object[] { payload });
+            var task = method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) as Task;
 
+            if (task == null)
+            {
+                return null;
+            }
+
+            await task.ConfigureAwait(false);
+
+            // Get the result from the completed task
+            var resultProperty = task.GetType().GetProperty("Result");
+            var result = resultProperty?.GetValue(task);
+
+            // Cast to object[] (which is compatible with T[] for reference types)
             return result as object[];
         }
 
@@ -39,9 +51,18 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
             var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(CudaPayload2D) });
-            var result = method?.MakeGenericMethod(t).Invoke(null, new object[] { payload });
+            var task = method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) as Task;
 
-            return result as object[][];
+            if (task == null)
+            {
+                return null;
+            }
+
+            await task.ConfigureAwait(false);
+
+            // Get the result from the completed task
+            var resultProperty = task.GetType().GetProperty("Result");
+            return resultProperty?.GetValue(task) as object[][];
         }
 
 
