@@ -38,10 +38,10 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result).Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(503);
 
-            var problemDetails = (objectResult.Value as ProblemDetails)!;
+            var problemDetails = Require(objectResult.Value as ProblemDetails);
             problemDetails.Title?.ShouldContain("CUDA not available");
             problemDetails.Status.ShouldBe(503);
         }
@@ -59,10 +59,10 @@ namespace AsynCUDA13.Tests.Api
             var result = _controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result).Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = Require(objectResult.Value).ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
             deviceInfos.ShouldNotBeEmpty();
 
             foreach (var info in deviceInfos)
@@ -96,7 +96,7 @@ namespace AsynCUDA13.Tests.Api
             {
                 // CUDA available but no devices — 404
                 notFoundResult.StatusCode.ShouldBe(404);
-                var problemDetails = (notFoundResult.Value as ProblemDetails)!;
+            var problemDetails = Require(notFoundResult.Value as ProblemDetails);
                 problemDetails.Title?.ShouldContain("No CUDA devices found");
             }
         }
@@ -118,10 +118,10 @@ namespace AsynCUDA13.Tests.Api
             var result = _controller.GetDevice(0);
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result).Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(503);
 
-            var problemDetails = (objectResult.Value as ProblemDetails)!;
+            var problemDetails = Require(objectResult.Value as ProblemDetails);
             problemDetails.Title?.ShouldContain("CUDA not available");
             problemDetails.Status.ShouldBe(503);
         }
@@ -148,10 +148,10 @@ namespace AsynCUDA13.Tests.Api
             var result = _controller.GetDevice(deviceId);
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result).Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfo = objectResult.Value.ShouldBeOfType<CudaDeviceInfo>();
+            var deviceInfo = Require(objectResult.Value).ShouldBeOfType<CudaDeviceInfo>();
             deviceInfo.DeviceId.ShouldBe(deviceId);
             deviceInfo.DeviceName.ShouldNotBeNullOrEmpty();
             deviceInfo.Properties.ShouldNotBeNull();
@@ -173,10 +173,10 @@ namespace AsynCUDA13.Tests.Api
             var result = _controller.GetDevice(nonExistentDeviceId);
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result).Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(404);
 
-            var problemDetails = (objectResult.Value as ProblemDetails)!;
+            var problemDetails = Require(objectResult.Value as ProblemDetails);
             problemDetails.Title?.ShouldContain("CUDA device not found");
             problemDetails.Status.ShouldBe(404);
         }

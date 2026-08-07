@@ -118,6 +118,17 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
+                IntPtr.TryParse(indexPointerOrId, out var ptr);
+                if (ptr == IntPtr.Zero && this.cuda.RegisteredMemory.Count > 0)
+                {
+                    return this.StatusCode(400, new ProblemDetails
+                    {
+                        Title = "Invalid pointer",
+                        Detail = $"The provided index/pointer/ID '{indexPointerOrId}' is not a valid pointer.",
+                        Status = 400
+                    });
+                }
+
                 var memoryInfo = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda, indexPointerOrId).FirstOrDefault();
                 if (memoryInfo == null)
                 {
@@ -129,7 +140,6 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                IntPtr ptr = IntPtr.TryParse(indexPointerOrId, out var parsedPtr) ? parsedPtr : IntPtr.Zero;
                 if (ptr == IntPtr.Zero)
                 {
                     var pd = new ProblemDetails
@@ -216,12 +226,14 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 400
                     });
                 }
-
                 var startDate = DateTime.Now;
 
-                dynamic data = request.Payload is CudaPayload1D p1 ? DataParser.ParseAsync(p1, request.ElementType) :
-                               request.Payload is CudaPayload2D p2 ? DataParser.ParseAsync(p2, request.ElementType) :
-                               throw new ArgumentException("Unsupported payload type.");
+                Type elementType = Type.GetType(request.ElementType, throwOnError: true, ignoreCase: true)!;
+                object? data = request.Payload is CudaPayload1D p1
+                    ? await InvokeGenericAsync(typeof(DataParser), nameof(DataParser.ParseAsync), elementType, p1)
+                    : request.Payload is CudaPayload2D p2
+                        ? await InvokeGenericAsync(typeof(DataParser), nameof(DataParser.ParseAsync), elementType, p2)
+                        : throw new ArgumentException("Unsupported payload type.");
                 if (data == null)
                 {
                     return this.StatusCode(400, new ProblemDetails
@@ -231,10 +243,21 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 400
                     });
                 }
+                if (request.Payload is CudaPayload1D { Data.Length: 0 } || request.Payload is CudaPayload2D { DataChunks: null })
+                {
+                    return this.StatusCode(400, new ProblemDetails
+                    {
+                        Title = "Invalid request",
+                        Detail = "The request payload is empty.",
+                        Status = 400
+                    });
+                }
 
-                CudaMem? mem = request.Payload is CudaPayload1D pd1 ? await this.cuda.PushDataAsync(data) :
-                              request.Payload is CudaPayload2D pd2 ? await this.cuda.PushChunksAsync(data) :
-                              throw new ArgumentException("Unsupported payload type.");
+                CudaMem? mem = request.Payload is CudaPayload1D
+                    ? await InvokeGenericAsync(this.cuda, nameof(ICudaService.PushDataAsync), elementType, data) as CudaMem
+                    : request.Payload is CudaPayload2D
+                        ? await InvokeGenericAsync(this.cuda, nameof(ICudaService.PushChunksAsync), elementType, data) as CudaMem
+                        : throw new ArgumentException("Unsupported payload type.");
                 if (mem == null)
                 {
                     return this.StatusCode(500, new ProblemDetails
@@ -320,21 +343,35 @@ namespace AsynCUDA13.Api.Controllers
                     MemoryInfoReference = memInfo
                 };
 
-                // Reflection get <T> generic method for the given element type
-                var method = memInfo.Count == 1
-                    ? typeof(CudaService).GetMethod(nameof(CudaService.PullDataAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t)
-                    : typeof(CudaService).GetMethod(nameof(CudaService.PullChunksAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t);
-                if (method == null)
+                bool isChunked = memInfo.Count != 1;
+                if (!IntPtr.TryParse(memInfo.IndexPointer, out var indexPointer) || indexPointer == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException("Failed to find CUDA pull method.");
+                    throw new InvalidOperationException($"The CUDA memory pointer '{memInfo.IndexPointer}' is invalid.");
+                }
+                object? data = await InvokeGenericAsync(
+                    this.cuda,
+                    isChunked ? nameof(ICudaService.PullChunksAsync) : nameof(ICudaService.PullDataAsync),
+                    t,
+                    indexPointer,
+                    request.FreeAfterPull);
+                if (data == null)
+                {
+                    throw new InvalidOperationException("The CUDA pull operation returned no data.");
                 }
 
-                response.Payload = method.Invoke(this.cuda, new object[] { memInfo.IndexPointer, !request.FreeAfterPull }) as ICudaPayload ?? throw new InvalidOperationException("Failed to invoke CUDA pull method.");
+                response.Payload = await InvokeGenericAsync(
+                    typeof(DataSerializer),
+                    nameof(DataSerializer.SerializeAsync),
+                    t,
+                    data,
+                    true,
+                    isChunked) as ICudaPayload ?? throw new InvalidOperationException("Failed to serialize CUDA pull data.");
 
                 response.ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds;
 
                 return this.Ok(response);
             }
+
             catch (Exception ex)
             {
                 var pd = new ProblemDetails
@@ -345,6 +382,25 @@ namespace AsynCUDA13.Api.Controllers
                 };
                 return this.StatusCode(500, pd);
             }
+        }
+
+        private static async Task<object?> InvokeGenericAsync(object target, string methodName, Type elementType, params object[] arguments)
+        {
+            int parameterCount = methodName == nameof(DataSerializer.SerializeAsync) ? arguments.Length - 1 : arguments.Length;
+            var methods = target is Type targetType ? targetType.GetMethods() : typeof(ICudaService).GetMethods();
+            var method = methods.SingleOrDefault(method => method.Name == methodName && method.IsGenericMethodDefinition && method.GetGenericArguments().Length == 1 && method.GetParameters().Length == parameterCount &&
+                (methodName != nameof(DataParser.ParseAsync) || method.GetParameters()[0].ParameterType.IsInstanceOfType(arguments[0])) &&
+                (methodName != nameof(DataSerializer.SerializeAsync) || method.GetParameters()[0].ParameterType.GetGenericArguments()[0].IsGenericType == (arguments.Length == 3 && (bool)arguments[2])));
+            if (method == null)
+            {
+                throw new InvalidOperationException($"Failed to find generic method '{methodName}'.");
+            }
+
+            object? invocationTarget = target is Type ? null : target;
+            object[] invocationArguments = arguments.Length == 3 && methodName == nameof(DataSerializer.SerializeAsync) ? arguments[..2] : arguments;
+            var task = method.MakeGenericMethod(elementType).Invoke(invocationTarget, invocationArguments) as Task ?? throw new InvalidOperationException($"Generic method '{methodName}' did not return a task.");
+            await task;
+            return task.GetType().GetProperty("Result")?.GetValue(task);
         }
 
 

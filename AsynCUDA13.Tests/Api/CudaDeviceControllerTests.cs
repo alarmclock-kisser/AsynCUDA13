@@ -61,7 +61,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
             deviceInfos.ShouldNotBeEmpty();
 
             foreach (var info in deviceInfos)
@@ -115,7 +115,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
             var firstDevice = deviceInfos.First();
 
             // Verify the DTO structure is properly populated
@@ -150,7 +150,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
             deviceInfos.Count().ShouldBe(expectedCount);
         }
 
@@ -168,7 +168,7 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
-            var deviceInfos = objectResult.Value.ShouldBeOfType<IEnumerable<CudaDeviceInfo>>();
+            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
 
             var deviceIds = deviceInfos.Select(d => d.DeviceId).ToList();
             Assert.IsTrue(deviceIds.Distinct().Count() == deviceIds.Count, "Device IDs should be unique.");

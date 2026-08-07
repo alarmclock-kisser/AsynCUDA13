@@ -5,6 +5,7 @@ using Shouldly;
 namespace AsynCUDA13.Tests
 {
     [TestClass]
+    [DoNotParallelize]
     public sealed class CudaLauncherIntegrationTests : TestBase
     {
         private CudaService? service;
@@ -26,9 +27,16 @@ namespace AsynCUDA13.Tests
 
         private void PrepareKernel(string source)
         {
-            var path = Path.Combine(CudaCompiler.KernelPath, "CU", "AddConstant.cu");
-            File.WriteAllText(path, source);
-            this.service!.Compiler!.CompileKernel(path, true).ShouldNotBeNull();
+            var kernelNames = System.Text.RegularExpressions.Regex.Matches(source, @"__global__\s+void\s+(\w+)")
+                .Select(match => match.Groups[1].Value);
+            foreach (var kernelName in kernelNames)
+            {
+                var path = Path.Combine(CudaCompiler.KernelPath, "CU", kernelName + ".cu");
+                File.WriteAllText(path, source);
+                var service = Require(this.service);
+                var compiler = Require(service.Compiler);
+                compiler.CompileKernel(path, true).ShouldNotBeNull();
+            }
         }
 
         [TestMethod]
@@ -37,12 +45,13 @@ namespace AsynCUDA13.Tests
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; }";
             this.PrepareKernel(source);
             var input = new float[32];
-            var memory = this.service.PushData(input)!;
-            var launcher = this.service.Launcher!;
+            var service = Require(this.service);
+            var memory = Require(service.PushData(input));
+            var launcher = Require(service.Launcher);
             var elapsedMs = await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, 1f, input.Length]);
-            elapsedMs.ShouldNotBeNull();
+            Assert.IsNotNull(elapsedMs);
             elapsedMs.Value.ShouldBeGreaterThanOrEqualTo(0);
-            var result = this.service.PullData<float>(memory, false)!;
+            var result = Require(service.PullData<float>(memory, false));
             result.ShouldBe(input.Select(x => x + 1f).ToArray());
         }
 
@@ -52,30 +61,32 @@ namespace AsynCUDA13.Tests
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; }";
             this.PrepareKernel(source);
             var input = new float[32];
-            var memory = this.service.PushData(input)!;
-            var launcher = this.service.Launcher!;
+            var service = Require(this.service);
+            var memory = Require(service.PushData(input));
+            var launcher = Require(service.Launcher);
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [])).ShouldBeNull();
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, "wrong", input.Length])).ShouldBeNull();
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [IntPtr.Zero, 1f, input.Length])).ShouldBeNull();
             (await launcher.ExecuteGenericKernelAsync("MissingKernel", [memory.IndexPointer, 1f, input.Length])).ShouldBeNull();
-            this.service.PullData<float>(memory, false)!.Length.ShouldBe(input.Length);
+            Require(service.PullData<float>(memory, false)).Length.ShouldBe(input.Length);
         }
 
         [TestMethod]
         public async Task GenericKernelSupportsOutOfPlaceResultPointer()
         {
-            const string source = "extern \"C\" __global__ void AddVectors(float* input, float* output, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) output[i] = input[i] + 2f; }";
+            const string source = "extern \"C\" __global__ void AddVectors(float* input, float* output, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) output[i] = input[i] + 2.0f; }";
             this.PrepareKernel(source);
             var input = Enumerable.Range(0, 513).Select(x => (float)x).ToArray();
-            var inputMemory = this.service.PushData(input)!;
-            var outputMemory = this.service.AllocateSingle<float>(input.Length)!;
+            var service = Require(this.service);
+            var inputMemory = Require(service.PushData(input));
+            var outputMemory = Require(service.AllocateSingle<float>(input.Length));
 
-            var elapsedMs = await this.service.Launcher!.ExecuteGenericKernelAsync(
+            var elapsedMs = await Require(service.Launcher).ExecuteGenericKernelAsync(
                 "AddVectors",
                 [inputMemory.IndexPointer, outputMemory.IndexPointer, input.Length]);
 
-            elapsedMs.ShouldNotBeNull();
-            var result = this.service.PullData<float>(outputMemory, false)!;
+            Assert.IsNotNull(elapsedMs);
+            var result = Require(service.PullData<float>(outputMemory, false));
             result.ShouldBe(input.Select(x => x + 2f).ToArray());
         }
 
@@ -85,13 +96,14 @@ namespace AsynCUDA13.Tests
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; } extern \"C\" __global__ void MultiplyConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] *= value; }";
             this.PrepareKernel(source);
             var input = Enumerable.Repeat(2f, 64).ToArray();
-            var memory = this.service.PushData(input)!;
-            var launcher = this.service.Launcher!;
+            var service = Require(this.service);
+            var memory = Require(service.PushData(input));
+            var launcher = Require(service.Launcher);
 
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, 3f, input.Length])).ShouldNotBeNull();
             (await launcher.ExecuteGenericKernelAsync("MultiplyConstant", [memory.IndexPointer, 4f, input.Length])).ShouldNotBeNull();
 
-            this.service.PullData<float>(memory, false)!.ShouldBe(Enumerable.Repeat(20f, input.Length).ToArray());
+            Require(service.PullData<float>(memory, false)).ShouldBe(Enumerable.Repeat(20f, input.Length).ToArray());
         }
 
         [TestMethod]
@@ -100,16 +112,17 @@ namespace AsynCUDA13.Tests
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; }";
             this.PrepareKernel(source);
             var input = new float[8];
-            var memory = this.service.PushData(input)!;
+            var service = Require(this.service);
+            var memory = Require(service.PushData(input));
 
-            var elapsedMs = await this.service.Launcher!.ExecuteGenericKernelAsync(
+            var elapsedMs = await Require(service.Launcher).ExecuteGenericKernelAsync(
                 "AddConstant",
                 [memory.IndexPointer, 1f, input.Length],
                 unloadWhenExecuted: true);
 
-            elapsedMs.ShouldNotBeNull();
-            this.service.PullData<float>(memory, false)!.ShouldBe(Enumerable.Repeat(1f, input.Length).ToArray());
-            this.service.Launcher.KernelName.ShouldBeNull();
+            Assert.IsNotNull(elapsedMs);
+            Require(service.PullData<float>(memory, false)).ShouldBe(Enumerable.Repeat(1f, input.Length).ToArray());
+            Require(service.Launcher).KernelName.ShouldBeNull();
         }
 
     }

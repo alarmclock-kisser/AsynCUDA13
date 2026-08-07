@@ -1,0 +1,265 @@
+=== Fehlgeschlagene Tests ===
+Datum: 2026-08-07 02:59:51
+Anzahl: 18
+============================================================
+
+Test: PushAsync_WhenPayloadNull_Returns400
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenPayloadNull_Returns400“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.StatusCode
+    should be
+400
+    but was
+500
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenPayloadNull_Returns400() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 424
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.StatusCode
+    should be
+200
+    but was
+500
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 586
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: GetDevices_MultipleDevices_ReturnsAll
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_MultipleDevices_ReturnsAll“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo]
+    but was
+AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo[]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_MultipleDevices_ReturnsAll() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaDeviceControllerTests.cs:line 153
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: PushAsync_WhenExceptionThrown_Returns500
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenExceptionThrown_Returns500“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: problemDetails.Detail
+    should contain (case insensitive comparison)
+"Push failed"
+    but was actually
+"The type arguments for method 'AsynCUDA13.Runtime.ICudaService.PushDataAsync<T>(System.Collections.G..."
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenExceptionThrown_Returns500() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 512
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: FreeMemory_WhenInvalidPointer_Returns400
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.FreeMemory_WhenInvalidPointer_Returns400“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.StatusCode
+    should be
+400
+    but was
+404
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.FreeMemory_WhenInvalidPointer_Returns400() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 274
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: GetMemoryList_WhenOnlineWithMemory_Returns200
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMemory_Returns200“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaMemInfo]
+    but was
+AsynCUDA13.Shared.CudaDtos.CudaMemInfo[]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMemory_Returns200() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 86
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: GetDevices_DeviceIdsAreUnique
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_DeviceIdsAreUnique“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo]
+    but was
+AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo[]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_DeviceIdsAreUnique() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaDeviceControllerTests.cs:line 171
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.StatusCode
+    should be
+200
+    but was
+500
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 612
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: ValidKernelCallReturnsExpectedResult
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.CudaLauncherIntegrationTests.ValidKernelCallReturnsExpectedResult“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: elapsedMs
+    should not be null but was
+Stacktrace:    at AsynCUDA13.Tests.CudaLauncherIntegrationTests.ValidKernelCallReturnsExpectedResult() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\CudaLauncherIntegrationTests.cs:line 43
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: PushAsync_With1DPayload_Success_Returns200
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With1DPayload_Success_Returns200“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.StatusCode
+    should be
+200
+    but was
+500
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With1DPayload_Success_Returns200() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 447
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: PushAsync_With2DPayload_Success_Returns200
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With2DPayload_Success_Returns200“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.StatusCode
+    should be
+200
+    but was
+500
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With2DPayload_Success_Returns200() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 471
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: GenericKernelSwitchesLoadedKernelAndPreservesArgumentOrder
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.CudaLauncherIntegrationTests.GenericKernelSwitchesLoadedKernelAndPreservesArgumentOrder“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, 3f, input.Length])
+    should not be null but was
+Stacktrace:    at AsynCUDA13.Tests.CudaLauncherIntegrationTests.GenericKernelSwitchesLoadedKernelAndPreservesArgumentOrder() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\CudaLauncherIntegrationTests.cs:line 91
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: GenericKernelCanUnloadAfterExecution
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.CudaLauncherIntegrationTests.GenericKernelCanUnloadAfterExecution“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: elapsedMs
+    should not be null but was
+Stacktrace:    at AsynCUDA13.Tests.CudaLauncherIntegrationTests.GenericKernelCanUnloadAfterExecution() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\CudaLauncherIntegrationTests.cs:line 110
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: GenericKernelSupportsOutOfPlaceResultPointer
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.CudaLauncherIntegrationTests.GenericKernelSupportsOutOfPlaceResultPointer“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: this.service!.Compiler!.CompileKernel(path, true)
+    should not be null but was
+Stacktrace:    at AsynCUDA13.Tests.CudaLauncherIntegrationTests.PrepareKernel(String source) in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\CudaLauncherIntegrationTests.cs:line 31
+   at AsynCUDA13.Tests.CudaLauncherIntegrationTests.GenericKernelSupportsOutOfPlaceResultPointer() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\CudaLauncherIntegrationTests.cs:line 68
+   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+
+----------------------------------------
+
+Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo]
+    but was
+AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo[]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaDeviceControllerTests.cs:line 64
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaMemInfo]
+    but was
+AsynCUDA13.Shared.CudaDtos.CudaMemInfo[]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 109
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: GetDevices_ReturnsValidDeviceInfoStructure
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_ReturnsValidDeviceInfoStructure“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo]
+    but was
+AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo[]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_ReturnsValidDeviceInfoStructure() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaDeviceControllerTests.cs:line 118
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------
+
+Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
+Klasse: AsynCUDA13.Tests
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices“ hat eine Ausnahme ausgelöst: 
+Shouldly.ShouldAssertException: objectResult.Value
+    should be of type
+System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo]
+    but was
+System.Linq.Enumerable+IEnumerableSelectIterator`2[[System.Collections.Generic.KeyValuePair`2[[System.Int32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[ManagedCuda.CudaDeviceProperties, ManagedCuda.netCore, Version=13.0.64.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo, AsynCUDA13.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
+Stacktrace:    at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices() in C:\Users\marce\source\repos\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaContextControllerTests.cs:line 65
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+----------------------------------------

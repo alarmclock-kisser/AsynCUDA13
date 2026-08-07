@@ -232,7 +232,7 @@ namespace AsynCUDA13.Runtime
                     return null;
                 }
 			}
-			catch (Exception ex)
+			catch
 			{
                 return null;
             }

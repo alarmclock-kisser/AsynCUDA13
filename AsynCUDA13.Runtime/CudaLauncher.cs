@@ -368,10 +368,17 @@ namespace AsynCUDA13.Runtime
                 this.Context.SetCurrent();
 
 				int length = 1;
-				foreach (object argument in arguments)
+				for (int i = 0; i < arguments.Length; i++)
 				{
-					if (argument is IntPtr pointer && this.Register[pointer] is CudaMem memory)
+					object argument = arguments[i];
+					if (argTypesSignature[i] == typeof(IntPtr))
 					{
+						if (argument is not IntPtr pointer || pointer == IntPtr.Zero || this.Register[pointer] is not CudaMem memory)
+						{
+							await StaticLogger.LogAsync($"Kernel pointer argument at index {i} is not a registered device buffer.");
+							return null;
+						}
+
 						long pointerLength = memory.IndexLength.ToInt64();
 						if (pointerLength <= 0 || pointerLength > int.MaxValue)
 						{
@@ -396,8 +403,13 @@ namespace AsynCUDA13.Runtime
 					return null;
                 }
 
+				object[] kernelArguments = arguments.Select((argument, index) =>
+					argTypesSignature[index] == typeof(IntPtr) && argument is IntPtr pointer
+						? new CUdeviceptr(pointer)
+						: argument).ToArray();
+
 				// EXEC
-                this.Kernel.RunAsync(stream.Stream, arguments);
+				this.Kernel.RunAsync(stream.Stream, kernelArguments);
 
                 // Wait for completion
                 stream.Synchronize();

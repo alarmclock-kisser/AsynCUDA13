@@ -16,8 +16,14 @@ namespace AsynCUDA13.Tests
         /// </summary>
         public TestContext TestContext
         {
-            get { return _testContext!; }
+            get { return _testContext ?? throw new InvalidOperationException("TestContext has not been initialized."); }
             set { _testContext = value; }
+        }
+
+        protected static T Require<T>(T? value, string? message = null) where T : class
+        {
+            Assert.IsNotNull(value, message);
+            return value;
         }
 
         /// <summary>
