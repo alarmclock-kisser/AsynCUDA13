@@ -14,8 +14,8 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
         {
             return new CudaInitializeResponse
             {
-               ContextInfo = CudaInfosBuilder.BuildCudaContextInfo(service),
-               ElapsedMs = elapsedMs
+                ContextInfo = CudaInfosBuilder.BuildCudaContextInfo(service),
+                ElapsedMs = elapsedMs
             };
         }
 

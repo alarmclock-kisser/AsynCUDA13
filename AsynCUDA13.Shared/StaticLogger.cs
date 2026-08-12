@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
@@ -344,18 +345,19 @@ namespace AsynCUDA13.Shared
         }
 
         /// <summary>
-        /// Walks up from the app binaries to the repository root (the folder containing AsynCUDA12.sln)
-        /// and returns the <c>AsynCUDA12.Shared\Logs</c> directory. Falls back to a directory next to the
+        /// Walks up from the app binaries to the repository root (the folder containing AsynCUDA13.sln)
+        /// and returns the <c>AsynCUDA13.Shared\Logs</c> directory. Falls back to a directory next to the
         /// binaries when the solution cannot be located.
         /// </summary>
         private static string ResolveRepositoryLogDirectory()
         {
+            string assemblyName = Assembly.GetExecutingAssembly().GetName().Name ?? "AsynCUDA";
             DirectoryInfo? dir = new(AppContext.BaseDirectory);
             while (dir != null)
             {
-                if (File.Exists(Path.Combine(dir.FullName, "AsynCUDA12.sln")))
+                if (File.Exists(Path.Combine(dir.FullName, $"{assemblyName}.sln")))
                 {
-                    return Path.Combine(dir.FullName, "AsynCUDA12.Shared", "Logs");
+                    return Path.Combine(dir.FullName, $"{assemblyName}.Shared", "Logs");
                 }
 
                 dir = dir.Parent;

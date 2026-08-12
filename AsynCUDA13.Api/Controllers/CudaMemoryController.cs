@@ -329,14 +329,22 @@ namespace AsynCUDA13.Api.Controllers
                     MemoryInfoReference = memInfo
                 };
 
-                // Reflection get <T> generic method for the given element type
-                var method = memInfo.Count == 1
-                    ? typeof(CudaService).GetMethod(nameof(CudaService.PullDataAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t)
-                    : typeof(CudaService).GetMethod(nameof(CudaService.PullChunksAsync), new Type[] { typeof(IntPtr), typeof(bool) })?.MakeGenericMethod(t);
-                if (method == null)
+                // Get the appropriate method for pulling data
+                var pullMethod = memInfo.Count == 1
+                    ? typeof(CudaService).GetMethod(nameof(CudaService.PullDataAsync), new Type[] { typeof(IntPtr), typeof(bool) })
+                    : typeof(CudaService).GetMethod(nameof(CudaService.PullChunksAsync), new Type[] { typeof(IntPtr), typeof(bool) });
+
+                if (pullMethod == null)
                 {
-                    throw new InvalidOperationException("The CUDA pull operation returned no data.");
+                    throw new InvalidOperationException("Could not find pull method for CUDA memory.");
                 }
+
+                // Pull data from CUDA
+                var genericPullMethod = pullMethod.MakeGenericMethod(t);
+                var pointer = new IntPtr(long.Parse(memInfo.Pointers[0]));
+                var dataTask = genericPullMethod.Invoke(this.cuda, new object[] { pointer, false }) as Task<dynamic>;
+                var data = dataTask != null ? await dataTask : null;
+                bool isChunked = memInfo.Count > 1;
 
                 response.Payload = await InvokeGenericAsync(
                     typeof(DataSerializer),
@@ -369,7 +377,7 @@ namespace AsynCUDA13.Api.Controllers
             var methods = target is Type targetType ? targetType.GetMethods() : typeof(ICudaService).GetMethods();
             var method = methods.SingleOrDefault(method => method.Name == methodName && method.IsGenericMethodDefinition && method.GetGenericArguments().Length == 1 && method.GetParameters().Length == parameterCount &&
                 (methodName != nameof(DataParser.ParseAsync) || method.GetParameters()[0].ParameterType.IsInstanceOfType(arguments[0])) &&
-                (methodName != nameof(DataSerializer.SerializeAsync) || method.GetParameters()[0].ParameterType.GetGenericArguments()[0].IsGenericType == (arguments.Length == 3 && (bool)arguments[2])));
+                (methodName != nameof(DataSerializer.SerializeAsync) || method.GetParameters()[0].ParameterType.GetGenericArguments()[0].IsGenericType == (arguments.Length == 3 && (bool) arguments[2])));
             if (method == null)
             {
                 throw new InvalidOperationException($"Failed to find generic method '{methodName}'.");

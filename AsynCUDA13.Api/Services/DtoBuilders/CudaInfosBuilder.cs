@@ -125,12 +125,18 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
 
         public static CudaKernelInfo[] BuildCudaKernelInfos(ICudaService service, bool filterCompiled = true)
         {
-            if (!service.Online || service.Compiler == null || service.Launcher== null)
+            if (!service.Online || service.Compiler == null || service.Launcher == null)
             {
                 return [];
             }
 
-            var infos = (filterCompiled ? CudaCompiler.CompiledFiles : CudaCompiler.SourceFiles).Select(kernel => new CudaKernelInfo
+            string[] cuPaths = CudaCompiler.SourceFiles.ToArray() ?? [];
+            if (filterCompiled)
+            {
+                cuPaths = cuPaths.Where(cu => CudaCompiler.CompiledFiles.Any(ptx => Path.GetFileNameWithoutExtension(ptx) == Path.GetFileNameWithoutExtension(cu))).ToArray() ?? [];
+            }
+
+            var infos = cuPaths.Select(kernel => new CudaKernelInfo
             {
                 SourcePath = CudaCompiler.SourceFiles.FirstOrDefault(src => Path.GetFileNameWithoutExtension(src) == Path.GetFileNameWithoutExtension(kernel))?.ToString() ?? string.Empty,
                 PtxPath = CudaCompiler.CompiledFiles.FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == Path.GetFileNameWithoutExtension(kernel))?.ToString(),

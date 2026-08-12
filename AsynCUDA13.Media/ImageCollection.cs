@@ -54,13 +54,13 @@ namespace AsynCUDA13.Media
         public int DefaultHeight { get; set; } = 480;
         public int MaxImages { get; set; } = 0;
 
-		// Ctor with options
-		public ImageCollection(bool saveMemory = false, int defaultWidth = 720, int defaultHeight = 480, int maxImages = 0, bool loadResources = false)
+        // Ctor with options
+        public ImageCollection(bool saveMemory = false, int defaultWidth = 720, int defaultHeight = 480, int maxImages = 0, bool loadResources = false)
         {
             this.DefaultWidth = Math.Max(defaultWidth, 360); // Min is 360px width
             this.DefaultHeight = Math.Max(defaultHeight, 240); // Min is 240px height
             this.MaxImages = Math.Max(maxImages, 0); // 0 means no limit
-			this.SaveMemory = saveMemory;
+            this.SaveMemory = saveMemory;
             if (this.SaveMemory)
             {
                 Console.WriteLine("ImageCollection: Memory saving enabled. All images will be disposed on add.");
@@ -69,8 +69,8 @@ namespace AsynCUDA13.Media
             if (loadResources)
             {
                 var _ = this.LoadResourcesAsync().Result;
-			}
-		}
+            }
+        }
 
         public bool Add(ImageObj imgObj)
         {
@@ -88,14 +88,14 @@ namespace AsynCUDA13.Media
                 }
             }
 
-			bool added = this.images.TryAdd(imgObj.Id, imgObj);
-			if (added && this.MaxImages > 0)
-			{
-				// Ensure collection respects max limit by removing oldest items if necessary
-				this.ApplyImagesLimitAsync().GetAwaiter().GetResult();
-			}
+            bool added = this.images.TryAdd(imgObj.Id, imgObj);
+            if (added && this.MaxImages > 0)
+            {
+                // Ensure collection respects max limit by removing oldest items if necessary
+                this.ApplyImagesLimitAsync().GetAwaiter().GetResult();
+            }
 
-			return added;
+            return added;
         }
 
         public bool Remove(Guid guid)
@@ -147,47 +147,47 @@ namespace AsynCUDA13.Media
                 {
                     Console.WriteLine($"LoadResourcesAsync: Custom Resources directory not found at '{customResourcesPath}'");
                 }
-			}
+            }
             else
             {
-				// Try get project Resources directory relative to current executing assembly (bin/Debug/... -> project root)
-				var devPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Resources"));
-				if (Directory.Exists(devPath))
-				{
-					resolvedResourcesPath = devPath;
-				}
-				else
-				{
-					// If not in DEV environment, try relative to EXE
-					var exePath = Path.Combine(AppContext.BaseDirectory, "Resources");
-					if (Directory.Exists(exePath))
-					{
-						resolvedResourcesPath = exePath;
-					}
-					else
-					{
-						Console.WriteLine($"LoadResourcesAsync: Resources directory not found at '{exePath}'");
-					}
-				}
-			}
+                // Try get project Resources directory relative to current executing assembly (bin/Debug/... -> project root)
+                var devPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Resources"));
+                if (Directory.Exists(devPath))
+                {
+                    resolvedResourcesPath = devPath;
+                }
+                else
+                {
+                    // If not in DEV environment, try relative to EXE
+                    var exePath = Path.Combine(AppContext.BaseDirectory, "Resources");
+                    if (Directory.Exists(exePath))
+                    {
+                        resolvedResourcesPath = exePath;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"LoadResourcesAsync: Resources directory not found at '{exePath}'");
+                    }
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(resolvedResourcesPath))
             {
                 string[] resourceImageFiles = Directory.GetFiles(resolvedResourcesPath)
                     .Where(file => SupportedFormats.Contains(Path.GetExtension(file).TrimStart('.').ToLower()))
                     .ToArray();
-				if (resourceImageFiles.Length > 0)
-				{
-					var loadTasks = resourceImageFiles.Select(file => this.LoadImageAsync(file)).ToArray();
-					var loadedImages = await Task.WhenAll(loadTasks);
+                if (resourceImageFiles.Length > 0)
+                {
+                    var loadTasks = resourceImageFiles.Select(file => this.LoadImageAsync(file)).ToArray();
+                    var loadedImages = await Task.WhenAll(loadTasks);
 
-					loadedGuids.AddRange(loadedImages.Where(img => img != null).Select(img => img!.Id));
-					Console.WriteLine($"LoadResourcesAsync: Loaded {resourceImageFiles.Length} images from Resources directory at '{resolvedResourcesPath}'");
-				}
-				else
-				{
-					Console.WriteLine($"LoadResourcesAsync: No supported image files found in Resources directory at '{resolvedResourcesPath}'");
-				}
+                    loadedGuids.AddRange(loadedImages.Where(img => img != null).Select(img => img!.Id));
+                    Console.WriteLine($"LoadResourcesAsync: Loaded {resourceImageFiles.Length} images from Resources directory at '{resolvedResourcesPath}'");
+                }
+                else
+                {
+                    Console.WriteLine($"LoadResourcesAsync: No supported image files found in Resources directory at '{resolvedResourcesPath}'");
+                }
             }
 
             var assembly = typeof(ImageCollection).Assembly;
@@ -214,7 +214,7 @@ namespace AsynCUDA13.Media
             }
 
             return loadedGuids;
-		}
+        }
 
         private async Task<Guid?> LoadEmbeddedResourceAsync(Assembly assembly, string resourceName)
         {
@@ -266,7 +266,7 @@ namespace AsynCUDA13.Media
             }
         }
 
-		public void Dispose()
+        public void Dispose()
         {
             this.ClearAsync().Wait();
             GC.SuppressFinalize(this);
@@ -394,9 +394,9 @@ namespace AsynCUDA13.Media
                         }
                     }
                     return removedCount;
-				}
-			});
-		}
+                }
+            });
+        }
 
 
 
@@ -456,75 +456,75 @@ namespace AsynCUDA13.Media
         ];
 
 
-		public static int[] GetRgbFromHexColor(string hexColor)
-		{
-			if (string.IsNullOrWhiteSpace(hexColor))
-			{
-				return [0, 0, 0];
-			}
+        public static int[] GetRgbFromHexColor(string hexColor)
+        {
+            if (string.IsNullOrWhiteSpace(hexColor))
+            {
+                return [0, 0, 0];
+            }
 
-			// Remove # if present
-			if (hexColor.StartsWith("#"))
-			{
-				hexColor = hexColor[1..];
-			}
+            // Remove # if present
+            if (hexColor.StartsWith("#"))
+            {
+                hexColor = hexColor[1..];
+            }
 
-			try
-			{
-				if (hexColor.Length == 6)
-				{
-					// RRGGBB format
-					int r = Convert.ToInt32(hexColor.Substring(0, 2), 16);
-					int g = Convert.ToInt32(hexColor.Substring(2, 2), 16);
-					int b = Convert.ToInt32(hexColor.Substring(4, 2), 16);
+            try
+            {
+                if (hexColor.Length == 6)
+                {
+                    // RRGGBB format
+                    int r = Convert.ToInt32(hexColor.Substring(0, 2), 16);
+                    int g = Convert.ToInt32(hexColor.Substring(2, 2), 16);
+                    int b = Convert.ToInt32(hexColor.Substring(4, 2), 16);
 
-					Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
-					return [r, g, b];
-				}
-				else if (hexColor.Length == 8)
-				{
-					// AARRGGBB format - extract RGB and ignore alpha
-					int r = Convert.ToInt32(hexColor.Substring(2, 2), 16);
-					int g = Convert.ToInt32(hexColor.Substring(4, 2), 16);
-					int b = Convert.ToInt32(hexColor.Substring(6, 2), 16);
-					int a = Convert.ToInt32(hexColor.Substring(0, 2), 16);
+                    Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
+                    return [r, g, b];
+                }
+                else if (hexColor.Length == 8)
+                {
+                    // AARRGGBB format - extract RGB and ignore alpha
+                    int r = Convert.ToInt32(hexColor.Substring(2, 2), 16);
+                    int g = Convert.ToInt32(hexColor.Substring(4, 2), 16);
+                    int b = Convert.ToInt32(hexColor.Substring(6, 2), 16);
+                    int a = Convert.ToInt32(hexColor.Substring(0, 2), 16);
 
-					Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b} A: {a}");
-					return [r, g, b, a];
-				}
-				else if (hexColor.Length == 3)
-				{
-					// RGB shorthand format
-					int r = Convert.ToInt32(hexColor[0].ToString() + hexColor[0].ToString(), 16);
-					int g = Convert.ToInt32(hexColor[1].ToString() + hexColor[1].ToString(), 16);
-					int b = Convert.ToInt32(hexColor[2].ToString() + hexColor[2].ToString(), 16);
+                    Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b} A: {a}");
+                    return [r, g, b, a];
+                }
+                else if (hexColor.Length == 3)
+                {
+                    // RGB shorthand format
+                    int r = Convert.ToInt32(hexColor[0].ToString() + hexColor[0].ToString(), 16);
+                    int g = Convert.ToInt32(hexColor[1].ToString() + hexColor[1].ToString(), 16);
+                    int b = Convert.ToInt32(hexColor[2].ToString() + hexColor[2].ToString(), 16);
 
-					Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
-					return [r, g, b];
-				}
-				else
-				{
-					Console.WriteLine($"Invalid hex color length: {hexColor} (Expected 3, 6 or 8 characters)");
-					return [0, 0, 0];
-				}
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"Could not resolve hex-Color: {hexColor} - Error: {ex.Message}");
-				return [0, 0, 0];
-			}
-		}
+                    Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
+                    return [r, g, b];
+                }
+                else
+                {
+                    Console.WriteLine($"Invalid hex color length: {hexColor} (Expected 3, 6 or 8 characters)");
+                    return [0, 0, 0];
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not resolve hex-Color: {hexColor} - Error: {ex.Message}");
+                return [0, 0, 0];
+            }
+        }
 
         public async Task<int> ApplyImagesLimitAsync()
         {
             if (this.MaxImages > 0 && this.images.Count > this.MaxImages)
             {
                 return await this.CleanupOldImagesAsync(this.MaxImages);
-			}
+            }
 
             return 0;
-		}
+        }
 
 
-	}
+    }
 }

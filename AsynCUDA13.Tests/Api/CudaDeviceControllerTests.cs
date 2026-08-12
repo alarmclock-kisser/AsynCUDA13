@@ -75,12 +75,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-<<<<<<< HEAD
-            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
-=======
             var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
->>>>>>> e037a4a180324ca5fedfd812039cea6831cfd775
-            deviceInfos.ShouldNotBeEmpty();
             deviceInfos.Length.ShouldBe(1);
 
             foreach (var info in deviceInfos)
@@ -135,24 +130,20 @@ namespace AsynCUDA13.Tests.Api
             var result = _controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-<<<<<<< HEAD
-            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
-=======
             var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
->>>>>>> e037a4a180324ca5fedfd812039cea6831cfd775
-            var firstDevice = deviceInfos.First();
 
             // Verify the DTO structure is properly populated
+            var firstDevice = deviceInfos.First();
             firstDevice.DeviceId.ShouldNotBeNull();
             firstDevice.DeviceName.ShouldNotBe("N/A");
             firstDevice.Properties.ShouldNotBeNull();
-            firstDevice.Properties!.Keys.ShouldNotBeEmpty();
+            firstDevice.Properties.Keys.ShouldNotBeEmpty();
 
             // Verify properties contain expected device property fields
-            firstDevice.Properties.Keys.ShouldContain("DeviceName");
+            firstDevice?.Properties?.Keys.ShouldContain("DeviceName");
         }
 
         [TestMethod]
@@ -174,15 +165,10 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
-            objectResult.StatusCode.ShouldBe(200);
+            objectResult?.StatusCode.ShouldBe(200);
 
-<<<<<<< HEAD
-            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
-            deviceInfos.Count().ShouldBe(expectedCount);
-=======
-            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
-            deviceInfos.Length.ShouldBe(2);
->>>>>>> e037a4a180324ca5fedfd812039cea6831cfd775
+            var deviceInfos = objectResult?.Value.ShouldBeOfType<CudaDeviceInfo[]>();
+            deviceInfos?.Length.ShouldBe(2);
         }
 
         [TestMethod]
@@ -205,14 +191,10 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
-<<<<<<< HEAD
-            var deviceInfos = objectResult.Value!.ShouldBeAssignableTo<IEnumerable<CudaDeviceInfo>>();
-=======
-            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
->>>>>>> e037a4a180324ca5fedfd812039cea6831cfd775
+            var deviceInfos = objectResult?.Value.ShouldBeOfType<CudaDeviceInfo[]>();
 
-            var deviceIds = deviceInfos.Select(d => d.DeviceId).ToList();
-            Assert.IsTrue(deviceIds.Distinct().Count() == deviceIds.Count, "Device IDs should be unique.");
+            var deviceIds = deviceInfos?.Select(d => d.DeviceId).ToList();
+            Assert.IsTrue(deviceIds?.Distinct().Count() == deviceIds?.Count, "Device IDs should be unique.");
         }
 
         [TestMethod]
@@ -227,10 +209,10 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
-            objectResult.StatusCode.ShouldBe(500);
+            objectResult?.StatusCode.ShouldBe(500);
 
-            var problemDetails = (objectResult.Value as ProblemDetails)!;
-            problemDetails.Detail.ShouldContain("Test exception");
+            var problemDetails = (objectResult?.Value as ProblemDetails)!;
+            problemDetails.Detail?.ShouldContain("Test exception");
         }
     }
 }

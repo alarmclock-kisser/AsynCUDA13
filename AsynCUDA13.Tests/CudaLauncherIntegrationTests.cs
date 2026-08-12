@@ -61,28 +61,14 @@ namespace AsynCUDA13.Tests
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; }";
             this.PrepareKernel(source);
             var input = new float[32];
-<<<<<<< HEAD
-            var service = Require(this.service);
-            var memory = Require(service.PushData(input));
-            var launcher = Require(service.Launcher);
-=======
             var memory = this.service.PushData(input)!;
             var launcher = this.service.Launcher!;
 
             // Test that invalid kernel calls return null
->>>>>>> e037a4a180324ca5fedfd812039cea6831cfd775
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [])).ShouldBeNull();
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, "wrong", input.Length])).ShouldBeNull();
             (await launcher.ExecuteGenericKernelAsync("AddConstant", [IntPtr.Zero, 1f, input.Length])).ShouldBeNull();
             (await launcher.ExecuteGenericKernelAsync("MissingKernel", [memory.IndexPointer, 1f, input.Length])).ShouldBeNull();
-<<<<<<< HEAD
-            Require(service.PullData<float>(memory, false)).Length.ShouldBe(input.Length);
-=======
-
-            // Note: After invalid kernel calls, the buffer may be corrupted or the memory may be freed.
-            // The test verifies that the kernel calls return null as expected.
-            // The buffer state after invalid calls depends on the CUDA runtime behavior.
->>>>>>> e037a4a180324ca5fedfd812039cea6831cfd775
         }
 
         [TestMethod]
@@ -90,7 +76,7 @@ namespace AsynCUDA13.Tests
         {
             const string source = "extern \"C\" __global__ void AddVectors(float* input, float* output, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) output[i] = input[i] + 2.0f; }";
             this.PrepareKernel(source);
-            var input = Enumerable.Range(0, 513).Select(x => (float)x).ToArray();
+            var input = Enumerable.Range(0, 513).Select(x => (float) x).ToArray();
             var service = Require(this.service);
             var inputMemory = Require(service.PushData(input));
             var outputMemory = Require(service.AllocateSingle<float>(input.Length));
