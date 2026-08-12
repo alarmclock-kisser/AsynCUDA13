@@ -248,7 +248,37 @@ namespace AsynCUDA13.Api.Controllers
                 }
             }
         }
-    
+
+
+        // Specific scoped image kernel function endpoints
+
+        [HttpPost("execute-image-scoped/edge_detection")]
+        public async Task<IActionResult> ExecuteImageScoped_EdgeDetectionAsync(IFormFile imageFile, int thickness = 1, float threshold = 0.125f, int edgeR = 255, int edgeG = 0, int edgeB = 0, int deviceId = 0)
+        {
+            string[] args = ["0", "0", "0", "0", edgeR.ToString(), edgeG.ToString(), edgeB.ToString(), thickness.ToString(), threshold.ToString()];
+
+            try
+            {
+                if (!this.cuda.Online || this.cuda.SelectedDeviceId != deviceId)
+                {
+                    this.cuda.Dispose();
+                    this.cuda.Initialize(deviceId);
+                }
+            }
+            catch (Exception ex)
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Error executing edge detection kernel",
+                    Detail = ex.Message,
+                    Status = 500
+                };
+                return this.StatusCode(500, pd);
+            }
+
+            return await this.ExecuteImageFileAsync(imageFile, "edge_detection", args, overwriteImage: false, unloadKernelAfterExecution: true);
+        }
+
     
     }
 }
