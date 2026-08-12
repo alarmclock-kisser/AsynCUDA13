@@ -10,7 +10,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
 {
     public static class CudaResponsesBuilder
     {
-        public static CudaInitializeResponse BuildInitializeResponse(CudaService service, int elapsedMs = -1)
+        public static CudaInitializeResponse BuildInitializeResponse(ICudaService service, int elapsedMs = -1)
         {
             return new CudaInitializeResponse
             {
@@ -19,7 +19,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static CudaDisposeResponse BuildDisposeResponse(CudaService service, int elapsedMs = -1)
+        public static CudaDisposeResponse BuildDisposeResponse(ICudaService service, int elapsedMs = -1)
         {
             return new CudaDisposeResponse
             {
@@ -28,7 +28,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static CudaPushResponse BuildPushResponse(CudaService service, string indexPointerOrId, int elapsedMs = -1)
+        public static CudaPushResponse BuildPushResponse(ICudaService service, string indexPointerOrId, int elapsedMs = -1)
         {
             return new CudaPushResponse
             {
@@ -67,12 +67,13 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static CudaExecuteResponse BuildCudaExecuteResponse(CudaKernelInfo kernelInfo, bool success, int elapsedMs = -1)
+        public static CudaExecuteResponse BuildCudaExecuteResponse(CudaKernelInfo kernelInfo, bool success, nint? resultPtr = null, int elapsedMs = -1)
         {
             return new CudaExecuteResponse
             {
                 Success = success,
                 KernelInfo = kernelInfo,
+                ResultPointer = resultPtr,
                 ElapsedMs = elapsedMs
             };
         }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared.Api.Payloads;
+using AsynCUDA13.Shared.CudaDtos;
 
 namespace AsynCUDA13.Shared.Serialization
 {
@@ -116,7 +117,10 @@ namespace AsynCUDA13.Shared.Serialization
                     int startChar = chunkIdx * chunkChars;
                     int countChar = Math.Min(chunkChars, base64Data.Length - startChar);
 
-                    if (countChar <= 0) return;
+                    if (countChar <= 0)
+                    {
+                        return;
+                    }
 
                     int startByte = (startChar / 4) * 3;
 
@@ -187,16 +191,63 @@ namespace AsynCUDA13.Shared.Serialization
             return results;
         }
 
+        public static object[] ParseArgumentValues(IEnumerable<string> args, CudaKernelInfo? kernelInfo)
+        {
+            if (kernelInfo == null)
+            {
+                return args.Select(arg => (object) arg).ToArray();
+            }
+
+            // Parse each argument based on the corresponding type in kernelInfo.ArgumentTypes
+            return args.Select((arg, index) =>
+            {
+                if (index >= kernelInfo.ArgumentTypes.Length)
+                {
+                    return (object) arg; // Fallback to string if no type info is available
+                }
+                string argType = kernelInfo.ArgumentTypes[index];
+                Type? t = Type.GetType(argType, throwOnError: false, ignoreCase: true);
+                if (t == null)
+                {
+                    return (object) arg; // Fallback to string if type resolution fails
+                }
+                try
+                {
+                    if(t.IsPointer)
+                    {
+                        return IntPtr.TryParse(arg, out var ptr) ? ptr : IntPtr.Zero;
+                    }
+
+                    // Convert the argument to the specified type
+                    return Convert.ChangeType(arg, t);
+                }
+                catch
+                {
+                    return (object) arg; // Fallback to string if conversion fails
+                }
+            }).ToArray();
+        }
+
         // --------------------------------------------------------------------------------
         // Hilfsmethode: Exakte Byte-Anzahl aus Base64-String berechnen (inkl. Padding-Check)
         // --------------------------------------------------------------------------------
         private static int GetByteCountFromBase64(ReadOnlySpan<char> base64)
         {
-            if (base64.IsEmpty) return 0;
+            if (base64.IsEmpty)
+            {
+                return 0;
+            }
 
             int padding = 0;
-            if (base64[^1] == '=') padding++;
-            if (base64.Length > 1 && base64[^2] == '=') padding++;
+            if (base64[^1] == '=')
+            {
+                padding++;
+            }
+
+            if (base64.Length > 1 && base64[^2] == '=')
+            {
+                padding++;
+            }
 
             return (base64.Length / 4) * 3 - padding;
         }

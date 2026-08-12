@@ -150,5 +150,28 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return infos;
         }
 
+        public static CudaKernelInfo? BuildCudaKernelInfo(ICudaService service, string kernelName)
+        {
+            if (!service.Online || service.Compiler == null || service.Launcher == null)
+            {
+                return null;
+            }
+            string? cuPath = CudaCompiler.SourceFiles.FirstOrDefault(src => Path.GetFileNameWithoutExtension(src) == kernelName);
+            if (cuPath == null)
+            {
+                return null;
+            }
+            var info = new CudaKernelInfo
+            {
+                SourcePath = cuPath,
+                PtxPath = CudaCompiler.CompiledFiles.FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == kernelName)?.ToString(),
+                KernelCode = CudaCompiler.GetKernelCode(cuPath) ?? string.Empty,
+                FunctionName = kernelName,
+                ArgumentNames = service.Compiler.GetArguments(CudaCompiler.GetKernelCode(cuPath) ?? string.Empty).Keys.ToArray(),
+                ArgumentTypes = service.Compiler.GetArguments(CudaCompiler.GetKernelCode(cuPath) ?? string.Empty).Values.Select(type => type.Name).ToArray()
+            };
+            return info;
+        }
+
     }
 }

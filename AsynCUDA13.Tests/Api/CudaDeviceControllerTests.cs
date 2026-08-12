@@ -17,8 +17,8 @@ namespace AsynCUDA13.Tests.Api
         [TestInitialize]
         public void SetUp()
         {
-            _mockCuda = new Mock<ICudaService>();
-            _controller = new CudaDeviceController(_mockCuda.Object);
+            this._mockCuda = new Mock<ICudaService>();
+            this._controller = new CudaDeviceController(this._mockCuda.Object);
         }
 
         // =====================================================================
@@ -35,7 +35,7 @@ namespace AsynCUDA13.Tests.Api
             }
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
@@ -50,7 +50,7 @@ namespace AsynCUDA13.Tests.Api
         public void GetDevices_WhenCudaAvailable_Returns200WithDevices()
         {
             // Arrange — mock CUDA as available
-            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
             var mockDeviceInfos = new CudaDeviceInfo[]
             {
@@ -66,10 +66,10 @@ namespace AsynCUDA13.Tests.Api
                 }
             };
 
-            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
+            this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
@@ -90,11 +90,11 @@ namespace AsynCUDA13.Tests.Api
         public void GetDevices_WhenCudaAvailableButNoDevices_Returns404()
         {
             // Arrange — mock CUDA as available but return empty array
-            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
-            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns([]);
+            this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns([]);
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
@@ -108,7 +108,7 @@ namespace AsynCUDA13.Tests.Api
         public void GetDevices_ReturnsValidDeviceInfoStructure()
         {
             // Arrange — mock CUDA as available
-            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
             var mockDeviceInfos = new CudaDeviceInfo[]
             {
@@ -124,10 +124,10 @@ namespace AsynCUDA13.Tests.Api
                 }
             };
 
-            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
+            this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
@@ -150,7 +150,7 @@ namespace AsynCUDA13.Tests.Api
         public void GetDevices_MultipleDevices_ReturnsAll()
         {
             // Arrange — mock CUDA as available
-            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
             var mockDeviceInfos = new CudaDeviceInfo[]
             {
@@ -158,10 +158,10 @@ namespace AsynCUDA13.Tests.Api
                 new CudaDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = new Dictionary<string, string>() }
             };
 
-            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
+            this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
@@ -175,7 +175,7 @@ namespace AsynCUDA13.Tests.Api
         public void GetDevices_DeviceIdsAreUnique()
         {
             // Arrange — mock CUDA as available
-            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
             var mockDeviceInfos = new CudaDeviceInfo[]
             {
@@ -184,10 +184,10 @@ namespace AsynCUDA13.Tests.Api
                 new CudaDeviceInfo { DeviceId = 2, DeviceName = "Device 2", Properties = new Dictionary<string, string>() }
             };
 
-            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
+            this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
@@ -201,11 +201,11 @@ namespace AsynCUDA13.Tests.Api
         public void GetDevices_WhenExceptionThrown_Returns500()
         {
             // Arrange — mock CUDA as available and throws exception
-            _mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
-            _mockCuda.Setup(c => c.GetAllDeviceInfos()).Throws(new InvalidOperationException("Test exception"));
+            this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
+            this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Throws(new InvalidOperationException("Test exception"));
 
             // Act
-            var result = _controller.GetDevices();
+            var result = this._controller.GetDevices();
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();

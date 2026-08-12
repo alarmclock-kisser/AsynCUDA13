@@ -31,11 +31,18 @@ namespace AsynCUDA13.Runtime
         bool Initialize(int deviceId = -1);
         bool Initialize(string name, bool exactMatch = false);
 
+        bool Synchronize();
+
         void Dispose();
 
         long FreeMemory(nint indexPointer);
         Task<long> FreeMemoryAsync(nint indexPointer);
 
+        void FreeAllMemory();
+        Task FreeAllMemoryAsync();
+
+        Task<CudaMem?> AllocateSingleAsync<T>(nint elementCount) where T : unmanaged;
+        Task<CudaMem?> AllocateGroupAsync<T>(nint[] lengths) where T : unmanaged;
         Task<CudaMem?> PushDataAsync<T>(IEnumerable<T> data) where T : unmanaged;
         Task<CudaMem?> PushChunksAsync<T>(IEnumerable<T[]> data) where T : unmanaged;
         Task<T[]?> PullDataAsync<T>(nint indexPointer, bool keepBuffer = false) where T : unmanaged;
@@ -574,7 +581,7 @@ namespace AsynCUDA13.Runtime
         /// <typeparam name="T">The unmanaged element type to allocate.</typeparam>
         /// <param name="elementCount">The number of elements to allocate.</param>
         /// <returns>A task producing the registered <see cref="CudaMem"/>, or <c>null</c> if the service is offline.</returns>
-        public async Task<CudaMem?> AllocateSingleAsync<T>(int elementCount) where T : unmanaged
+        public async Task<CudaMem?> AllocateSingleAsync<T>(nint elementCount) where T : unmanaged
         {
             if (!this.Online || this.Context == null || this.Register == null)
             {
@@ -727,6 +734,54 @@ namespace AsynCUDA13.Runtime
                 return 0;
             }
             return await Task.Run(() => this.Register.FreeMemory(indexPointer));
+        }
+
+        /// <summary>
+        /// Frees all allocated device memory.
+        /// </summary>
+        public void FreeAllMemory()
+        {
+            if (!this.Online || this.Context == null || this.Register == null)
+            {
+                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                return;
+            }
+            
+            foreach (var item in this.Register.MemoryList)
+            {
+                try
+                {
+                    this.Register.FreeMemory(item);
+                }
+                catch (Exception ex)
+                {
+                    StaticLogger.Log($"CudaService: Exception while freeing memory for item {item.Id}", ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously frees all allocated device memory.
+        /// </summary>
+        public async Task FreeAllMemoryAsync()
+        {
+            if (!this.Online || this.Context == null || this.Register == null)
+            {
+                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                return;
+            }
+            var tasks = this.Register.MemoryList.Select(item => Task.Run(() =>
+            {
+                try
+                {
+                    this.Register.FreeMemory(item);
+                }
+                catch (Exception ex)
+                {
+                    StaticLogger.Log($"CudaService: Exception while freeing memory for item {item.Id}", ex);
+                }
+            })).ToArray();
+            await Task.WhenAll(tasks);
         }
 
         /// <summary>

@@ -70,7 +70,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="arguments">The non-pointer scalar arguments expected by the kernel, in order.</param>
         /// <param name="length">The number of elements to process (used to size the launch grid).</param>
         /// <returns>The input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
-        public IntPtr? ExecuteLinearKernel(string? kernelName, IntPtr pointer, object[] arguments, int length)
+        public IntPtr? ExecuteLinearKernel(string? kernelName, IntPtr pointer, object[] arguments, nint length)
         {
             this.Context.SetCurrent();
 
@@ -151,7 +151,7 @@ namespace AsynCUDA13.Runtime
                 }
 
                 int blockSize = 256;
-                int gridSize = (length + blockSize - 1) / blockSize;
+                int gridSize = (int)((length + blockSize - 1) / blockSize);
                 this.Kernel.BlockDimensions = new dim3(blockSize, 1, 1);
                 this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
 
@@ -326,6 +326,9 @@ namespace AsynCUDA13.Runtime
         // Generic async EXEC
         public async Task<int?> ExecuteGenericKernelAsync(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
         {
+            // Set context first for thread-affine CUDA operations
+            this.Context.SetCurrent();
+
             // If no kernelName provided but Kernel loaded, use that
             if (string.IsNullOrEmpty(kernelName) && this.Kernel == null)
             {
@@ -364,9 +367,6 @@ namespace AsynCUDA13.Runtime
             DateTime startTime = DateTime.Now;
             try
             {
-                // Set context
-                this.Context.SetCurrent();
-
                 int length = 1;
                 for (int i = 0; i < arguments.Length; i++)
                 {
@@ -444,8 +444,9 @@ namespace AsynCUDA13.Runtime
         /// <param name="arguments">The non-pointer scalar arguments expected by the kernel, in order.</param>
         /// <param name="length">The number of elements to process.</param>
         /// <returns>A task producing the input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
-        public async Task<IntPtr?> ExecuteLinearKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, int length)
+        public async Task<IntPtr?> ExecuteLinearKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, nint length)
         {
+            this.Context.SetCurrent();
             return await Task.Run(() => this.ExecuteLinearKernel(kernelName, pointer, arguments, length));
         }
 
@@ -463,6 +464,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>A task producing the input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
         public async Task<IntPtr?> ExecuteImageKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, int width, int height, int channels = 4, int bitdepth = 8)
         {
+            this.Context.SetCurrent();
             return await Task.Run(() => this.ExecuteImageKernel(kernelName, pointer, arguments, width, height, channels, bitdepth));
         }
 

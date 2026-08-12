@@ -62,7 +62,11 @@ namespace AsynCUDA13.Tests
         {
             lock (_lockObj)
             {
-                if (_reportWritten) return;
+                if (_reportWritten)
+                {
+                    return;
+                }
+
                 _reportWritten = true;
 
                 TestResultEntry[] failedTests;
@@ -584,7 +588,9 @@ namespace AsynCUDA13.Tests
                 ?? element.Element(ns + "Output")?.Element(ns + "StackTrace")?.Value;
 
             if (string.IsNullOrEmpty(stackTrace))
+            {
                 return "Unknown";
+            }
 
             // Suche nach der ersten "at" Zeile im Stacktrace, die die Testklasse enthält
             var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -632,11 +638,18 @@ namespace AsynCUDA13.Tests
         /// </summary>
         private static void EnsureFallbackStarted()
         {
-            if (_initialized) return;
+            if (_initialized)
+            {
+                return;
+            }
 
             lock (_lockObj)
             {
-                if (_initialized) return;
+                if (_initialized)
+                {
+                    return;
+                }
+
                 _initialized = true;
 
                 _fallbackThread = new Thread(() =>

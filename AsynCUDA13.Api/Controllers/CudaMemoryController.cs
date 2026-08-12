@@ -168,7 +168,7 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-        [HttpDelete("memory-all-memory")]
+        [HttpDelete("free-all-memory")]
         public async Task<ActionResult<string?>> FreeAllMemoryAsync()
         {
             try

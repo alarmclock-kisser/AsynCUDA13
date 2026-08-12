@@ -23,7 +23,7 @@ namespace AsynCUDA13.Media
         public float SizeMb => this.SizeInBytes / (1024f * 1024f);
         public string DataType => "byte";
         public string DataStructure => "[]";
-        public string Base64Image => this.AsBase64ImageAsync().Result;
+        public string Base64Image(string format = "bmp", bool keepImage = true) => this.AsBase64ImageAsync(format, keepImage).Result;
 
         public long Pointer { get; set; } = nint.Zero;
         public string PointerHex => this.Pointer == nint.Zero ? "0" : this.Pointer.ToString("X");
@@ -109,7 +109,7 @@ namespace AsynCUDA13.Media
             }
         }
 
-        public async Task<string> AsBase64ImageAsync(string format = "bmp")
+        public async Task<string> AsBase64ImageAsync(string format = "bmp", bool keepImage = true)
         {
             if (this.Img == null)
             {
@@ -135,6 +135,14 @@ namespace AsynCUDA13.Media
             {
                 Console.WriteLine($"Base64 conversion error: {ex}");
                 return string.Empty;
+            }
+            finally
+            {
+                if (!keepImage)
+                {
+                    this.Img.Dispose();
+                    this.Img = null;
+                }
             }
         }
 

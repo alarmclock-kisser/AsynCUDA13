@@ -25,6 +25,7 @@ namespace AsynCUDA13.Media
         public int BitDepth { get; set; } = 0;
         public TimeSpan Duration => (this.SampleRate > 0 && this.Channels > 0) ? TimeSpan.FromSeconds((double) this.Length / this.Channels / this.SampleRate) : TimeSpan.Zero;
 
+        public long Pointer { get; set; } = IntPtr.Zero;
 
         public AudioObj()
         {
@@ -354,6 +355,45 @@ namespace AsynCUDA13.Media
                 StaticLogger.Log(ex);
                 return false;
             }
+        }
+
+
+        public float[][] GetChunks(int chunkSize, float overlap = 0.5f, bool keepData = true)
+        {
+            if (chunkSize <= 0)
+            {
+                throw new ArgumentException("Chunk size must be greater than zero.", nameof(chunkSize));
+            }
+            if (overlap < 0 || overlap >= 1)
+            {
+                throw new ArgumentException("Overlap must be between 0 (inclusive) and 1 (exclusive).", nameof(overlap));
+            }
+
+            int stepSize = (int) (chunkSize * (1 - overlap));
+            if (stepSize <= 0)
+            {
+                throw new ArgumentException("Step size must be greater than zero. Adjust chunk size or overlap.", nameof(overlap));
+            }
+
+            List<float[]> chunks = new List<float[]>();
+            for (int start = 0; start < this.Data.Length; start += stepSize)
+            {
+                int end = Math.Min(start + chunkSize, this.Data.Length);
+                float[] chunk = new float[end - start];
+                Array.Copy(this.Data, start, chunk, 0, end - start);
+                chunks.Add(chunk);
+                if (end == this.Data.Length)
+                {
+                    break; // Reached the end of the data
+                }
+            }
+
+            if (!keepData)
+            {
+                this.Data = [];
+            }
+
+            return chunks.ToArray();
         }
 
 

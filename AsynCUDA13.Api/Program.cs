@@ -1,6 +1,7 @@
 
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
+using AsynCUDA13.Shared;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
 namespace AsynCUDA13.Api
@@ -10,6 +11,13 @@ namespace AsynCUDA13.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Setup StaticLogger with appsettings
+            string? logDirectory = builder.Configuration.GetValue<string>("LogDirectory");
+            bool createLogFile = builder.Configuration.GetValue<bool>("CreateLogFile");
+            int maxLogFiles = builder.Configuration.GetValue<int>("MaxLogFiles");
+            StaticLogger.InitializeLogFiles(logDirectory, createLogFile, maxLogFiles);
+            StaticLogger.SetUiContext(SynchronizationContext.Current ?? new SynchronizationContext());
 
             // Add services to the container.
             builder.Services.AddSingleton<ICudaService, CudaService>();

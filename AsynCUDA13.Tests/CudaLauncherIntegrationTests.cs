@@ -13,11 +13,18 @@ namespace AsynCUDA13.Tests
         [TestInitialize]
         public void Initialize()
         {
-            if (!CudaAvailabilityTester.IsCudaAvailable()) Assert.Inconclusive("CUDA runtime was not found in a CUDA PATH entry.");
+            if (!CudaAvailabilityTester.IsCudaAvailable())
+            {
+                Assert.Inconclusive("CUDA runtime was not found in a CUDA PATH entry.");
+            }
+
             try
             {
                 this.service = new CudaService();
-                if (CudaService.DeviceCount <= 0 || !this.service.Initialize(0)) Assert.Inconclusive("No usable CUDA device 0 is available.");
+                if (CudaService.DeviceCount <= 0 || !this.service.Initialize(0))
+                {
+                    Assert.Inconclusive("No usable CUDA device 0 is available.");
+                }
             }
             catch (Exception ex) { Assert.Inconclusive($"CUDA initialization unavailable: {ex.Message}"); }
         }

@@ -351,6 +351,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>An available <see cref="CudaStream"/>, or <c>null</c> if none could be found or created.</returns>
         public CudaStream? GetStream(ulong? id = null)
         {
+            this.EnsureContext();
             int engines = this.Context.GetDeviceInfo().AsyncEngineCount;
             int streams = this.Streams.Count;
 
@@ -395,6 +396,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>The acquired streams, or <c>null</c> if any stream could not be created or retrieved.</returns>
         public IEnumerable<CudaStream>? GetManyStreams(int maxCount = 0, IEnumerable<ulong>? ids = null)
         {
+            this.EnsureContext();
             if (maxCount <= 0)
             {
                 maxCount = this.MaxThreads - this.Streams.Count();
@@ -450,6 +452,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>A task producing the acquired streams, or <c>null</c> if none could be created or retrieved.</returns>
         public async Task<IEnumerable<CudaStream>?> GetManyStreamsAsync(int maxCount = 0, IEnumerable<ulong>? ids = null)
         {
+            this.EnsureContext();
             if (maxCount <= 0)
             {
                 maxCount = this.MaxThreads - this.Streams.Count();

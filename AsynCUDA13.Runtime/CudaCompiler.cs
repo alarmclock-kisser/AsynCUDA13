@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using AsynCUDA13.Shared;
 using System.Reflection;
+using AsynCUDA13.Shared.Serialization;
 
 namespace AsynCUDA13.Runtime
 {
@@ -285,6 +286,9 @@ namespace AsynCUDA13.Runtime
         /// </summary>
         public void UnloadKernel()
         {
+            // Set context for thread-affine CUDA operations
+            this.Context.SetCurrent();
+
             // Unload kernel
             if (this.Kernel != null)
             {
@@ -317,6 +321,9 @@ namespace AsynCUDA13.Runtime
                 StaticLogger.Log("No CUDA context available");
                 return null;
             }
+
+            // Set context for thread-affine CUDA operations
+            this.Context.SetCurrent();
 
             // Unload?
             if (this.Kernel != null)
@@ -801,13 +808,17 @@ namespace AsynCUDA13.Runtime
             {
                 string arg = args[i];
                 if (string.IsNullOrWhiteSpace(arg))
+                {
                     continue;
+                }
 
                 // Parse argument: "type name" or "type* name" or "type& name" etc.
                 // The name is always the last word, everything before is the type
                 string[] parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length < 2)
+                {
                     continue;
+                }
 
                 string name = parts[^1]; // Last element is the name
                 string typeName = string.Join(" ", parts.Take(parts.Length - 1)).Trim();
@@ -902,13 +913,13 @@ namespace AsynCUDA13.Runtime
             {
                 string name = args.ElementAt(i).Key;
                 Type type = args.ElementAt(i).Value;
-                if (pointersCount == 0 && type == typeof(IntPtr))
+                if (pointersCount == 0 && type.IsPointer)
                 {
                     kernelArgs[i] = inputPointer;
                     pointersCount++;
                     StaticLogger.Log($"In-pointer: <{inputPointer}>");
                 }
-                else if (pointersCount == 1 && type == typeof(IntPtr))
+                else if (pointersCount == 1 && type.IsPointer)
                 {
                     kernelArgs[i] = outputPointer;
                     pointersCount++;
@@ -983,6 +994,12 @@ namespace AsynCUDA13.Runtime
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
 
+            // If arguments are all strings, convert them to their respective types based on the kernel argument definitions
+            if (arguments.All(arg => arg is string))
+            {
+                arguments = this.ParseArgumentValues(arguments.Cast<string>().ToArray());
+            }
+
             int pointersCount = 0;
             int userArgIndex = 0;
             // Integrate invariables if name fits (contains)
@@ -991,7 +1008,7 @@ namespace AsynCUDA13.Runtime
                 string name = args.ElementAt(i).Key;
                 Type type = args.ElementAt(i).Value;
 
-                if (pointersCount == 0 && type == typeof(IntPtr))
+                if (pointersCount == 0 && type.IsPointer)
                 {
                     kernelArgs[i] = inputPointer;
                     pointersCount++;
@@ -1001,7 +1018,7 @@ namespace AsynCUDA13.Runtime
                         StaticLogger.Log($"In-pointer: <{inputPointer}>");
                     }
                 }
-                else if (pointersCount == 1 && type == typeof(IntPtr))
+                else if (pointersCount == 1 && type.IsPointer)
                 {
                     kernelArgs[i] = outputPointer;
                     pointersCount++;
@@ -1071,9 +1088,39 @@ namespace AsynCUDA13.Runtime
             return kernelArgs;
         }
 
+        public object[] MergeArgumentsImage(CudaMem inputMem, CudaMem outputMem, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
+        {
+            return this.MergeArgumentsImage(inputMem.DevicePointers.FirstOrDefault(), outputMem.DevicePointers.FirstOrDefault(), width, height, channels, bitdepth, arguments, silent);
+        }
 
 
+        public object[] ParseArgumentValues(IEnumerable<string> argumentValues)
+        {
+            var argDefinitions = this.GetArguments(null, false);
+            if (argDefinitions.Count != argumentValues.Count())
+            {
+                throw new ArgumentException($"Argument count mismatch: expected {argDefinitions.Count}, got {argumentValues.Count()}");
+            }
 
+            object[] args = new object[argDefinitions.Count];
+            for (int i = 0; i < argDefinitions.Count; i++)
+            {
+                string argName = argDefinitions.ElementAt(i).Key;
+                Type argType = argDefinitions.ElementAt(i).Value;
+                string argValueStr = argumentValues.ElementAt(i);
+                try
+                {
+                    object parsedValue = Convert.ChangeType(argValueStr, argType);
+                    args[i] = parsedValue;
+                }
+                catch (Exception ex)
+                {
+                    throw new ArgumentException($"Failed to parse argument '{argName}' of type '{argType.Name}' with value '{argValueStr}': {ex.Message}", ex);
+                }
+            }
+
+            return args;
+        }
 
 
 

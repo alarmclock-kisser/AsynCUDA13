@@ -56,7 +56,10 @@ namespace AsynCUDA13.Shared.Serialization
                     int start = sectorIdx * itemsPerChunk;
                     int count = Math.Min(itemsPerChunk, totalItems - start);
 
-                    if (count <= 0) return;
+                    if (count <= 0)
+                    {
+                        return;
+                    }
 
                     // Zero-Allocation Memory-View auf das unmanaged Array
                     ReadOnlySpan<T> slice = items.AsSpan(start, count);

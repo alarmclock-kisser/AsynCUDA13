@@ -12,5 +12,7 @@ namespace AsynCUDA13.Shared.Api.Requests
         public IEnumerable<string> ArgumentValues { get; set; } = [];   // Arg values ToString() and in correct order
 
         public bool AsyncCall { get; set; } = true; // Async execution
+
+        public bool UnloadAfterExecution { get; set; } = false; // Unload kernel after execution
     }
 }

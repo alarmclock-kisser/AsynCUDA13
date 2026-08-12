@@ -37,11 +37,15 @@ namespace AsynCUDA13.Shared
         public static void SetUiContext(SynchronizationContext context)
         {
             UiContext = context;
+            Log("[Logger] StaticLogger UI context set");
         }
 
         public static void InitializeLogFiles(string? logDirectory = null, bool createLogFile = false, int maxPreviousLogFiles = 3)
         {
-            LogDirectory = logDirectory ?? LogDirectory;
+            if (!string.IsNullOrEmpty(logDirectory))
+            {
+                LogDirectory = logDirectory;
+            }
 
             try
             {

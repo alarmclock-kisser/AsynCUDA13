@@ -26,14 +26,24 @@ namespace AsynCUDA13.Shared
                 {
                     continue;
                 }
-                if (string.IsNullOrWhiteSpace(pathValue)) continue;
+                if (string.IsNullOrWhiteSpace(pathValue))
+                {
+                    continue;
+                }
+
                 foreach (var entry in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
-                    if (!entry.Contains("CUDA", StringComparison.OrdinalIgnoreCase) || !Directory.Exists(entry)) continue;
+                    if (!entry.Contains("CUDA", StringComparison.OrdinalIgnoreCase) || !Directory.Exists(entry))
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         if (Directory.EnumerateFiles(entry, "cudart64_*.dll", SearchOption.AllDirectories).Any())
+                        {
                             result.Add(Path.GetFullPath(entry));
+                        }
                     }
                     catch (IOException) { }
                     catch (UnauthorizedAccessException) { }

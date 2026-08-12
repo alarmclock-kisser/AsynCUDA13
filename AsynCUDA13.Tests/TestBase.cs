@@ -19,8 +19,8 @@ namespace AsynCUDA13.Tests
         /// </summary>
         public TestContext TestContext
         {
-            get { return _testContext ?? throw new InvalidOperationException("TestContext has not been initialized."); }
-            set { _testContext = value; }
+            get { return this._testContext ?? throw new InvalidOperationException("TestContext has not been initialized."); }
+            set { this._testContext = value; }
         }
 
         protected static T Require<T>(T? value, string? message = null) where T : class
@@ -32,7 +32,7 @@ namespace AsynCUDA13.Tests
         /// <summary>
         /// Kann von abgeleiteten Tests aufgerufen werden, um eine Exception explizit zu melden.
         /// </summary>
-        protected void SetLastException(Exception ex) => _lastException = ex;
+        protected void SetLastException(Exception ex) => this._lastException = ex;
 
         /// <summary>
         /// Wird nach jedem Test aufgerufen und meldet das Ergebnis an TestRunReportWriter.
@@ -40,31 +40,34 @@ namespace AsynCUDA13.Tests
         [TestCleanup]
         public void ReportTestResult()
         {
-            if (_testContext == null) return;
+            if (this._testContext == null)
+            {
+                return;
+            }
 
-            var testName = _testContext.TestName;
-            var className = _testContext.FullyQualifiedTestClassName
-                ?? GetType().FullName
+            var testName = this._testContext.TestName;
+            var className = this._testContext.FullyQualifiedTestClassName
+                ?? this.GetType().FullName
                 ?? "Unknown";
 
             // Nur fehlgeschlagene Tests melden
-            if (_testContext.CurrentTestOutcome == UnitTestOutcome.Failed)
+            if (this._testContext.CurrentTestOutcome == UnitTestOutcome.Failed)
             {
                 // Versuche, die Fehlermeldung direkt aus dem Test-Result zu extrahieren
-                var errorMessage = GetErrorMessageFromTestResult();
-                var stackTrace = GetStackTraceFromTestResult();
+                var errorMessage = this.GetErrorMessageFromTestResult();
+                var stackTrace = this.GetStackTraceFromTestResult();
 
                 // Fallback auf gespeicherte Exception
-                if (string.IsNullOrEmpty(errorMessage) && _lastException != null)
+                if (string.IsNullOrEmpty(errorMessage) && this._lastException != null)
                 {
-                    errorMessage = _lastException.Message;
-                    stackTrace = _lastException.StackTrace ?? string.Empty;
+                    errorMessage = this._lastException.Message;
+                    stackTrace = this._lastException.StackTrace ?? string.Empty;
                 }
 
                 // Letzte Reserve
                 if (string.IsNullOrEmpty(errorMessage))
                 {
-                    errorMessage = $"Test failed (outcome: {_testContext.CurrentTestOutcome})";
+                    errorMessage = $"Test failed (outcome: {this._testContext.CurrentTestOutcome})";
                 }
 
                 TestRunReportWriter.RecordResult(
@@ -78,7 +81,7 @@ namespace AsynCUDA13.Tests
         private string GetErrorMessageFromTestResult()
         {
             // Versuche, die Fehlermeldung aus der TRX-Datei zu extrahieren
-            var trxFiles = FindTrxFilesForCurrentTest();
+            var trxFiles = this.FindTrxFilesForCurrentTest();
             if (trxFiles.Any())
             {
                 var latestTrx = trxFiles.OrderByDescending(f => new FileInfo(f).LastWriteTime).FirstOrDefault();
@@ -91,7 +94,7 @@ namespace AsynCUDA13.Tests
                         var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
 
                         var testEntry = doc.Root?.Descendants(ns + "UnitTestResult")
-                            .FirstOrDefault(e => e.Attribute("testName")?.Value == _testContext?.TestName);
+                            .FirstOrDefault(e => e.Attribute("testName")?.Value == this._testContext?.TestName);
 
                         if (testEntry != null)
                         {
@@ -119,7 +122,7 @@ namespace AsynCUDA13.Tests
         private string GetStackTraceFromTestResult()
         {
             // Versuche, den Stacktrace aus der TRX-Datei zu extrahieren
-            var trxFiles = FindTrxFilesForCurrentTest();
+            var trxFiles = this.FindTrxFilesForCurrentTest();
             if (trxFiles.Any())
             {
                 var latestTrx = trxFiles.OrderByDescending(f => new FileInfo(f).LastWriteTime).FirstOrDefault();
@@ -132,7 +135,7 @@ namespace AsynCUDA13.Tests
                         var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
 
                         var testEntry = doc.Root?.Descendants(ns + "UnitTestResult")
-                            .FirstOrDefault(e => e.Attribute("testName")?.Value == _testContext?.TestName);
+                            .FirstOrDefault(e => e.Attribute("testName")?.Value == this._testContext?.TestName);
 
                         if (testEntry != null)
                         {
