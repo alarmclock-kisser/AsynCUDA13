@@ -125,7 +125,7 @@ namespace AsynCUDA13.Media
                     "png" => new SixLabors.ImageSharp.Formats.Png.PngEncoder(),
                     "jpeg" or "jpg" => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder(),
                     "gif" => new SixLabors.ImageSharp.Formats.Gif.GifEncoder(),
-                    _ => new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder()
+                    _ => new BmpEncoder()
                 };
 
                 await imgClone.SaveAsync(ms, encoder);
@@ -278,7 +278,7 @@ namespace AsynCUDA13.Media
                 "jpeg" or "jpg" => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder(),
                 "gif" => new SixLabors.ImageSharp.Formats.Gif.GifEncoder(),
                 // Default to BMP if no valid format is provided + set format to bmp
-                _ => new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder()
+                _ => new BmpEncoder()
             };
 
             // Determine file extension based on format
@@ -354,7 +354,7 @@ namespace AsynCUDA13.Media
                 "png" => new SixLabors.ImageSharp.Formats.Png.PngEncoder(),
                 "jpeg" or "jpg" => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder(),
                 "gif" => new SixLabors.ImageSharp.Formats.Gif.GifEncoder(),
-                _ => new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder()
+                _ => new BmpEncoder()
             };
 
             MemoryStream ms = new();

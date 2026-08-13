@@ -1,4 +1,4 @@
-﻿__global__ void sepia_filter(unsigned char* input, unsigned char* output, int width, int height) {
+﻿extern "C" __global__ void sepia_filter(unsigned char* input, unsigned char* output, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 

@@ -389,6 +389,29 @@ namespace AsynCUDA13.Shared
         }
 
 
+        // Inner EX unraveler
+        public static string GetAllInnerExceptionsRecursively(Exception ex)
+        {
+            if (ex == null) return string.Empty;
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Exception: {ex.GetType().FullName}");
+            string message = $"Message: {ex.Message}";
 
+            Exception? inner = ex.InnerException;
+            int count = 0;
+            while ( inner != null )
+            {
+                message = message + $" ({inner.Message}";
+                inner = inner.InnerException;
+                count++;
+            }
+            message = message + string.Concat(Enumerable.Repeat(")", count));
+
+            sb.AppendLine(message);
+            sb.AppendLine($"StackTrace: {ex.StackTrace}");
+            return sb.ToString();
+        }
+
+        
     }
 }

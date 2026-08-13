@@ -263,13 +263,13 @@ namespace AsynCUDA13.Runtime
 
             try
             {
-                CUdeviceptr devicePtr = new(pointer);
+                IntPtr devicePtr = pointer;
 
                 // IP kernels (a single pointer) run in-place: the input buffer is also the output buffer.
                 // OOP kernels (two pointers) need a distinct output buffer so a stale/reused input allocation
                 // cannot corrupt the result when switching kernels (e.g. mandelbrot -> julia). A fresh output
                 // buffer of the same size is allocated per launch and its pointer is returned to the caller.
-                CUdeviceptr outputPtr = devicePtr;
+                IntPtr outputPtr = devicePtr;
                 IntPtr resultPointer = pointer;
                 bool outOfPlace = pointerCount >= 2;
                 if (outOfPlace)
@@ -288,7 +288,7 @@ namespace AsynCUDA13.Runtime
                         return null;
                     }
 
-                    outputPtr = new CUdeviceptr(output.IndexPointer);
+                    outputPtr = output.IndexPointer;
                     resultPointer = output.IndexPointer;
                 }
 
@@ -359,7 +359,7 @@ namespace AsynCUDA13.Runtime
 
             if (!argTypes.SequenceEqual(argTypesSignature))
             {
-                string[] details = argTypes.Select((t, i) => $"<{i}> {t.Name} != {argTypesSignature[i].Name}").ToArray();
+                string[] details = argTypes.Select((t, i) => new { Type = t, Index = i }).Where(x => x.Type != argTypesSignature[x.Index]).Select(x => $"<{x.Index}> {x.Type.Name} != {argTypesSignature[x.Index].Name}").ToArray();
                 await StaticLogger.LogAsync($"Kernel arguments do not match signature '{kernelName ?? "N/A"}': {string.Join(", ", details)}");
                 return null;
             }
@@ -390,17 +390,31 @@ namespace AsynCUDA13.Runtime
                     }
                 }
 
-                const int blockSize = 256;
-                int gridSize = (length + blockSize - 1) / blockSize;
-                this.Kernel.BlockDimensions = new dim3(blockSize, 1, 1);
-                this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
+                var argumentDefinitions = this.Compiler.GetArguments(null);
+                int widthIndex = argumentDefinitions.Keys
+                    .Select((name, index) => new { name, index })
+                    .FirstOrDefault(x => x.name.Contains("width", StringComparison.OrdinalIgnoreCase))?.index ?? -1;
+                int heightIndex = argumentDefinitions.Keys
+                    .Select((name, index) => new { name, index })
+                    .FirstOrDefault(x => x.name.Contains("height", StringComparison.OrdinalIgnoreCase))?.index ?? -1;
 
-                // Get stream
-                var stream = this.Register.GetStream();
-                if (stream == null)
+                if (widthIndex >= 0 && heightIndex >= 0 &&
+                    arguments[widthIndex] is int width && arguments[heightIndex] is int height &&
+                    width > 0 && height > 0)
                 {
-                    await StaticLogger.LogAsync("Failed to get a CUDA stream for kernel execution.");
-                    return null;
+                    const int blockSizeX = 8;
+                    const int blockSizeY = 8;
+                    int gridSizeX = (width + blockSizeX - 1) / blockSizeX;
+                    int gridSizeY = (height + blockSizeY - 1) / blockSizeY;
+                    this.Kernel.BlockDimensions = new dim3(blockSizeX, blockSizeY, 1);
+                    this.Kernel.GridDimensions = new dim3(gridSizeX, gridSizeY, 1);
+                }
+                else
+                {
+                    const int blockSize = 256;
+                    int gridSize = (length + blockSize - 1) / blockSize;
+                    this.Kernel.BlockDimensions = new dim3(blockSize, 1, 1);
+                    this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
                 }
 
                 object[] kernelArguments = arguments.Select((argument, index) =>
@@ -408,11 +422,10 @@ namespace AsynCUDA13.Runtime
                         ? new CUdeviceptr(pointer)
                         : argument).ToArray();
 
-                // EXEC
-                this.Kernel.RunAsync(stream.Stream, kernelArguments);
-
-                // Wait for completion
-                stream.Synchronize();
+                // EXEC. Use the synchronous launch here so the configured grid and block dimensions
+                // are applied by the same path as the dedicated image launcher before the output is read.
+                this.Kernel.Run(kernelArguments);
+                this.Context.Synchronize();
             }
             catch (Exception ex)
             {

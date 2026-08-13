@@ -31,6 +31,13 @@ namespace AsynCUDA13.Runtime
         bool Initialize(int deviceId = -1);
         bool Initialize(string name, bool exactMatch = false);
 
+        /// <summary>
+        /// Sets the CUDA primary context as the current context for the calling thread.
+        /// This is required before any CUDA operations on the calling thread.
+        /// </summary>
+        /// <returns>True if the context was set successfully; false if the service is offline.</returns>
+        bool SetCurrent();
+
         bool Synchronize();
 
         void Dispose();
@@ -430,6 +437,23 @@ namespace AsynCUDA13.Runtime
                 return null;
             }
             return this.Register.AllocateSingle<T>(elementCount);
+        }
+
+        /// <summary>
+        /// Sets the CUDA primary context as the current context for the calling thread.
+        /// This is required before any CUDA operations on the calling thread.
+        /// </summary>
+        /// <returns><c>true</c> if the context was set successfully; <c>false</c> if the service is offline.</returns>
+        public bool SetCurrent()
+        {
+            if (!this.Online || this.Context == null)
+            {
+                StaticLogger.Log("CudaService: Cannot set current context - service is offline");
+                return false;
+            }
+
+            this.Context.SetCurrent();
+            return true;
         }
 
         /// <summary>

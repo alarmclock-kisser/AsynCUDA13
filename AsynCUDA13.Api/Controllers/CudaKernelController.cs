@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AsynCUDA13.Api.Controllers
 {
-    public class CudaKernelController : ControllerBase
+    public class CudaKernelController : ApiControllerBase
     {
         private readonly ICudaService cuda;
 
@@ -125,7 +125,7 @@ namespace AsynCUDA13.Api.Controllers
             {
                 object[] args = DataParser.ParseArgumentValues(request.ArgumentValues, request.KernelInfo);
 
-                this.cuda.Synchronize();
+                this.cuda.SetCurrent();
                 var result = await this.cuda.Launcher.ExecuteGenericKernelAsync(request.KernelInfo.FunctionName, args);
                 
                 if (request.UnloadAfterExecution)
@@ -203,7 +203,7 @@ namespace AsynCUDA13.Api.Controllers
 
                 nint length = (nint)mem.TotalLength;
 
-                                this.cuda.Synchronize();
+                                this.cuda.SetCurrent();
                                 var resultPtr = await this.cuda.Launcher.ExecuteLinearKernelAsync(request.KernelInfo.FunctionName, pointer.Value, args, length);
                 if (resultPtr == null || resultPtr == IntPtr.Zero)
                 {

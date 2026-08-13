@@ -11,7 +11,7 @@ namespace AsynCUDA13.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CudaMemoryController : ControllerBase
+    public class CudaMemoryController : ApiControllerBase
     {
         private readonly ICudaService cuda;
 

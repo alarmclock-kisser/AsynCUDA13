@@ -357,6 +357,19 @@ namespace AsynCUDA13.Runtime
             }
             string logpath = Path.Combine(KernelPath, "Logs", displayName + "_load.log");
 
+            if (File.Exists(cuPath) && (!File.Exists(ptxPath) || File.GetLastWriteTimeUtc(cuPath) > File.GetLastWriteTimeUtc(ptxPath)))
+            {
+                if (this.CompileKernel(cuPath, silent) == null)
+                {
+                    if (!silent)
+                    {
+                        StaticLogger.Log("Failed to compile updated kernel " + displayName);
+                    }
+
+                    return null;
+                }
+            }
+
             // Try to load kernel
             try
             {
@@ -368,6 +381,14 @@ namespace AsynCUDA13.Runtime
                 this.KernelName = displayName;
                 this.KernelFile = ptxPath;
                 this.KernelCode = File.Exists(cuPath) ? File.ReadAllText(cuPath) : null;
+
+                // Log
+                sw.Stop();
+                long deltaMicros = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
+                if (!silent)
+                {
+                    StaticLogger.Log($"Kernel loaded within {deltaMicros.ToString("N0")} µs");
+                }
             }
             catch (Exception ex)
             {
@@ -378,14 +399,6 @@ namespace AsynCUDA13.Runtime
                     File.WriteAllText(logpath, logMsg);
                 }
                 this.Kernel = null;
-            }
-
-            // Log
-            sw.Stop();
-            long deltaMicros = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
-            if (!silent)
-            {
-                StaticLogger.Log($"Kernel loaded within {deltaMicros.ToString("N0")} µs");
             }
 
             return this.Kernel;
@@ -428,6 +441,9 @@ namespace AsynCUDA13.Runtime
                 }
                 return null;
             }
+
+            // Set context for thread-affine CUDA operations
+            this.Context.SetCurrent();
 
             // If file is not a .cu file, but raw kernel string, compile that
             if (Path.GetExtension(filepath) != ".cu")
@@ -515,6 +531,9 @@ namespace AsynCUDA13.Runtime
                 }
                 return null;
             }
+
+            // Set context for thread-affine CUDA operations
+            this.Context.SetCurrent();
 
             string kernelName = kernelString.Split("void ")[1].Split("(")[0];
 
@@ -719,7 +738,7 @@ namespace AsynCUDA13.Runtime
 
             if (isPtr)
             {
-                type = type.MakePointerType();
+                type = typeof(IntPtr);
             }
 
             return type;
@@ -899,7 +918,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="bitdepth">The audio bit depth.</param>
         /// <param name="namedArguments">Optional dictionary of additional named arguments.</param>
         /// <returns>An array of objects ordered for kernel execution.</returns>
-        public object[] MergeArgumentsAudio(CUdeviceptr inputPointer, CUdeviceptr outputPointer, int sampleRate = 44100, int channels = 2, int bitdepth = 32, Dictionary<string, object>? namedArguments = null)
+        public object[] MergeArgumentsAudio(IntPtr inputPointer, IntPtr outputPointer, int sampleRate = 44100, int channels = 2, int bitdepth = 32, Dictionary<string, object>? namedArguments = null)
         {
             // Get kernel argument definitions
             Dictionary<string, Type> args = this.GetArguments(null, false);
@@ -913,13 +932,13 @@ namespace AsynCUDA13.Runtime
             {
                 string name = args.ElementAt(i).Key;
                 Type type = args.ElementAt(i).Value;
-                if (pointersCount == 0 && type.IsPointer)
+                if (pointersCount == 0 && type == typeof(IntPtr))
                 {
                     kernelArgs[i] = inputPointer;
                     pointersCount++;
                     StaticLogger.Log($"In-pointer: <{inputPointer}>");
                 }
-                else if (pointersCount == 1 && type.IsPointer)
+                else if (pointersCount == 1 && type == typeof(IntPtr))
                 {
                     kernelArgs[i] = outputPointer;
                     pointersCount++;
@@ -986,19 +1005,13 @@ namespace AsynCUDA13.Runtime
         /// <param name="arguments">An array of additional arguments.</param>
         /// <param name="silent">If true, suppresses logging.</param>
         /// <returns>An array of objects ordered for kernel execution.</returns>
-        public object[] MergeArgumentsImage(CUdeviceptr inputPointer, CUdeviceptr outputPointer, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
+        public object[] MergeArgumentsImage(IntPtr inputPointer, IntPtr outputPointer, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
         {
             // Get kernel argument definitions
             Dictionary<string, Type> args = this.GetArguments(null, silent);
 
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
-
-            // If arguments are all strings, convert them to their respective types based on the kernel argument definitions
-            if (arguments.All(arg => arg is string))
-            {
-                arguments = this.ParseArgumentValues(arguments.Cast<string>().ToArray());
-            }
 
             int pointersCount = 0;
             int userArgIndex = 0;
@@ -1008,7 +1021,7 @@ namespace AsynCUDA13.Runtime
                 string name = args.ElementAt(i).Key;
                 Type type = args.ElementAt(i).Value;
 
-                if (pointersCount == 0 && type.IsPointer)
+                if (pointersCount == 0 && type == typeof(IntPtr))
                 {
                     kernelArgs[i] = inputPointer;
                     pointersCount++;
@@ -1018,7 +1031,7 @@ namespace AsynCUDA13.Runtime
                         StaticLogger.Log($"In-pointer: <{inputPointer}>");
                     }
                 }
-                else if (pointersCount == 1 && type.IsPointer)
+                else if (pointersCount == 1 && type == typeof(IntPtr))
                 {
                     kernelArgs[i] = outputPointer;
                     pointersCount++;
@@ -1071,7 +1084,22 @@ namespace AsynCUDA13.Runtime
                     // them sequentially instead of matching by name/index which mixed up the two lists before.
                     if (userArgIndex < arguments.Length)
                     {
-                        kernelArgs[i] = arguments[userArgIndex];
+                        // If the argument is a string, try to parse it to the correct type
+                        if (arguments[userArgIndex] is string stringValue && type != typeof(IntPtr))
+                        {
+                            try
+                            {
+                                kernelArgs[i] = Convert.ChangeType(stringValue, type);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new ArgumentException($"Failed to parse argument '{name}' of type '{type.Name}' with value '{stringValue}': {ex.Message}", ex);
+                            }
+                        }
+                        else
+                        {
+                            kernelArgs[i] = arguments[userArgIndex];
+                        }
                         userArgIndex++;
                     }
                     else
@@ -1090,7 +1118,7 @@ namespace AsynCUDA13.Runtime
 
         public object[] MergeArgumentsImage(CudaMem inputMem, CudaMem outputMem, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
         {
-            return this.MergeArgumentsImage(inputMem.DevicePointers.FirstOrDefault(), outputMem.DevicePointers.FirstOrDefault(), width, height, channels, bitdepth, arguments, silent);
+            return this.MergeArgumentsImage(inputMem.Pointers.FirstOrDefault(), outputMem.Pointers.FirstOrDefault(), width, height, channels, bitdepth, arguments, silent);
         }
 
 
@@ -1108,6 +1136,14 @@ namespace AsynCUDA13.Runtime
                 string argName = argDefinitions.ElementAt(i).Key;
                 Type argType = argDefinitions.ElementAt(i).Value;
                 string argValueStr = argumentValues.ElementAt(i);
+
+                if (argType == typeof(IntPtr))
+                {
+                    args[i] = IntPtr.Zero;
+                    //args[i] = Activator.CreateInstance(argType, args[i]);
+                    continue;
+                }
+
                 try
                 {
                     object parsedValue = Convert.ChangeType(argValueStr, argType);

@@ -1,13 +1,14 @@
 ﻿using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
+using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.MediaDtos;
 using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp.Formats.Png;
 
 namespace AsynCUDA13.Api.Controllers
 {
-    public class ImageKernelController : ControllerBase
+    public class ImageKernelController : ApiControllerBase
     {
         private readonly ICudaService cuda;
         private readonly ImageCollection images;
@@ -29,6 +30,7 @@ namespace AsynCUDA13.Api.Controllers
                     Detail = "The CUDA service is currently offline. Please ensure that the CUDA service is running and try again.",
                     Status = 503
                 };
+
                 return this.StatusCode(503, pd);
             }
 
@@ -43,10 +45,11 @@ namespace AsynCUDA13.Api.Controllers
                         Detail = $"The image with ID or name '{imageIdOrNameOrPath}' was not found.",
                         Status = 404
                     };
+
                     return this.StatusCode(404, pd);
                 }
 
-                this.cuda.Synchronize();
+                this.cuda.SetCurrent();
                 this.cuda.Compiler.LoadKernel(kernelName);
                 if (string.IsNullOrEmpty(this.cuda.Compiler.KernelName))
                 {
@@ -116,6 +119,7 @@ namespace AsynCUDA13.Api.Controllers
                     Detail = ex.Message,
                     Status = 500
                 };
+
                 return this.StatusCode(500, pd);
             }
         }
@@ -166,7 +170,7 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(400, pd);
                     }
 
-                    this.cuda.Synchronize();
+                    this.cuda.SetCurrent();
                     this.cuda.Compiler.LoadKernel(kernelName);
                     if (string.IsNullOrEmpty(this.cuda.Compiler.KernelName))
                     {
@@ -226,7 +230,7 @@ namespace AsynCUDA13.Api.Controllers
                         imageObj = new ImageObj(await this.cuda.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
                     }
 
-                    var imageBytes = await imageObj.GetImageAsFileFormatAsync(new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+                    var imageBytes = await imageObj.GetImageAsFileFormatAsync(new PngEncoder());
                     return this.File(imageBytes, "image/png");
                 }
                 catch (Exception ex)
@@ -234,9 +238,10 @@ namespace AsynCUDA13.Api.Controllers
                     var pd = new ProblemDetails
                     {
                         Title = "Error executing image kernel",
-                        Detail = ex.Message,
+                        Detail = StaticLogger.GetAllInnerExceptionsRecursively(ex),
                         Status = 500
                     };
+
                     return this.StatusCode(500, pd);
                 }
             }
@@ -253,9 +258,11 @@ namespace AsynCUDA13.Api.Controllers
         // Specific scoped image kernel function endpoints
 
         [HttpPost("execute-image-scoped/edge_detection")]
-        public async Task<IActionResult> ExecuteImageScoped_EdgeDetectionAsync(IFormFile imageFile, int thickness = 1, float threshold = 0.125f, int edgeR = 255, int edgeG = 0, int edgeB = 0, int deviceId = 0)
+        public async Task<IActionResult> ExecuteImageScoped_EdgeDetectionAsync(IFormFile imageFile, [FromForm] int thickness = 1, [FromForm] float threshold = 0.125f, [FromForm] int edgeR = 255, [FromForm] int edgeG = 0, [FromForm] int edgeB = 0, [FromForm] int deviceId = 0, [FromForm] string kernelVersion = "")
         {
-            string[] args = ["0", "0", "0", "0", edgeR.ToString(), edgeG.ToString(), edgeB.ToString(), thickness.ToString(), threshold.ToString()];
+            // Only pass user-defined arguments (edgeR, edgeG, edgeB, thickness, threshold)
+            // MergeArgumentsImage automatically handles input/output pointers and width/height/channels/bitdepth
+            string[] args = [edgeR.ToString(), edgeG.ToString(), edgeB.ToString(), thickness.ToString(), threshold.ToString()];
 
             try
             {
@@ -264,6 +271,10 @@ namespace AsynCUDA13.Api.Controllers
                     this.cuda.Dispose();
                     this.cuda.Initialize(deviceId);
                 }
+
+                string kernelName = string.IsNullOrEmpty(kernelVersion) ? "edge_detection" : $"edge_detection_{kernelVersion}";
+
+                return await this.ExecuteImageFileAsync(imageFile, kernelName, args, overwriteImage: false, unloadKernelAfterExecution: true);
             }
             catch (Exception ex)
             {
@@ -273,10 +284,13 @@ namespace AsynCUDA13.Api.Controllers
                     Detail = ex.Message,
                     Status = 500
                 };
+
                 return this.StatusCode(500, pd);
             }
-
-            return await this.ExecuteImageFileAsync(imageFile, "edge_detection", args, overwriteImage: false, unloadKernelAfterExecution: true);
+            finally
+            {
+                this.cuda.Dispose();
+            }
         }
 
     

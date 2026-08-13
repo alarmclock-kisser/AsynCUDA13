@@ -8,7 +8,7 @@ namespace AsynCUDA13.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CudaDeviceController : ControllerBase
+    public class CudaDeviceController : ApiControllerBase
     {
         private readonly ICudaService cuda;
 

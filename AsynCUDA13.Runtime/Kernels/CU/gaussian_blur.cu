@@ -1,4 +1,4 @@
-﻿__global__ void gaussian_blur(unsigned char* input, unsigned char* output, int width, int height, float sigma) {
+﻿extern "C" __global__ void gaussian_blur(unsigned char* input, unsigned char* output, int width, int height, float sigma) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 

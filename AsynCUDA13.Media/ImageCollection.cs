@@ -400,15 +400,15 @@ namespace AsynCUDA13.Media
 
 
 
-        public static SixLabors.ImageSharp.Size GetSharpSize(int height, int width)
+        public static Size GetSharpSize(int height, int width)
         {
             width = Math.Clamp(width, 1, 32768);
             height = Math.Clamp(height, 1, 32768);
 
-            return new SixLabors.ImageSharp.Size(width, height);
+            return new Size(width, height);
         }
 
-        public static SixLabors.ImageSharp.Color? GetSharpColor(System.Drawing.Color color)
+        public static Color? GetSharpColor(System.Drawing.Color color)
         {
             if (color == System.Drawing.Color.Empty)
             {
@@ -418,7 +418,7 @@ namespace AsynCUDA13.Media
             return SixLabors.ImageSharp.Color.FromRgba(color.R, color.G, color.B, color.A);
         }
 
-        public static SixLabors.ImageSharp.Color GetSharpColor(string hexColor = "#00000000")
+        public static Color GetSharpColor(string hexColor = "#00000000")
         {
             if (string.IsNullOrWhiteSpace(hexColor))
             {
@@ -438,7 +438,7 @@ namespace AsynCUDA13.Media
             }
         }
 
-        public static System.Drawing.Color GetDrawingColor(SixLabors.ImageSharp.Color color)
+        public static System.Drawing.Color GetDrawingColor(Color color)
         {
             var rgba = color.ToPixel<Rgba32>();
             return System.Drawing.Color.FromArgb(rgba.A, rgba.R, rgba.G, rgba.B);

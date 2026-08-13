@@ -1,94 +1,86 @@
-__global__ void edge_detection(unsigned char* input, unsigned char* output, int width, int height, int edgeR, int edgeG, int edgeB, int thickness, float threshold)
+__device__ float edge_gray(const unsigned char* input, int x, int y, int width, int height, int channels)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (x < 0 || x >= width || y < 0 || y >= height)
+    {
+        return 0.0f;
+    }
 
-	// Bildgrenzen prüfen (jedes Pixel besteht aus 3 Werten: R, G, B)
-	int pixelIdx = i * 3;
-	int totalPixels = width * height * 3;
+    int pixelIdx = (y * width + x) * channels;
+    if (channels >= 3)
+    {
+        return 0.299f * input[pixelIdx] + 0.587f * input[pixelIdx + 1] + 0.114f * input[pixelIdx + 2];
+    }
 
-	if (pixelIdx + 2 >= totalPixels) return;
+    return input[pixelIdx];
+}
 
-	// Schwellwert clammen (0.0 = alle Kanten, 1.0 = nur starke Kanten)
-	float t = fmaxf(0.0f, fminf(1.0f, threshold));
+__device__ bool is_edge(const unsigned char* input, int x, int y, int width, int height, int channels, float threshold)
+{
+    const int sobelX[3][3] = {
+        {-1, 0, 1},
+        {-2, 0, 2},
+        {-1, 0, 1}
+    };
+    const int sobelY[3][3] = {
+        {-1, -2, -1},
+        { 0,  0,  0},
+        { 1,  2,  1}
+    };
 
-	// Sobel-Filter-Komponenten
-	float gx_r = 0.0f, gy_r = 0.0f;
-	float gx_g = 0.0f, gy_g = 0.0f;
-	float gx_b = 0.0f, gy_b = 0.0f;
+    float gradientX = 0.0f;
+    float gradientY = 0.0f;
+    for (int dy = -1; dy <= 1; dy++)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            float gray = edge_gray(input, x + dx, y + dy, width, height, channels);
+            gradientX += gray * sobelX[dy + 1][dx + 1];
+            gradientY += gray * sobelY[dy + 1][dx + 1];
+        }
+    }
 
-	// Sobel-Kernel für Gradientenberechnung
-	int x = i % width;
-	int y = i / width;
+    float magnitude = sqrtf(gradientX * gradientX + gradientY * gradientY);
+    float normalizedMagnitude = magnitude / 1020.0f;
+    return normalizedMagnitude >= threshold;
+}
 
-	// Kantenpixel zählen
-	int edgePixels = 0;
+extern "C" __global__ void edge_detection(unsigned char* input, unsigned char* output, int width, int height, int channels, int edgeR, int edgeG, int edgeB, int thickness, float threshold)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-	// 3x3 Nachbarschaft prüfen
-	for (int dy = -1; dy <= 1; dy++) {
-		for (int dx = -1; dx <= 1; dx++) {
-			int nx = x + dx;
-			int ny = y + dy;
+    if (x >= width || y >= height || channels <= 0)
+    {
+        return;
+    }
 
-			// Grenzen prüfen
-			if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-				int neighborIdx = (ny * width + nx) * 3;
+    float t = fmaxf(0.0f, fminf(1.0f, threshold));
+    int radius = max(0, thickness - 1);
+    bool edge = false;
 
-				// Sobel-Gitter
-				int sobelX = dx;
-				int sobelY = dy;
+    for (int dy = -radius; dy <= radius && !edge; dy++)
+    {
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            if (is_edge(input, x + dx, y + dy, width, height, channels, t))
+            {
+                edge = true;
+                break;
+            }
+        }
+    }
 
-				// Grauwerte berechnen (einfacher Graustufen-Ansatz)
-				float gray_in = 0.299f * input[neighborIdx] + 0.587f * input[neighborIdx + 1] + 0.114f * input[neighborIdx + 2];
-
-				// Gradienten accumulieren
-				gx_r += sobelX * gray_in;
-				gy_r += sobelY * gray_in;
-				gx_g += sobelX * gray_in;
-				gy_g += sobelY * gray_in;
-				gx_b += sobelX * gray_in;
-				gy_b += sobelY * gray_in;
-			}
-		}
-	}
-
-	// Gradientenmagnetude berechnen
-	float mag_r = sqrtf(gx_r * gx_r + gy_r * gy_r);
-	float mag_g = sqrtf(gx_g * gx_g + gy_g * gy_g);
-	float mag_b = sqrtf(gx_b * gx_b + gy_b * gy_b);
-
-	// Durchschnittliche Magentude
-	float magnitude = (mag_r + mag_g + mag_b) / 3.0f;
-
-	// Normalisieren und mit Schwellwert vergleichen
-	float maxMag = 255.0f * sqrtf(2.0f); // Maximale Sobel-Magentude
-	float normalizedMag = magnitude / maxMag;
-
-	// Kanten erkennen
-	bool isEdge = normalizedMag > t;
-
-	if (isEdge) {
-		// Kantenfarbe anwenden
-		output[pixelIdx] = edgeR;     // Rot
-		output[pixelIdx + 1] = edgeG; // Grün
-		output[pixelIdx + 2] = edgeB; // Blau
-	} else {
-		// Originalpixel übernehmen
-		output[pixelIdx] = input[pixelIdx];
-		output[pixelIdx + 1] = input[pixelIdx + 1];
-		output[pixelIdx + 2] = input[pixelIdx + 2];
-	}
-
-	// Kantenstiftdicke (thickness) - hier wird die Dicke durch wiederholte Kanten pixelweise simuliert
-	// Für echte Dicke würde man mehrere Kernel-Läufe oder erweiterte Logik benötigen
-	if (thickness > 1 && isEdge) {
-		// Nahe benachbarte Pixel mit Kantenfarbe überschreiben
-		for (int t_idx = 1; t_idx < thickness; t_idx++) {
-			int offsetX = (i + t_idx * width) * 3;
-			if (offsetX + 2 < totalPixels) {
-				output[offsetX] = edgeR;
-				output[offsetX + 1] = edgeG;
-				output[offsetX + 2] = edgeB;
-			}
-		}
-	}
+    int pixelIdx = (y * width + x) * channels;
+    for (int channel = 0; channel < channels; channel++)
+    {
+        if (edge && channel < 3)
+        {
+            int color = channel == 0 ? edgeR : channel == 1 ? edgeG : edgeB;
+            output[pixelIdx + channel] = (unsigned char)max(0, min(255, color));
+        }
+        else
+        {
+            output[pixelIdx + channel] = input[pixelIdx + channel];
+        }
+    }
 }

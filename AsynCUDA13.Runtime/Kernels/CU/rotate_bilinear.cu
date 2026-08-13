@@ -1,4 +1,4 @@
-﻿__global__ void rotate_bilinear(unsigned char* input, unsigned char* output, int width, int height, float angle_rad) {
+﻿extern "C" __global__ void rotate_bilinear(unsigned char* input, unsigned char* output, int width, int height, float angle_rad) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 

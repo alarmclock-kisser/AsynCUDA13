@@ -77,5 +77,6 @@ namespace AsynCUDA13.Api.Controllers
                 return this.StatusCode(500, pd);
             }
         }
+
     }
 }

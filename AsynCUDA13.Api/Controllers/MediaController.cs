@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AsynCUDA13.Api.Controllers
 {
-    public class MediaController : ControllerBase
+    public class MediaController : ApiControllerBase
     {
         private readonly ImageCollection images;
         private readonly AudioCollection audios;
