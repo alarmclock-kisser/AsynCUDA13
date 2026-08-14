@@ -274,7 +274,7 @@ namespace AsynCUDA13.Api.Controllers
 
                 string kernelName = string.IsNullOrEmpty(kernelVersion) ? "edge_detection" : $"edge_detection_{kernelVersion}";
 
-                return await this.ExecuteImageFileAsync(imageFile, kernelName, args, overwriteImage: false, unloadKernelAfterExecution: true);
+                return await this.ExecuteImageFileAsync(imageFile, kernelName, args, overwriteImage: true, unloadKernelAfterExecution: true);
             }
             catch (Exception ex)
             {

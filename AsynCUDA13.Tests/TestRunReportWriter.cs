@@ -93,10 +93,10 @@ namespace AsynCUDA13.Tests
                             var doc = XDocument.Parse(trxContent);
 
                             var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
-                            var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? Enumerable.Empty<XElement>();
+                            var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? [];
 
                             // Baue eine Lookup-Tabelle für TestDefinitions (testId -> className)
-                            var testDefinitions = doc.Root?.Descendants(ns + "UnitTest") ?? Enumerable.Empty<XElement>();
+                            var testDefinitions = doc.Root?.Descendants(ns + "UnitTest") ?? [];
                             var testClassLookup = new Dictionary<string, string>();
 
                             foreach (var unitTest in testDefinitions)
@@ -521,10 +521,10 @@ namespace AsynCUDA13.Tests
             var doc = XDocument.Parse(trxContent);
 
             var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
-            var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? Enumerable.Empty<XElement>();
+            var testEntries = doc.Root?.Descendants(ns + "UnitTestResult") ?? [];
 
             // Baue eine Lookup-Tabelle für TestDefinitions (testId -> className)
-            var testDefinitions = doc.Root?.Descendants(ns + "UnitTest") ?? Enumerable.Empty<XElement>();
+            var testDefinitions = doc.Root?.Descendants(ns + "UnitTest") ?? [];
             var testClassLookup = new Dictionary<string, string>();
 
             foreach (var unitTest in testDefinitions)

@@ -139,8 +139,8 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-        [HttpDelete("dispose")]
-        public ActionResult DisposeContext([FromBody] CudaDisposeRequest request)
+        [HttpDelete("dispose-context")]
+        public ActionResult<CudaDisposeResponse?> DisposeContext([FromBody] CudaDisposeRequest request)
         {
             if (!this.cuda.IsCudaAvailable())
             {
@@ -187,8 +187,8 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-        [HttpDelete("dispose-context")]
-        public ActionResult DisposeContext()
+        [HttpDelete("dispose")]
+        public ActionResult Dispose()
         {
             if (!this.cuda.IsCudaAvailable())
             {

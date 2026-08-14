@@ -18,5 +18,8 @@ namespace AsynCUDA13.Shared.MediaDtos
 
         public float? Bpm { get; set; } = null;
 
+
+        public string? Pointer { get; set; } = null;
+
     }
 }

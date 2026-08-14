@@ -1,7 +1,9 @@
 <Solution>
   <Project Path="AsynCUDA13.Api/AsynCUDA13.Api.csproj" Id="58ab7ba6-b2c4-418b-bd58-7e9d4b550b77" />
+  <Project Path="AsynCUDA13.Client/AsynCUDA13.Client.csproj" Id="78cd2fb4-bc71-44bd-bcea-d8dc88288576" />
   <Project Path="AsynCUDA13.Media/AsynCUDA13.Media.csproj" />
   <Project Path="AsynCUDA13.Runtime/AsynCUDA13.Runtime.csproj" />
   <Project Path="AsynCUDA13.Shared/AsynCUDA13.Shared.csproj" />
   <Project Path="AsynCUDA13.Tests/AsynCUDA13.Tests.csproj" />
+  <Project Path="AsynCUDA13.WebApp/AsynCUDA13.WebApp.csproj" Id="25336c24-7a66-4a1e-b41f-ef89da4fd2ef" />
 </Solution>

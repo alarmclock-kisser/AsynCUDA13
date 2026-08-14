@@ -228,6 +228,24 @@ namespace AsynCUDA13.Shared.Serialization
             }).ToArray();
         }
 
+
+        public static string? ExtractKernelName(string kernelCode)
+        {
+            if (string.IsNullOrEmpty(kernelCode))
+            {
+                return null;
+            }
+
+            // Simple regex to find the kernel name in the code
+            var match = System.Text.RegularExpressions.Regex.Match(kernelCode, @"__global__\s+void\s+(\w+)\s*\(");
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return match.Groups[1].Value;
+            }
+
+            return null;
+        }
+
         // --------------------------------------------------------------------------------
         // Hilfsmethode: Exakte Byte-Anzahl aus Base64-String berechnen (inkl. Padding-Check)
         // --------------------------------------------------------------------------------

@@ -17,12 +17,20 @@ namespace AsynCUDA13.Api
             bool createLogFile = builder.Configuration.GetValue<bool>("CreateLogFile");
             int maxLogFiles = builder.Configuration.GetValue<int>("MaxLogFiles");
             StaticLogger.InitializeLogFiles(logDirectory, createLogFile, maxLogFiles);
-            StaticLogger.SetUiContext(SynchronizationContext.Current ?? new SynchronizationContext());
 
             // Add services to the container.
             builder.Services.AddSingleton<ICudaService, CudaService>();
             builder.Services.AddSingleton<AudioCollection>();
             builder.Services.AddSingleton<ImageCollection>();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("WebApp", policy =>
+                {
+                    var origins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() ?? [];
+                    policy.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader();
+                });
+            });
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
@@ -45,6 +53,8 @@ namespace AsynCUDA13.Api
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors("WebApp");
 
             app.UseAuthorization();
 

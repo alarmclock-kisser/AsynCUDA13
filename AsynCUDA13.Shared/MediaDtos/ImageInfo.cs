@@ -16,5 +16,6 @@ namespace AsynCUDA13.Shared.MediaDtos
         public float OriginalSizeMb { get; set; }
 
 
+        public string? Pointer { get; set; } = null;
     }
 }

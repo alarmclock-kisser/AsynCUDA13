@@ -11,6 +11,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             {
                 Id = imageObj.Id,
                 Name = imageObj.Name,
+                Pointer = imageObj.Pointer.ToString(),
                 Width = imageObj.Width,
                 Height = imageObj.Height,
                 Channels = imageObj.Channels,
@@ -24,6 +25,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             {
                 Id = audioObj.Id,
                 Name = audioObj.Name,
+                Pointer = audioObj.Pointer.ToString(),
                 Length = audioObj.Length.ToString(),
                 SampleRate = audioObj.SampleRate,
                 Channels = audioObj.Channels,
