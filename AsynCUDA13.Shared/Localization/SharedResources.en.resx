@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <supportedLanguage>en</supportedLanguage>
+  <silent>1</silent>
+  <mrk>0</mrk>
+  <entry name="Home">
+	<value>Home</value>
+  </entry>
+  <entry name="Assets">
+	<value>Assets</value>
+  </entry>
+  <entry name="Memory">
+	<value>Memory</value>
+  </entry>
+  <entry name="Compiler">
+	<value>Compiler</value>
+  </entry>
+  <entry name="Execute">
+	<value>Execute</value>
+  </entry>
+  <entry name="Log">
+	<value>Log</value>
+  </entry>
+  <entry name="WordWrap">
+	<value>WordWrap</value>
+  </entry>
+  <entry name="CopyLines">
+	<value>CopyLines</value>
+  </entry>
+  <entry name="Download">
+	<value>Download</value>
+  </entry>
+</root>

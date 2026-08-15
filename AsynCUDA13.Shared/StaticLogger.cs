@@ -399,7 +399,7 @@ namespace AsynCUDA13.Shared
 
             Exception? inner = ex.InnerException;
             int count = 0;
-            while ( inner != null )
+            while (inner != null)
             {
                 message = message + $" ({inner.Message}";
                 inner = inner.InnerException;
@@ -412,6 +412,6 @@ namespace AsynCUDA13.Shared
             return sb.ToString();
         }
 
-        
+
     }
 }

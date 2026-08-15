@@ -213,7 +213,7 @@ namespace AsynCUDA13.Shared.Serialization
                 }
                 try
                 {
-                    if(t.IsPointer)
+                    if (t.IsPointer)
                     {
                         return IntPtr.TryParse(arg, out var ptr) ? ptr : IntPtr.Zero;
                     }

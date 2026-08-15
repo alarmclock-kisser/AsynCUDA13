@@ -1,0 +1,123 @@
+@page "/memory"
+@inject MemoryViewModel VM
+@inject ApiClient ApiClient
+@inject LanguageService L
+
+<div class="container mt-4">
+    <h2>@L["CudaMemoryManagement"]</h2>
+
+    <RadzenAlert Text="@(VM.IsCudaInitialized ? L["CudaInitialized"] : L["CudaNotInitialized"])"
+                 Severity="@(VM.IsCudaInitialized ? AlertStyle.Success : AlertStyle.Warning)"
+                 Visible="true" ShowCloseButton="false" />
+
+    @if (VM.IsCudaInitialized)
+    {
+        <RadzenCard>
+            <div class="rz-card-header">
+                <h5>@L["VramStatus"]</h5>
+            </div>
+            <div class="rz-card-body">
+                <p><strong>@L["AllocatedCudaMemObjects"]</strong> @(VM.MemoryInfos?.Length ?? 0)</p>
+            </div>
+        </RadzenCard>
+
+        <h4>@L["MemoryList"]</h4>
+        <RadzenAccordion>
+            @if (VM.MemoryInfos != null && VM.MemoryInfos.Length > 0)
+            {
+                @foreach (var memInfo in VM.MemoryInfos)
+                {
+                    <RadzenAccordionItem Text="@($"{memInfo.Id} ({VM.FormatSize(long.Parse(memInfo.TotalSize))}) ({memInfo.ElementType})")">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <RadzenTable Data="new[] { memInfo }" TItem="CudaMemInfo" ShowPaging="false" ShowSearch="false" ShowSort="false">
+                                    <RadzenHeader>
+                                        <tr>
+                                            <th>@L["GuidId"]</th>
+                                            <th>@L["ElementType"]</th>
+                                            <th>@L["IndexPointer"]</th>
+                                            <th>@L["TotalLength"]</th>
+                                            <th>@L["TotalSize"]</th>
+                                        </tr>
+                                    </RadzenHeader>
+                                    <RadzenRow Context="memInfo">
+                                        <tr>
+                                            <td>@memInfo.Id</td>
+                                            <td>@memInfo.ElementType</td>
+                                            <td>@memInfo.IndexPointer</td>
+                                            <td>@memInfo.TotalLength</td>
+                                            <td>@VM.FormatSize(long.Parse(memInfo.TotalSize))</td>
+                                        </tr>
+                                    </RadzenRow>
+                                </RadzenTable>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="() => HandleDeleteMemory(memInfo)" />
+                                    <RadzenButton Icon="download" ButtonStyle="ButtonStyle.Primary" Click="() => HandlePullMemory(memInfo)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (memInfo.Pointers.Length > 1)
+                        {
+                            <h6 class="mt-3">@L["BufferAddresses"]</h6>
+                            <table class="table table-sm"><thead><tr><th>@L["Pointer"]</th><th class="text-end">@L["Size"]</th></tr></thead><tbody>
+                                @for (var pointerIndex = 0; pointerIndex < memInfo.Pointers.Length; pointerIndex++)
+                                {
+                                    var pointer = memInfo.Pointers[pointerIndex];
+                                    var length = pointerIndex < memInfo.Lengths.Length ? memInfo.Lengths[pointerIndex] : "0";
+                                    <tr>
+                                        <td>@pointer</td>
+                                        <td class="text-end">@(long.TryParse(length, out var bytes) ? VM.FormatSize(bytes) : length)</td>
+                                    </tr>
+                                }
+                            </tbody></table>
+                        }
+                    </RadzenAccordionItem>
+                }
+            }
+            else
+            {
+                <p class="text-muted">@L["NoCudaMemObjects"]</p>
+            }
+        </RadzenAccordion>
+    }
+
+    <h4>@L["PushOperations"]</h4>
+    <RadzenCard>
+        <RadzenBody>
+            <p>@L["PushHighResMediaToCuda"]</p>
+            <RadzenButton Text="@L["PushToCuda"]" ButtonStyle="ButtonStyle.Primary" Click="PushAllToCuda" />
+        </RadzenBody>
+    </RadzenCard>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await VM.LoadMemoryListAsync();
+    }
+
+    private async Task HandleDeleteMemory(CudaMemInfo memInfo)
+    {
+        if (!string.IsNullOrEmpty(memInfo.IndexPointer))
+        {
+            await VM.FreeMemoryAsync(memInfo.IndexPointer);
+            await VM.LoadMemoryListAsync();
+        }
+    }
+
+    private async Task HandlePullMemory(CudaMemInfo memInfo)
+    {
+        if (!string.IsNullOrEmpty(memInfo.IndexPointer))
+        {
+            await VM.PullAsync(memInfo.IndexPointer, true);
+        }
+    }
+
+    private async Task PushAllToCuda()
+    {
+        // TODO: Implement push logic for all media objects
+    }
+}

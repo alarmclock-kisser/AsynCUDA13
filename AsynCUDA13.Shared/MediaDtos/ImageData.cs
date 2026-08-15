@@ -4,7 +4,7 @@ using System.Text;
 
 namespace AsynCUDA13.Shared.MediaDtos
 {
-    public class ImageData
+    public class ImageData : IMediaData
     {
         public required ImageInfo Info { get; set; }
 

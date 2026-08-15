@@ -151,7 +151,7 @@ namespace AsynCUDA13.Runtime
                 }
 
                 int blockSize = 256;
-                int gridSize = (int)((length + blockSize - 1) / blockSize);
+                int gridSize = (int) ((length + blockSize - 1) / blockSize);
                 this.Kernel.BlockDimensions = new dim3(blockSize, 1, 1);
                 this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
 

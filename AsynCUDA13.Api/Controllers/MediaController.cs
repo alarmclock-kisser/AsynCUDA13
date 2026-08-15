@@ -56,6 +56,91 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
+        [HttpPost("upload-media")]
+        public async Task<ActionResult<IMediaInfo>> UploadMediaAsync(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return this.BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid file",
+                    Detail = "No file was uploaded or the file is empty.",
+                    Status = 400
+                });
+            }
+
+            string tempFilePath = Path.GetTempFileName();
+
+            try
+            {
+                // Copy to temp path
+                using (var stream = new FileStream(tempFilePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                if (file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var img = await this.images.LoadImageAsync(tempFilePath);
+                    if (img == null)
+                    {
+                        return this.BadRequest(new ProblemDetails
+                        {
+                            Title = "Invalid image file",
+                            Detail = "The uploaded file could not be processed as an image.",
+                            Status = 400
+                        });
+                    }
+
+                    var imageInfo = MediaInfosBuilder.BuildImageInfo(img);
+                    return this.Ok(imageInfo);
+                }
+                else if (file.ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var audio = await this.audios.ImportAudioAsync(tempFilePath);
+                    if (audio == null)
+                    {
+                        return this.BadRequest(new ProblemDetails
+                        {
+                            Title = "Invalid audio file",
+                            Detail = "The uploaded file could not be processed as an audio.",
+                            Status = 400
+                        });
+                    }
+
+                    var audioInfo = MediaInfosBuilder.BuildAudioInfo(audio);
+                    return this.Ok(audioInfo);
+                }
+                else
+                {
+                    return this.BadRequest(new ProblemDetails
+                    {
+                        Title = "Unsupported file type",
+                        Detail = $"The uploaded file type '{file.ContentType}' is not supported. Please upload an image or audio file.",
+                        Status = 400
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Error uploading media",
+                    Detail = ex.Message,
+                    Status = 500
+                };
+                return this.StatusCode(500, pd);
+            }
+            finally
+            {
+                // Clean up temp file
+                if (System.IO.File.Exists(tempFilePath))
+                {
+                    System.IO.File.Delete(tempFilePath);
+                }
+            }
+        }
+
         [HttpGet("image-data/{idOrName}")]
         public ActionResult<ImageData?> GetImageData(string idOrName, string format = "png", bool keepData = true)
         {

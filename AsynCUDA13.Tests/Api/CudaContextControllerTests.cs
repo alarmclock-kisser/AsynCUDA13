@@ -25,6 +25,6 @@ namespace AsynCUDA13.Tests.Api
         // GET /api/cudacontext/devices
         // =====================================================================
 
-        
+
     }
 }

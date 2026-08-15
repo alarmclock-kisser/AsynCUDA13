@@ -250,7 +250,7 @@ namespace AsynCUDA13.Client
 
             try
             {
-                
+
                 var response = await this.internalClient.PushAsync(request);
                 return response;
             }
@@ -387,6 +387,21 @@ namespace AsynCUDA13.Client
 
 
         // MediaController
+        public async Task<IMediaInfo?> UploadAudioAsync(IFormFile file)
+        {
+            try
+            {
+                var fp = new FileParameter(file.OpenReadStream(), file.FileName, file.ContentType);
+                var response = await this.internalClient.UploadMediaAsync(fp);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+        }
+
         public async Task<ImageInfo[]> GetImagesAsync()
         {
             try

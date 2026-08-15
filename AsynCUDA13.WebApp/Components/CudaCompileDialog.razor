@@ -1,0 +1,50 @@
+@inject LanguageService L
+
+<RadzenDialog />
+
+<RadzenDialog @bind-Visible="ShowDialog"
+              Title="@L["CompilationResult"]" 
+              Width="600px" 
+              Height="400px">
+    <RadzenContent>
+        @if (Response?.KernelInfo?.PtxPath != null)
+        {
+            <RadzenAlert Text="@($"{L["Success"]} - {L["KernelCompiled"]}\n{L["PtxPath"]}: {Response.KernelInfo.PtxPath}")" 
+                         Severity="AlertSeverity.Success" 
+                         Visible="true" 
+                         ShowCloseButton="false" />
+        }
+        else
+        {
+            <RadzenAlert Text="@($"{L["Error"]} - {L["CompilationFailed"]}\n{GetBuildLog()}")" 
+                         Severity="AlertSeverity.Danger" 
+                         Visible="true" 
+                         ShowCloseButton="false" />
+        }
+    </RadzenContent>
+    <RadzenRadioButtonList TValue="bool">
+        <RadzenButton Text="@L["Close"]" ButtonStyle="ButtonStyle.Secondary" Click="CloseDialog" />
+    </RadzenRadioButtonList>
+</RadzenDialog>
+
+@code {
+    [Parameter]
+    public CudaCompileResponse? Response { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ShowDialog { get; set; }
+
+    private string GetBuildLog()
+    {
+        if (Response?.KernelInfo == null)
+            return L["NoCompilationResult"];
+
+        return L["CompilationFailed"] + " " + L["CheckKernelCode"];
+    }
+
+    private void CloseDialog()
+    {
+        Response = null;
+        ShowDialog = new EventCallback<bool>(this, async () => await ShowDialog.InvokeAsync(false));
+    }
+}

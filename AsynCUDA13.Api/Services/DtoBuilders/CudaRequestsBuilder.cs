@@ -34,7 +34,6 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new CudaPushRequest
             {
                 AsyncCall = asyncCall,
-                ElementType = elementType,
                 Payload = new CudaPayload1D
                 {
                     Data = payload
@@ -47,7 +46,6 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new CudaPushRequest
             {
                 AsyncCall = asyncCall,
-                ElementType = elementType,
                 Payload = new CudaPayload2D
                 {
                     DataChunks = payload

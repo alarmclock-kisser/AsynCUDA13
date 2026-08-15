@@ -1094,6 +1094,55 @@
         }
       }
     },
+    "/upload-media": {
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IMediaInfo"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IMediaInfo"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IMediaInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/image-data/{idOrName}": {
       "get": {
         "tags": [
@@ -1318,6 +1367,10 @@
           "bpm": {
             "type": "number",
             "format": "float",
+            "nullable": true
+          },
+          "pointer": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -1658,7 +1711,8 @@
         "properties": {
           "elementType": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "readOnly": true
           },
           "payload": {
             "$ref": "#/components/schemas/ICudaPayload"
@@ -1713,6 +1767,24 @@
           },
           "asyncCall": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IMediaInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "pointer": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -1772,6 +1844,10 @@
           "originalSizeMb": {
             "type": "number",
             "format": "float"
+          },
+          "pointer": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

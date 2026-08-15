@@ -1,0 +1,92 @@
+@page "/assets"
+@inject AssetsViewModel VM
+@inject LanguageService L
+
+<div class="container mt-4">
+    <h2>@L["Assets"]</h2>
+
+    <RadzenCard>
+        <RadzenHeader>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-0">@L["ImageUpload"]</h5>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="mb-0 text-end">@L["AudioUpload"]</h5>
+                </div>
+            </div>
+        </RadzenHeader>
+        <RadzenBody>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <RadzenFileInput @bind-value="VM.ImageUpload" Accept="image/*" />
+                </div>
+                <div class="col-md-6">
+                    <RadzenFileInput @bind-value="VM.AudioUpload" Accept="audio/*" />
+                </div>
+            </div>
+        </RadzenBody>
+    </RadzenCard>
+
+    <h4>@L["Images"]</h4>
+    <RadzenAccordion>
+        @if (VM.Images != null && VM.Images.Length > 0)
+        {
+            @foreach (var image in VM.Images)
+            {
+                <RadzenAccordionItem Text="@image.Name">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm"><tbody><tr>
+                                <th>@L["GuidId"]</th><td>@image.Id</td><th>@L["Size"]</th><td>@image.OriginalSizeMb.ToString("F2") MB</td>
+                                <th>@L["OnHost"]</th><td>@(image.Pointer == null ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(image.Pointer != null ? $"cuda:{image.Pointer}" : L["No"])</td>
+                            </tr></tbody></table>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <RadzenButton Text="@L["Delete"]" ButtonStyle="ButtonStyle.Danger" Click="() => VM.DeleteAssetAsync(image.Id.ToString(), VM.HasImageCudaPointer(image), image.Pointer)" />
+                    </div>
+                </RadzenAccordionItem>
+            }
+        }
+        else
+        {
+            <p class="text-muted">@L["NoImages"]</p>
+        }
+    </RadzenAccordion>
+
+    <h4>@L["Audios"]</h4>
+    <RadzenAccordion>
+        @if (VM.Audios != null && VM.Audios.Length > 0)
+        {
+            @foreach (var audio in VM.Audios)
+            {
+                <RadzenAccordionItem Text="@audio.Name">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm"><tbody><tr>
+                                <th>@L["GuidId"]</th><td>@audio.Id</td><th>@L["Duration"]</th><td>@audio.DurationSeconds.ToString("F2") s</td>
+                                <th>@L["SampleRate"]</th><td>@audio.SampleRate Hz</td><th>@L["Channels"]</th><td>@audio.Channels</td><th>@L["BitDepth"]</th><td>@audio.BitDepth bit</td>
+                                <th>@L["OnHost"]</th><td>@(audio.Pointer == null ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.Pointer != null ? $"cuda:{audio.Pointer}" : L["No"])</td>
+                            </tr></tbody></table>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <RadzenButton Text="@L["Delete"]" ButtonStyle="ButtonStyle.Danger" Click="() => VM.DeleteAssetAsync(audio.Id.ToString(), VM.HasAudioCudaPointer(audio), audio.Pointer)" />
+                    </div>
+                </RadzenAccordionItem>
+            }
+        }
+        else
+        {
+            <p class="text-muted">@L["NoAudios"]</p>
+        }
+    </RadzenAccordion>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await VM.LoadAssetsAsync();
+    }
+}

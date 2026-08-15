@@ -1,8 +1,116 @@
 ﻿@page "/"
 @page "/home"
 @inject HomeViewModel VM
+@inject LanguageService L
 
+<div class="container mt-4">
+    <h2>@L["CudaStatus"]</h2>
+
+    <RadzenAlert Text="@(VM.IsCudaAvailable ? L["CudaIsAvailable"] : L["CudaIsNotAvailable"])"
+                 Severity="@(VM.IsCudaAvailable ? AlertStyle.Success : AlertStyle.Danger)"
+                 Visible="true" ShowCloseButton="false" />
+
+    @if (VM.IsCudaAvailable && VM.Devices != null && VM.Devices.Length > 0)
+    {
+        <RadzenCard>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <RadzenDropDown @bind-Value="VM.SelectedDevice"
+                                    Data="@VM.Devices"
+                                    TextProperty="DeviceName"
+                                    Placeholder="@L["SelectDevicePlaceholder"]" />
+                </div>
+            </div>
+
+            <RadzenButton Text="@(VM.IsInitialized ? L["Dispose"] : L["Initialize"])" 
+                          ButtonStyle="@(VM.IsInitialized ? ButtonStyle.Secondary : ButtonStyle.Success)"
+                          Click="HandleInitializeButton" 
+                          Disabled="@(!VM.IsInitialized && (VM.SelectedDevice == null || VM.SelectedDevice.DeviceId == null))" />
+        </RadzenCard>
+
+        @if (VM.IsInitialized && VM.ContextInfo?.DeviceInfo != null)
+        {
+            <RadzenAccordion>
+                <RadzenAccordionItem Text="@(VM.SelectedDevice?.DeviceName ?? L["SelectedDeviceProperties"])">
+                    @if (VM.SelectedDevice?.Properties is { } properties)
+                    {
+                        <table class="table table-sm">
+                            <tbody>
+                                @foreach (var property in properties)
+                                {
+                                    <tr><th class="fw-bold">@property.Key</th><td>@property.Value</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">@L["NoPropertiesAvailable"]</p>
+                    }
+                </RadzenAccordionItem>
+            </RadzenAccordion>
+        }
+
+        @if (VM.IsInitialized && VM.ContextInfo?.UsageInfo != null)
+        {
+            <h4>@L["CudaContextInfo"]</h4>
+            <RadzenCard>
+                <div class="row">
+                    <div class="col-md-3">
+                        <RadzenLabel Text="@L["ActiveThreads"]" />
+                        <p><strong>@VM.ContextInfo.UsageInfo.ActiveThreads</strong></p>
+                    </div>
+                    <div class="col-md-3">
+                        <RadzenLabel Text="@L["IdleThreads"]" />
+                        <p><strong>@VM.ContextInfo.UsageInfo.IdleThreads</strong></p>
+                    </div>
+                    <div class="col-md-3">
+                        <RadzenLabel Text="@L["TotalAllocatedBytes"]" />
+                        <p><strong>@VM.ContextInfo.UsageInfo.TotalAllocatedBytes</strong></p>
+                    </div>
+                    <div class="col-md-3">
+                        <RadzenLabel Text="@L["RegisteredMemoryCount"]" />
+                        <p><strong>@VM.ContextInfo.UsageInfo.RegisteredMemoryCount</strong></p>
+                    </div>
+                </div>
+            </RadzenCard>
+        }
+
+        @if (VM.IsInitialized && VM.ContextInfo?.MemoryInfos != null && VM.ContextInfo.MemoryInfos.Length > 0)
+        {
+            <h4>@L["MemoryObjects"]</h4>
+            <RadzenAccordion>
+                <RadzenAccordionItem Text="@(L["AllCudaMemObjects"] + $" ({VM.ContextInfo.MemoryInfos.Length})")">
+                    <table class="table table-sm"><tbody>
+                        @foreach (var memInfo in VM.ContextInfo.MemoryInfos)
+                        {
+                            <tr><td>@memInfo.Id</td><td>@memInfo.IndexPointer</td><td>@memInfo.ElementType</td><td>@VM.GetMemInfoSizeKb(memInfo)</td></tr>
+                        }
+                    </tbody></table>
+                </RadzenAccordionItem>
+            </RadzenAccordion>
+        }
+    }
+</div>
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        await VM.LoadDevicesAsync();
+    }
 
+    private async Task HandleInitializeButton()
+    {
+        if (VM.IsInitialized)
+        {
+            await VM.DisposeCudaAsync();
+        }
+        else
+        {
+            if (VM.SelectedDevice?.DeviceId.HasValue == true)
+            {
+                await VM.InitializeDeviceAsync(VM.SelectedDevice.DeviceId.Value, VM.SelectedDevice.DeviceName ?? "");
+            }
+        }
+    }
 }

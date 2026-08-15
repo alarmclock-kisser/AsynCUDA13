@@ -4,7 +4,7 @@ using System.Text;
 
 namespace AsynCUDA13.Shared.MediaDtos
 {
-    public class AudioInfo
+    public class AudioInfo : IMediaInfo
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;

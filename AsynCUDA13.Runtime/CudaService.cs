@@ -770,7 +770,7 @@ namespace AsynCUDA13.Runtime
                 StaticLogger.Log("CudaService: Cannot free memory - service is offline");
                 return;
             }
-            
+
             foreach (var item in this.Register.MemoryList)
             {
                 try

@@ -1,0 +1,58 @@
+@page "/compiler"
+@inject CompilerViewModel VM
+@inject ApiClient ApiClient
+@inject LanguageService L
+
+<div class="container mt-4">
+    <h2>@L["CudaKernelCompiler"]</h2>
+
+    <RadzenAlert Text="@L["NoteCudaInitialized"]" Severity="AlertSeverity.Info" Visible="true" ShowCloseButton="false" />
+
+    <RadzenCard>
+        <RadzenCard>
+            <h5>@L["KernelCode"]</h5>
+        </RadzenCard>
+        <RadzenBody>
+            <RadzenTextArea @bind-Value="VM.KernelCode" Rows="10" Placeholder="@L["EnterCudaKernelCode"]" />
+            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="CompileKernel" />
+        </RadzenBody>
+    </RadzenCard>
+
+    @if (VM.LastCompileResponse != null)
+    {
+        <CudaCompileDialog Response="VM.LastCompileResponse" />
+    }
+
+    <h4>@L["CompiledKernels"]</h4>
+    <RadzenPickList Data="@VM.Kernels" TItem="CudaKernelInfo">
+        <Template Context="context">
+            <div class="card mb-2">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <span>@context.FunctionName</span>
+                    <RadzenBadge Text="@(VM.IsKernelCompiled(@context) ? L["Compiled"] : L["NotCompiled"])"
+                                 BadgeStyle="@(VM.IsKernelCompiled(context) ? BadgeStyle.Success : BadgeStyle.Secondary)" />
+                </div>
+            </div>
+        </Template>
+    </RadzenPickList>
+
+    @if (VM.Kernels == null || VM.Kernels.Length == 0)
+    {
+        <p class="text-muted">@L["NoCompiledKernelsFound"]</p>
+    }
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await VM.LoadKernelsAsync();
+    }
+
+    private async Task CompileKernel()
+    {
+        if (!string.IsNullOrWhiteSpace(VM.KernelCode))
+        {
+            await VM.CompileKernelAsync(VM.KernelCode);
+        }
+    }
+}

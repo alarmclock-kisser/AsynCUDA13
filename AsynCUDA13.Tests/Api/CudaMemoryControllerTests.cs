@@ -107,7 +107,7 @@ namespace AsynCUDA13.Tests.Api
             objectResult.StatusCode.ShouldBe(200);
 
             var memoryList = objectResult.Value.ShouldBeAssignableTo<CudaMemInfo[]>();
-            memoryList.Length.ShouldBe(3);
+            memoryList?.Length.ShouldBe(3);
         }
 
         [TestMethod]
@@ -421,7 +421,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PushAsync(request);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -430,7 +430,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(true);
-            var request = new CudaPushRequest { Payload = null, ElementType = "System.Single" };
+            var request = new CudaPushRequest { Payload = new CudaPayload1D() };
 
             // Act
             var result = await this._controller.PushAsync(request);
@@ -488,7 +488,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -497,13 +497,13 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(true);
-            var request = new CudaPullRequest { IndexPointerOrId = null, FreeAfterPull = true };
+            var request = new CudaPullRequest { IndexPointerOrId = string.Empty, FreeAfterPull = true };
 
             // Act
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(400);
         }
 
@@ -520,7 +520,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(404);
         }
 
@@ -556,7 +556,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
             objectResult.StatusCode.ShouldBe(500);
         }
 

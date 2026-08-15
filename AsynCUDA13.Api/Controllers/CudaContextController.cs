@@ -81,7 +81,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
 
                 var contextInfo = CudaInfosBuilder.BuildCudaContextInfo(this.cuda);
-                var response = CudaResponsesBuilder.BuildInitializeResponse(this.cuda, (int)(DateTime.Now - started).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildInitializeResponse(this.cuda, (int) (DateTime.Now - started).TotalMilliseconds);
                 return this.Ok(response);
             }
             catch (Exception ex)
@@ -172,7 +172,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                var response = CudaResponsesBuilder.BuildDisposeResponse(this.cuda, (int)(DateTime.Now - started).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildDisposeResponse(this.cuda, (int) (DateTime.Now - started).TotalMilliseconds);
                 return this.Ok(response);
             }
             catch (Exception ex)

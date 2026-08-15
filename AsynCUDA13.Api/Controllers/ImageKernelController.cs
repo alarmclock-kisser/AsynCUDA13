@@ -293,6 +293,6 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-    
+
     }
 }

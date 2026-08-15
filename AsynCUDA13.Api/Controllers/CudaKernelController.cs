@@ -80,7 +80,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
 
                 var info = CudaInfosBuilder.BuildCudaKernelInfo(this.cuda, request.KernelName);
-                var response = CudaResponsesBuilder.BuildCudaCompileResponse(info, (int)(DateTime.Now - started).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildCudaCompileResponse(info, (int) (DateTime.Now - started).TotalMilliseconds);
                 if (response == null)
                 {
                     var pd = new ProblemDetails
@@ -127,7 +127,7 @@ namespace AsynCUDA13.Api.Controllers
 
                 this.cuda.SetCurrent();
                 var result = await this.cuda.Launcher.ExecuteGenericKernelAsync(request.KernelInfo.FunctionName, args);
-                
+
                 if (request.UnloadAfterExecution)
                 {
                     this.cuda.Compiler.UnloadKernel();
@@ -176,7 +176,7 @@ namespace AsynCUDA13.Api.Controllers
             try
             {
                 object[] args = DataParser.ParseArgumentValues(request.ArgumentValues, request.KernelInfo);
-                
+
                 var pointer = args.FirstOrDefault(a => a.GetType() == typeof(IntPtr)) as IntPtr?;
                 if (pointer == null)
                 {
@@ -201,10 +201,10 @@ namespace AsynCUDA13.Api.Controllers
                     return this.BadRequest(pd);
                 }
 
-                nint length = (nint)mem.TotalLength;
+                nint length = (nint) mem.TotalLength;
 
-                                this.cuda.SetCurrent();
-                                var resultPtr = await this.cuda.Launcher.ExecuteLinearKernelAsync(request.KernelInfo.FunctionName, pointer.Value, args, length);
+                this.cuda.SetCurrent();
+                var resultPtr = await this.cuda.Launcher.ExecuteLinearKernelAsync(request.KernelInfo.FunctionName, pointer.Value, args, length);
                 if (resultPtr == null || resultPtr == IntPtr.Zero)
                 {
                     var pd = new ProblemDetails
@@ -231,7 +231,7 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = CudaResponsesBuilder.BuildCudaExecuteResponse(request.KernelInfo, resultPtr.HasValue, resultPtr, (int)(DateTime.Now - started).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildCudaExecuteResponse(request.KernelInfo, resultPtr.HasValue, resultPtr, (int) (DateTime.Now - started).TotalMilliseconds);
                 return this.Ok(response);
             }
             catch (Exception ex)

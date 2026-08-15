@@ -1,18 +1,73 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@implements IDisposable
+
+<RadzenHeader>
     <div class="container-fluid">
-        <a class="navbar-brand" href="">AsynCUDA13.WebApp</a>
+        <RadzenLink Text="AsynCUDA13.WebApp" Style="color: white;" />
     </div>
-</div>
+</RadzenHeader>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<RadzenButton Icon="menu" ButtonStyle="ButtonStyle.Light" Click="ToggleSidebar" Class="m-2" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-    </nav>
+@if (SidebarOpen)
+{
+<RadzenSidebar>
+    <RadzenMenu>
+        <RadzenMenuItem Text="Home" Icon="home" NavigateTo="/" />
+        <RadzenMenuItem Text="Assets" Icon="image" NavigateTo="/assets" />
+        <RadzenMenuItem Text="Memory" Icon="memory" NavigateTo="/memory" />
+        <RadzenMenuItem Text="Compiler" Icon="cpu" NavigateTo="/compiler" />
+        <RadzenMenuItem Text="Execute" Icon="play" NavigateTo="/execute" />
+    </RadzenMenu>
+</RadzenSidebar>
+
+<div class="log-container">
+    <RadzenCard>
+        <RadzenCard>
+            <small>Log (@LogLines.Count)</small>
+        </RadzenCard>
+        <RadzenBody Class="p-2" Style="height: 200px; overflow-y: auto; background: #f8f9fa;">
+            <div class="d-flex justify-content-end mb-1">
+                <RadzenButton Icon="format_lines" Title="WordWrap" />
+                <RadzenButton Icon="content_copy" Title="CopyLines" Class="ms-1" />
+                <RadzenButton Icon="download" Title="Download" Class="ms-1" />
+            </div>
+            <div id="logContainer" Style="font-size: 0.75rem; max-height: 150px; overflow-y: auto;">
+                @foreach (var entry in LogLines.TakeLast(50))
+                {
+                    <div Style="white-space: pre-wrap;">@entry</div>
+                }
+            </div>
+        </RadzenBody>
+    </RadzenCard>
 </div>
+}
+
+@code {
+    private bool SidebarOpen { get; set; } = true;
+    private List<string> LogLines { get; } = StaticLogger.GetLogLines().ToList();
+
+    protected override void OnInitialized()
+    {
+        StaticLogger.LogWritten += OnLogWritten;
+    }
+
+    private void ToggleSidebar()
+    {
+        SidebarOpen = !SidebarOpen;
+    }
+
+    private void OnLogWritten(DateTime timestamp, string line)
+    {
+        _ = InvokeAsync(() =>
+        {
+            LogLines.Add(line);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        StaticLogger.LogWritten -= OnLogWritten;
+    }
+}
 
