@@ -14,11 +14,11 @@ namespace AsynCUDA13.Api.Controllers
     [Route("api/[controller]")]
     public class CudaFourierController : ApiControllerBase
     {
-        private readonly CudaService cuda;
+        private readonly ICudaService cuda;
         private readonly AudioCollection audios;
 
 
-        public CudaFourierController(CudaService cuda, AudioCollection audios)
+        public CudaFourierController(ICudaService cuda, AudioCollection audios)
         {
             this.cuda = cuda;
             this.audios = audios;
@@ -54,6 +54,18 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 404
                     };
                     return this.StatusCode(404, pd);
+                }
+
+                var inputMemInfo = CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, inputMem.IndexPointer.ToString());
+                if (inputMemInfo == null)
+                {
+                    var pd = new ProblemDetails
+                    {
+                        Title = "Input Memory Info Not Found",
+                        Detail = $"Failed to build input memory info for {inputMem.IndexPointer}",
+                        Status = 500
+                    };
+                    return this.StatusCode(500, pd);
                 }
 
                 bool inverse = request.Inverse ?? inputMem.ElementType == typeof(float) || inputMem.ElementType == typeof(double);
@@ -111,7 +123,7 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = CudaResponsesBuilder.BuildCudaFourierResponse(CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, inputMem.IndexPointer.ToString()) ?? throw new InvalidOperationException("Failed to build input memory info"), CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, outputMem.IndexPointer.ToString()), payload, (int) (DateTime.Now - started).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildCudaFourierResponse(inputMemInfo, CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, outputMem.IndexPointer.ToString()), payload, (int) (DateTime.Now - started).TotalMilliseconds);
                 return this.Ok(response);
             }
             catch (Exception ex)
@@ -166,7 +178,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
                 else
                 {
-                    audioMem = this.cuda.RegisteredMemory.FirstOrDefault(m => m.IndexPointer == audio.Pointer);
+                    audioMem = this.cuda[(nint)audio.Pointer];
                 }
                 if (audioMem == null)
                 {
@@ -177,6 +189,20 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 404
                     };
                     return this.StatusCode(404, pd);
+                }
+
+                audio.Pointer = audioMem.IndexPointer;
+
+                var inputMemInfo = CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, audioMem.IndexPointer.ToString());
+                if (inputMemInfo == null)
+                {
+                    var pd = new ProblemDetails
+                    {
+                        Title = "Input Memory Info Not Found",
+                        Detail = $"Failed to build input memory info for audio with ID: {audioIdOrName}",
+                        Status = 500
+                    };
+                    return this.StatusCode(500, pd);
                 }
 
                 var resultMemPtr = audioMem.ElementType == typeof(float2) ? await this.cuda.Fourier.PerformIfftAsync(audioMem.IndexPointer, keepDataOrBuffer) : await this.cuda.Fourier.PerformFftAsync(audioMem.IndexPointer, keepDataOrBuffer);
@@ -219,7 +245,7 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = CudaResponsesBuilder.BuildCudaFourierResponse(CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, audioMem.IndexPointer.ToString()) ?? throw new InvalidOperationException("Failed to build input memory info"), CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, resultMem.IndexPointer.ToString()), payload, (int) (DateTime.Now - DateTime.Now).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildCudaFourierResponse(inputMemInfo, CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, resultMem.IndexPointer.ToString()), payload, (int) (DateTime.Now - DateTime.Now).TotalMilliseconds);
                 return this.Ok(response);
             }
             catch (Exception ex)

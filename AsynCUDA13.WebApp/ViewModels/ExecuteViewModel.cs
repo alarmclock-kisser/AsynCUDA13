@@ -78,7 +78,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             if (kernel == null)
                 return null;
 
-            var response = await this._apiClient.ExecuteGenericKernelAsync(this.SelectedKernelName, args ?? this.ArgumentValues, false);
+            var response = await this._apiClient.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, args ?? this.ArgumentValues, false);
             return response?.ResultPointer?.ToString();
         }
     }

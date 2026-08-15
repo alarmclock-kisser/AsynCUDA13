@@ -113,7 +113,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 return null;
             }
 
-            var mem = service.RegisteredMemory.FirstOrDefault(m => m.Id.ToString() == indexPointerOrId || m.Pointers.Any(ptr => ptr.ToString() == indexPointerOrId) || m.IndexPointer.ToString() == indexPointerOrId);
+            var mem = service[indexPointerOrId];
             if (mem == null)
             {
                 return null;

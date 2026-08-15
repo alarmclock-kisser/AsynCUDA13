@@ -129,6 +129,25 @@ namespace AsynCUDA13.Runtime
             }
         }
 
+        /// <summary>
+        /// Rebuilds the bindable <see cref="MemoryList"/> from the current memory objects,
+        /// suppressing intermediate change notifications for efficiency.
+        /// </summary>
+        private void RefreshMemoryList()
+        {
+            lock (this.MemoryList)
+            {
+                this.MemoryList.RaiseListChangedEvents = false;
+                this.MemoryList.Clear();
+                foreach (var m in this.Memory.Values)
+                {
+                    this.MemoryList.Add(m);
+                }
+                this.MemoryList.RaiseListChangedEvents = true;
+                this.MemoryList.ResetBindings();
+            }
+        }
+
 
         // Enumerables
         /// <summary>Gets the memory object that contains the given native handle, or <c>null</c> if none matches.</summary>
@@ -138,6 +157,27 @@ namespace AsynCUDA13.Runtime
         /// <summary>Gets the memory object with the given id, or <c>null</c> if it is not registered.</summary>
         /// <param name="id">The unique id of the memory object.</param>
         public CudaMem? this[Guid id] => this.Memory.ContainsKey(id) ? this.Memory[id] : null;
+
+        /// <summary> Gets the memory object that matches the given string, which may be either a native handle or a unique id. </summary>
+        /// <param name="indexPointerOrId">The string representation of either a native handle or a unique id.</param>
+        public CudaMem? this[string indexPointerOrId]
+        {
+            get
+            {
+                if (Guid.TryParse(indexPointerOrId, out Guid id))
+                {
+                    return this[id];
+                }
+                else if (nint.TryParse(indexPointerOrId, out nint ptr))
+                {
+                    return this[ptr];
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
 
         /// <summary>Gets the stream with the given CUDA stream id, or <c>null</c> if it does not exist.</summary>
         /// <param name="id">The CUDA stream id.</param>
@@ -207,6 +247,7 @@ namespace AsynCUDA13.Runtime
                 {
                     this._memorySizes.Remove(mem.TotalSize);
                 }
+                this.RefreshMemoryList();
                 mem.Dispose();
             }
             else
@@ -252,6 +293,7 @@ namespace AsynCUDA13.Runtime
                 {
                     this._memorySizes.Remove(mem.TotalSize);
                 }
+                this.RefreshMemoryList();
                 mem.Dispose();
             }
             else
@@ -297,6 +339,7 @@ namespace AsynCUDA13.Runtime
                 {
                     this._memorySizes.Remove(mem.TotalSize);
                 }
+                this.RefreshMemoryList();
                 mem.Dispose();
             }
             else
@@ -538,6 +581,7 @@ namespace AsynCUDA13.Runtime
                     // the registry's back once this local wrapper goes out of scope.
                     GC.SuppressFinalize(devVariable);
                     this.AddMemorySize(mem.TotalSize);
+                    this.RefreshMemoryList();
                     return mem;
                 }
                 else
@@ -588,6 +632,7 @@ namespace AsynCUDA13.Runtime
                         {
                             GC.SuppressFinalize(devVariable);
                             this.AddMemorySize(mem.TotalSize);
+                            this.RefreshMemoryList();
                             return mem;
                         }
                         else
@@ -657,6 +702,7 @@ namespace AsynCUDA13.Runtime
                         GC.SuppressFinalize(devVariable);
                     }
                     this.AddMemorySize(mem.TotalSize);
+                    this.RefreshMemoryList();
                     return mem;
                 }
                 else
@@ -721,6 +767,7 @@ namespace AsynCUDA13.Runtime
                                 GC.SuppressFinalize(devVariable);
                             }
                             this.AddMemorySize(mem.TotalSize);
+                            this.RefreshMemoryList();
                             return mem;
                         }
                         else
@@ -791,20 +838,21 @@ namespace AsynCUDA13.Runtime
 
                 CudaMem mem = new(pointer, length, typeof(T));
 
-                if (this.Memory.TryAdd(mem.Id, mem))
-                {
-                    GC.SuppressFinalize(devVariable);
-                    this.AddMemorySize(mem.TotalSize);
-                    StaticLogger.Log($"[DIAG] PushData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} bytes={mem.TotalSize} registered={this.Memory.Count}.");
-                    return mem;
-                }
-                else
-                {
-                    devVariable.Dispose();
-                    mem.Dispose();
-                    StaticLogger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
-                    return null;
-                }
+                                if (this.Memory.TryAdd(mem.Id, mem))
+                                {
+                                    GC.SuppressFinalize(devVariable);
+                                    this.AddMemorySize(mem.TotalSize);
+                                    this.RefreshMemoryList();
+                                    StaticLogger.Log($"[DIAG] PushData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} bytes={mem.TotalSize} registered={this.Memory.Count}.");
+                                    return mem;
+                                }
+                                else
+                                {
+                                    devVariable.Dispose();
+                                    mem.Dispose();
+                                    StaticLogger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
+                                    return null;
+                                }
             }
             catch (Exception ex)
             {
@@ -855,25 +903,26 @@ namespace AsynCUDA13.Runtime
 
                 CudaMem mem = new(pointers, lengths, typeof(T));
 
-                if (this.Memory.TryAdd(mem.Id, mem))
-                {
-                    foreach (var devVariable in devVariables)
-                    {
-                        GC.SuppressFinalize(devVariable);
-                    }
-                    this.AddMemorySize(mem.TotalSize);
-                    return mem;
-                }
-                else
-                {
-                    foreach (var devVariable in devVariables)
-                    {
-                        devVariable.Dispose();
-                    }
-                    mem.Dispose();
-                    StaticLogger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
-                    return null;
-                }
+                                if (this.Memory.TryAdd(mem.Id, mem))
+                                {
+                                    foreach (var devVariable in devVariables)
+                                    {
+                                        GC.SuppressFinalize(devVariable);
+                                    }
+                                    this.AddMemorySize(mem.TotalSize);
+                                    this.RefreshMemoryList();
+                                    return mem;
+                                }
+                                else
+                                {
+                                    foreach (var devVariable in devVariables)
+                                    {
+                                        devVariable.Dispose();
+                                    }
+                                    mem.Dispose();
+                                    StaticLogger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
+                                    return null;
+                                }
             }
             catch (Exception ex)
             {
@@ -931,6 +980,7 @@ namespace AsynCUDA13.Runtime
                 {
                     GC.SuppressFinalize(devVariable);
                     this.AddMemorySize(mem.TotalSize);
+                    this.RefreshMemoryList();
                 }
             }
             catch (Exception ex)
@@ -996,6 +1046,7 @@ namespace AsynCUDA13.Runtime
                         GC.SuppressFinalize(devVariable);
                     }
                     this.AddMemorySize(mem.TotalSize);
+                    this.RefreshMemoryList();
                 }
             }
             catch (Exception ex)

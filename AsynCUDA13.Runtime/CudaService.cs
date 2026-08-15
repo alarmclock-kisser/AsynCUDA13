@@ -20,6 +20,9 @@ namespace AsynCUDA13.Runtime
         int SelectedDeviceId { get; }
         CudaDeviceProperties? SelectedDeviceProperties { get; }
         IReadOnlyList<CudaMem> RegisteredMemory { get; }
+        CudaMem? this[nint indexPointer] { get; }
+        CudaMem? this[Guid id] { get; }
+        CudaMem? this[string indexPointerOrId] { get; }
         long TotalAllocated { get; }
         int RegisteredMemoryObjects { get; }
         int ThreadsActive { get; }
@@ -121,6 +124,10 @@ namespace AsynCUDA13.Runtime
         /// <param name="id">The unique id of the memory object.</param>
         public CudaMem? this[Guid id] => this.Register?[id];
 
+        /// <summary>Gets the registered memory object that matches the given string, which may be either a native handle or a unique id, or <c>null</c>.</summary>
+        /// <param name="indexPointerOrId">The string representation of either a native handle or a unique id.</param>
+        public CudaMem? this[string indexPointerOrId] => this.Register?[indexPointerOrId];
+
         /// <summary>Gets the total number of bytes currently allocated by the registry.</summary>
         public long TotalAllocated => this.Register?.TotalAllocated ?? 0;
 
@@ -171,7 +178,7 @@ namespace AsynCUDA13.Runtime
 
         /// <summary>Gets the properties of the device with the given name (case-insensitive), or <c>null</c> if not found.</summary>
         /// <param name="deviceName">The device name to look up.</param>
-        public CudaDeviceProperties? this[string deviceName] => GetAvailableDevicesProperties().Values.FirstOrDefault(p => p.DeviceName.Equals(deviceName, StringComparison.OrdinalIgnoreCase));
+        public CudaDeviceProperties? this[uint deviceId] => GetAvailableDevicesProperties().GetValueOrDefault((int) deviceId);
 
         // Ctor
         /// <summary>
