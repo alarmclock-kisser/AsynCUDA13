@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AsynCUDA13.Api.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     public class CudaFourierController : ApiControllerBase
     {
         private readonly CudaService cuda;
@@ -125,7 +127,7 @@ namespace AsynCUDA13.Api.Controllers
         }
 
         [HttpPost("CuFFT/audio")]
-        public async Task<ActionResult<CudaFourierResponse?>> RunCudaFourierOnAudioAsync([FromBody] string audioIdOrName, [FromQuery] int chunkSize = 0, [FromQuery] float overlap = 0.5f, [FromQuery] bool autoPullResult = true, [FromQuery] bool keepDataOrBuffer = false)
+        public async Task<ActionResult<CudaFourierResponse?>> RunCudaFourierOnAudioAsync([FromBody] string audioIdOrName, [FromQuery] int chunkSize = 0, [FromQuery] float overlap = 0.5f, [FromQuery] bool autoPullResult = false, [FromQuery] bool keepDataOrBuffer = false)
         {
             if (!this.cuda.Online || this.cuda.Fourier == null)
             {
