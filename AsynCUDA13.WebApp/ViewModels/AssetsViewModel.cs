@@ -44,13 +44,13 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task ImportImageAsync()
         {
-            await ImportAsync(this.ImageUploadData, this.ImageUploadName, "image/png");
+            await this.ImportAsync(this.ImageUploadData, this.ImageUploadName, "image/png");
             this.ImageUploadData = null;
         }
 
         public async Task ImportAudioAsync()
         {
-            await ImportAsync(this.AudioUploadData, this.AudioUploadName, "audio/wav");
+            await this.ImportAsync(this.AudioUploadData, this.AudioUploadName, "audio/wav");
             this.AudioUploadData = null;
         }
 

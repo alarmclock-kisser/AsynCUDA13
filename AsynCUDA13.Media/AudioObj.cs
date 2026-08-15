@@ -422,6 +422,12 @@ namespace AsynCUDA13.Media
                 }
             }
 
+            if (this.Data.LongLength <= 0 || this.SampleRate <= 0 || this.Channels <= 0)
+            {
+                StaticLogger.Log("Audio data is empty or invalid. Cannot export.");
+                return null;
+            }
+
             // Dateinamen bestimmen (Name, Id oder Fallback)
             string baseName = fileName ?? (!string.IsNullOrEmpty(this.Name) ? this.Name : this.Id.ToString());
             string outputPath = Path.Combine(outputDirectory, $"{baseName}.wav");

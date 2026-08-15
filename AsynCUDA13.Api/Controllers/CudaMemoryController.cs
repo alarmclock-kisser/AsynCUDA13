@@ -1,4 +1,5 @@
 ﻿using AsynCUDA13.Api.Services.DtoBuilders;
+using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Api.Requests;
@@ -6,6 +7,7 @@ using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using NAudio.CoreAudioApi;
 
 namespace AsynCUDA13.Api.Controllers
 {
@@ -14,11 +16,15 @@ namespace AsynCUDA13.Api.Controllers
     public class CudaMemoryController : ApiControllerBase
     {
         private readonly ICudaService cuda;
+        private readonly AudioCollection audios;
+        private readonly ImageCollection images;
 
 
-        public CudaMemoryController(ICudaService cuda)
+        public CudaMemoryController(ICudaService cuda, AudioCollection audios, ImageCollection images)
         {
             this.cuda = cuda;
+            this.audios = audios;
+            this.images = images;
         }
 
 
@@ -368,6 +374,120 @@ namespace AsynCUDA13.Api.Controllers
                     Status = 500
                 };
                 return this.StatusCode(500, pd);
+            }
+        }
+
+        [HttpGet("push-asset")]
+        public async Task<ActionResult<CudaPushResponse>?> PushAssetAsync(string assetIdOrName, int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
+        {
+            if (!this.cuda.Online)
+            {
+                return this.StatusCode(503, new ProblemDetails
+                {
+                    Title = "CUDA not initialized",
+                    Detail = "CUDA is not initialized.",
+                    Status = 503
+                });
+            }
+
+            var startDate = DateTime.Now;
+            try
+            {
+                ICudaPayload? payload = null;
+
+                var audio = this.audios[assetIdOrName] ?? this.audios[Guid.TryParse(assetIdOrName, out var guid) ? guid : Guid.Empty];
+                if (audio != null)
+                {
+                    payload = chunkSize <= 1 ? await DataSerializer.SerializeAsync(audio.Data) : await DataSerializer.SerializeAsync(audio.GetChunks(chunkSize, overlap, keepData));
+                }
+
+                var image = this.images[assetIdOrName] ?? this.images[Guid.TryParse(assetIdOrName, out guid) ? guid : Guid.Empty];
+                if (image != null)
+                {
+                    payload = await DataSerializer.SerializeAsync(await image.GetBytesAsync(keepData));
+                }
+
+                if (payload == null)
+                {
+                    return this.StatusCode(404, new ProblemDetails
+                    {
+                        Title = "Asset not found",
+                        Detail = $"No audio or image asset found for ID or name: {assetIdOrName}.",
+                        Status = 404
+                    });
+                }
+
+                var pushRequest = new CudaPushRequest()
+                {
+                    Payload = payload
+                };
+
+                return await this.PushAsync(pushRequest);
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal server error",
+                    Detail = ex.Message,
+                    Status = 500
+                });
+            }
+        }
+
+        [HttpGet("pull-asset")]
+        public async Task<ActionResult<CudaPullResponse>?> PullAssetAsync(string assetIdOrName, bool keepBuffer = false)
+        {
+            if (!this.cuda.Online)
+            {
+                return this.StatusCode(503, new ProblemDetails
+                {
+                    Title = "CUDA not initialized",
+                    Detail = "CUDA is not initialized.",
+                    Status = 503
+                });
+            }
+
+            var startDate = DateTime.Now;
+            try
+            {
+                var audio = this.audios[assetIdOrName] ?? this.audios[Guid.TryParse(assetIdOrName, out var guid) ? guid : Guid.Empty];
+                if (audio != null)
+                {
+                    var pullRequest = new CudaPullRequest()
+                    {
+                        IndexPointerOrId = audio.Pointer.ToString(),
+                        FreeAfterPull = !keepBuffer
+                    };
+                    return await this.PullAsync(pullRequest);
+                }
+
+                var image = this.images[assetIdOrName] ?? this.images[Guid.TryParse(assetIdOrName, out guid) ? guid : Guid.Empty];
+                if (image != null)
+                {
+                    var pullRequest = new CudaPullRequest()
+                    {
+                        IndexPointerOrId = image.Pointer.ToString(),
+                        FreeAfterPull = !keepBuffer
+                    };
+                    return await this.PullAsync(pullRequest);
+                }
+
+                return this.StatusCode(404, new ProblemDetails
+                {
+                    Title = "Asset not found",
+                    Detail = $"No audio or image asset found for ID or name: {assetIdOrName}.",
+                    Status = 404
+                });
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal server error",
+                    Detail = ex.Message,
+                    Status = 500
+                });
             }
         }
 

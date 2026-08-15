@@ -13,27 +13,27 @@ namespace AsynCUDA13.Shared.Localization
 
         public LanguageService(IStringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
         {
-            _localizer = localizer;
-            _httpContextAccessor = httpContextAccessor;
+            this._localizer = localizer;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         public string this[string key]
         {
             get
             {
-                var localizedString = _localizer[key];
+                var localizedString = this._localizer[key];
                 return localizedString.Value;
             }
         }
 
         public LocalizedString GetLocalizedString(string key)
         {
-            return _localizer[key];
+            return this._localizer[key];
         }
 
         public CultureInfo GetCurrentCulture()
         {
-            var httpContext = _httpContextAccessor.HttpContext;
+            var httpContext = this._httpContextAccessor.HttpContext;
             if (httpContext != null)
             {
                 var requestCultureFeature = httpContext.Features.Get<RequestCultureFeature>();
@@ -57,7 +57,7 @@ namespace AsynCUDA13.Shared.Localization
             try
             {
                 var culture = CultureInfo.GetCultureInfo(languageCode);
-                SetCulture(culture);
+                this.SetCulture(culture);
             }
             catch (CultureNotFoundException)
             {
@@ -67,7 +67,7 @@ namespace AsynCUDA13.Shared.Localization
 
         public bool IsGerman()
         {
-            var culture = GetCurrentCulture();
+            var culture = this.GetCurrentCulture();
             return culture.TwoLetterISOLanguageName == "de";
         }
     }

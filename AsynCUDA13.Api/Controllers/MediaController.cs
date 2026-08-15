@@ -141,6 +141,68 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
+        [HttpGet("download-media")]
+        public async Task<IActionResult> DownloadMediaAsync(string idOrName, string format = "png")
+        {
+            string tempFilePath = string.Empty;
+
+            try
+            {
+                tempFilePath = Path.GetTempFileName();
+
+                var image = Guid.TryParse(idOrName, out var guid) ? this.images[guid] : this.images[idOrName];
+                if (image != null)
+                {
+                    // Export image with format to temp path
+                    tempFilePath = await this.images.ExportImageAsync(image.Id, tempFilePath, format) ?? tempFilePath;
+                    var contentType = format.ToLower() switch
+                    {
+                        "jpg" or "jpeg" => "image/jpeg",
+                        "bmp" => "image/bmp",
+                        "gif" => "image/gif",
+                        _ => "image/png"
+                    };
+
+                    var fileBytes = await System.IO.File.ReadAllBytesAsync(tempFilePath);
+                    return this.File(fileBytes, contentType, $"{image.Name}.{format}");
+                }
+                var audio = Guid.TryParse(idOrName, out guid) ? this.audios[guid] : this.audios[idOrName];
+                if (audio != null)
+                {
+                    // Export audio with bits from format to temp path
+                    tempFilePath = await audio.ExportWavAsync(Path.GetDirectoryName(tempFilePath), null, int.TryParse(format, out int bits) ? bits : 16) ?? tempFilePath;
+                    var contentType = "audio/wav";
+
+                    var fileBytes = await System.IO.File.ReadAllBytesAsync(tempFilePath);
+                    return this.File(fileBytes, contentType, $"{audio.Name}.wav");
+                }
+                return this.NotFound(new ProblemDetails
+                {
+                    Title = "Media not found",
+                    Detail = $"No media found with ID or name '{idOrName}'.",
+                    Status = 404
+                });
+            }
+            catch (Exception ex)
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Error downloading media",
+                    Detail = ex.Message,
+                    Status = 500
+                };
+                return this.StatusCode(500, pd);
+            }
+            finally
+            {
+                // Clean up temp file
+                if (!string.IsNullOrEmpty(tempFilePath) && System.IO.File.Exists(tempFilePath))
+                {
+                    System.IO.File.Delete(tempFilePath);
+                }
+            }
+        }
+
         [HttpGet("image-data/{idOrName}")]
         public ActionResult<ImageData?> GetImageData(string idOrName, string format = "png", bool keepData = true)
         {
