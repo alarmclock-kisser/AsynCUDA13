@@ -13,5 +13,8 @@ namespace AsynCUDA13.Shared.Api.Requests
 
         public bool AsyncCall { get; set; } = true;
 
+        public bool KeepInputBuffer { get; set; } = false;
+
+        public bool AutoPullResult { get; set; } = false;
     }
 }

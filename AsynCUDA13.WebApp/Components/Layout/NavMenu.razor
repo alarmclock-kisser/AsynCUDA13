@@ -74,7 +74,7 @@
 
     private async Task DownloadLogAsync()
     {
-        await JS.InvokeVoidAsync("downloadTextFile", "ascuda.log", string.Join(Environment.NewLine, LogLines));
+        await JS.InvokeVoidAsync("downloadTextFile", "asyncuda.log", string.Join(Environment.NewLine, LogLines));
     }
 
     private async Task RefreshApiLogsAsync(CancellationToken cancellationToken)
