@@ -261,6 +261,138 @@
         }
       }
     },
+    "/api/CudaFourier/CuFFT": {
+      "post": {
+        "tags": [
+          "CudaFourier"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CudaFourierRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CudaFourierRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CudaFourierRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaFourierResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaFourierResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaFourierResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/CudaFourier/CuFFT/audio": {
+      "post": {
+        "tags": [
+          "CudaFourier"
+        ],
+        "parameters": [
+          {
+            "name": "chunkSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "overlap",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "default": 0.5
+            }
+          },
+          {
+            "name": "autoPullResult",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "keepDataOrBuffer",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaFourierResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaFourierResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaFourierResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/kernels": {
       "get": {
         "tags": [
@@ -694,6 +826,116 @@
         }
       }
     },
+    "/api/CudaMemory/push-asset": {
+      "get": {
+        "tags": [
+          "CudaMemory"
+        ],
+        "parameters": [
+          {
+            "name": "assetIdOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chunkSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "overlap",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "default": 0.5
+            }
+          },
+          {
+            "name": "keepData",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaPushResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaPushResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaPushResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/CudaMemory/pull-asset": {
+      "get": {
+        "tags": [
+          "CudaMemory"
+        ],
+        "parameters": [
+          {
+            "name": "assetIdOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keepBuffer",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaPullResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaPullResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CudaPullResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/execute-image/{kernelName}/{imageIdOrNameOrPath}": {
       "post": {
         "tags": [
@@ -1018,7 +1260,7 @@
         }
       }
     },
-    "/images": {
+    "/api/Media/images": {
       "get": {
         "tags": [
           "Media"
@@ -1056,7 +1298,7 @@
         }
       }
     },
-    "/audios": {
+    "/api/Media/audios": {
       "get": {
         "tags": [
           "Media"
@@ -1094,7 +1336,7 @@
         }
       }
     },
-    "/upload-media": {
+    "/api/Media/upload-media": {
       "post": {
         "tags": [
           "Media"
@@ -1143,7 +1385,121 @@
         }
       }
     },
-    "/image-data/{idOrName}": {
+    "/api/Media/download-media": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "parameters": [
+          {
+            "name": "idOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "png"
+            }
+          },
+          {
+            "name": "normalizeAudio",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "default": 1
+            }
+          },
+          {
+            "name": "pullIfRequired",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "keepBufferWhenPulled",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Media/image-data/{idOrName}": {
       "get": {
         "tags": [
           "Media"
@@ -1198,7 +1554,7 @@
         }
       }
     },
-    "/audio-data/{idOrName}": {
+    "/api/Media/audio-data/{idOrName}": {
       "get": {
         "tags": [
           "Media"
@@ -1263,7 +1619,7 @@
         }
       }
     },
-    "/delete/{idOrName}": {
+    "/api/Media/delete/{idOrName}": {
       "delete": {
         "tags": [
           "Media"
@@ -1277,6 +1633,18 @@
               "type": "string"
             }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Media/clear-all": {
+      "delete": {
+        "tags": [
+          "Media"
         ],
         "responses": {
           "200": {
@@ -1534,6 +1902,57 @@
         },
         "additionalProperties": false
       },
+      "CudaFourierRequest": {
+        "required": [
+          "memoryInfo"
+        ],
+        "type": "object",
+        "properties": {
+          "memoryInfo": {
+            "$ref": "#/components/schemas/CudaMemInfo"
+          },
+          "inverse": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "asyncCall": {
+            "type": "boolean"
+          },
+          "keepInputBuffer": {
+            "type": "boolean"
+          },
+          "autoPullResult": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CudaFourierResponse": {
+        "required": [
+          "inputMemoryInfoReference"
+        ],
+        "type": "object",
+        "properties": {
+          "inputMemoryInfoReference": {
+            "$ref": "#/components/schemas/CudaMemInfo"
+          },
+          "outputMemoryInfoReference": {
+            "$ref": "#/components/schemas/CudaMemInfo"
+          },
+          "indexPointer": {
+            "type": "string",
+            "nullable": true
+          },
+          "outputPayload": {
+            "$ref": "#/components/schemas/ICudaPayload"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "CudaInitializeRequest": {
         "type": "object",
         "properties": {
@@ -1634,6 +2053,11 @@
           "count": {
             "type": "integer",
             "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "longCount": {
+            "type": "string",
             "nullable": true,
             "readOnly": true
           },
@@ -1855,6 +2279,33 @@
       "IntPtr": {
         "type": "object",
         "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
       }
     }
   },
@@ -1864,6 +2315,9 @@
     },
     {
       "name": "CudaDevice"
+    },
+    {
+      "name": "CudaFourier"
     },
     {
       "name": "CudaKernel"

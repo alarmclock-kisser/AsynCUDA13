@@ -97,7 +97,7 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 400
                         });
                     }
-                    img.Name = file.FileName;
+                    img.Name = originalFileName;
 
                     var imageInfo = MediaInfosBuilder.BuildImageInfo(img);
                     return this.Ok(imageInfo);
@@ -114,7 +114,7 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 400
                         });
                     }
-                    audio.Name = file.FileName;
+                    audio.Name = originalFileName;
 
                     var audioInfo = MediaInfosBuilder.BuildAudioInfo(audio);
                     return this.Ok(audioInfo);
@@ -150,6 +150,9 @@ namespace AsynCUDA13.Api.Controllers
         }
 
         [HttpGet("download-media")]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        [ProducesResponseType(typeof(ProblemDetails), 404)]
+        [ProducesResponseType(typeof(ProblemDetails), 500)]
         public async Task<IActionResult> DownloadMediaAsync(string idOrName, string format = "png", float normalizeAudio = 1.0f, bool pullIfRequired = true, bool keepBufferWhenPulled = false)
         {
             string tempFilePath = string.Empty;
@@ -202,10 +205,9 @@ namespace AsynCUDA13.Api.Controllers
 
                     // Export audio with bits from format to temp path
                     tempFilePath = await audio.ExportWavAsync(Path.GetDirectoryName(tempFilePath), null, int.TryParse(format, out int bits) ? bits : 16) ?? tempFilePath;
-                    var contentType = "audio/wav";
 
                     var fileBytes = await System.IO.File.ReadAllBytesAsync(tempFilePath);
-                    return this.File(fileBytes, contentType, $"{audio.Name}.wav");
+                    return this.File(fileBytes, "application/octet-stream", $"{audio.Name}.wav");
                 }
                 return this.NotFound(new ProblemDetails
                 {

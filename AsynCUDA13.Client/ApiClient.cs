@@ -6,6 +6,7 @@ using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.Shared.Serialization;
 using Microsoft.AspNetCore.Http;
+using System.Net;
 using System.Text.Json;
 
 namespace AsynCUDA13.Client
@@ -387,13 +388,26 @@ namespace AsynCUDA13.Client
 
 
         // MediaController
-        public async Task<IMediaInfo?> UploadAudioAsync(IFormFile file)
+        public async Task<IMediaInfo?> UploadMediaAsync(IFormFile file)
         {
             try
             {
                 var fp = new FileParameter(file.OpenReadStream(), file.FileName, file.ContentType);
                 var response = await this.internalClient.UploadMediaAsync(fp);
                 return response;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+        }
+
+        public async Task<FileResponse?> DownloadMediaAsync(string idOrName, string format = "png", float normalizeAudio = 1.0f, bool pullIfRequired = true, bool keepBufferWhenPulled = false)
+        {
+            try
+            {
+                return await this.internalClient.DownloadMediaAsync(idOrName, format, normalizeAudio, pullIfRequired, keepBufferWhenPulled);
             }
             catch (Exception ex)
             {
@@ -472,6 +486,17 @@ namespace AsynCUDA13.Client
             }
         }
 
+        public async Task ClearAllMediaAsync()
+        {
+            try
+            {
+                await this.internalClient.ClearAllAsync();
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+            }
+        }
 
     }
 }
