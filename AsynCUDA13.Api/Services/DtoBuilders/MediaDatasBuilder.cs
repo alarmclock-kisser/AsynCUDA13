@@ -27,6 +27,43 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
+        public static ImageData BuildImagePreview(ImageObj image, int maxDimenions, string format = "jpg")
+        {
+            format = format.ToLower() switch
+            {
+                "jpg" or "jpeg" => "jpg",
+                "png" => "png",
+                "bmp" => "bmp",
+                _ => "png"
+            };
 
+            return new ImageData()
+            {
+                Info = MediaInfosBuilder.BuildImageInfo(image),
+                Pointer = image.Pointer.ToString(),
+                MimeType = $"image/{format.ToLower()}",
+                Base64Data = image.GetPreview(maxDimenions)
+            };
+        }
+        public static ImageData BuildAudioPreview(AudioObj audio, int width, int height, string format = "jpg")
+        {
+            format = format.ToLower() switch
+            {
+                "jpg" or "jpeg" => "jpg",
+                "png" => "png",
+                "bmp" => "bmp",
+                _ => "png"
+            };
+
+            ImageObj waveform = audio.GenerateWaveform(width, height);
+
+            return new ImageData()
+            {
+                Info = MediaInfosBuilder.BuildImageInfo(waveform),
+                Pointer = audio.Pointer.ToString(),
+                MimeType = $"image/{format.ToLower()}",
+                Base64Data = waveform.Base64Image(format, false)
+            };
+        }
     }
 }

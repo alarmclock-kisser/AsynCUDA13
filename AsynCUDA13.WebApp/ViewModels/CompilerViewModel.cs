@@ -22,8 +22,12 @@ namespace AsynCUDA13.WebApp.ViewModels
             this.Kernels = await this._apiClient.GetKernelsAsync(filterCompiled);
         }
 
-        public async Task<CudaCompileResponse?> CompileKernelAsync(string kernelCode)
+        public async Task<CudaCompileResponse?> CompileKernelAsync(string? kernelCode)
         {
+            if (string.IsNullOrEmpty(kernelCode))
+            {
+                return null;
+            }
             this.LastCompileResponse = await this._apiClient.CompileKernelAsync(kernelCode);
             return this.LastCompileResponse;
         }

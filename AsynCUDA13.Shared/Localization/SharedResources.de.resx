@@ -73,4 +73,13 @@
   <data name="Close" xml:space="preserve"><value>Schließen</value></data>
   <data name="NotFound" xml:space="preserve"><value>Seite nicht gefunden</value></data>
   <data name="PageNotFound" xml:space="preserve"><value>Die angeforderte Seite existiert nicht.</value></data>
+    <data name="DeviceProperties" xml:space="preserve"><value>Geräteeigenschaften</value></data>
+    <data name="NoCudaDevicesFound" xml:space="preserve"><value>Keine CUDA-Geräte gefunden.</value></data>
+  <data name="ImportImage" xml:space="preserve"><value>Bild importieren</value></data>
+  <data name="ImportAudio" xml:space="preserve"><value>Audio importieren</value></data>
+  <data name="OnDevice" xml:space="preserve"><value>Auf Gerät</value></data>
+  <data name="OnHost" xml:space="preserve"><value>Auf Host</value></data>
+  <data name="PullToDevice" xml:space="preserve"><value>Auf Gerät pullen</value></data>
+  <data name="PushToHost" xml:space="preserve"><value>Auf Host pushen</value></data>
+  <data name="Delete" xml:space="preserve"><value>Löschen</value></data>
 </root>

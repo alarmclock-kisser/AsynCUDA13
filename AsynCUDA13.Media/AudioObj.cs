@@ -6,6 +6,9 @@ using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using System.Globalization;
 using AsynCUDA13.Shared;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace AsynCUDA13.Media
 {
@@ -624,6 +627,84 @@ namespace AsynCUDA13.Media
             });
         }
 
+        public ImageObj GenerateWaveform(int width, int height)
+        {
+            if (width <= 0 || height <= 0)
+            {
+                return new ImageObj(0, 0);
+            }
 
+            var waveformImage = new Image<Rgba32>(width, height);
+
+            if (this.Data.Length == 0)
+            {
+                var emptyImageObj = new ImageObj(width, height, "#00000000");
+                return emptyImageObj;
+            }
+
+            // Farben für die Wellenform definieren
+            var lineColor = SixLabors.ImageSharp.Color.FromRgb(0, 123, 255);
+
+            // Audio-Daten für die Wellenform normalisieren
+            float maxAmplitude = this.Data.Length > 0 ? this.Data.Max(Math.Abs) : 1f;
+            if (maxAmplitude == 0) maxAmplitude = 1f;
+
+            // Wellenform generieren
+            int samples = this.Data.Length;
+            float samplesPerPixel = samples / (float)width;
+
+            for (int x = 0; x < width; x++)
+            {
+                // Mittelwert der Samples für diesen Pixelbereich berechnen
+                int startSample = (int)(x * samplesPerPixel);
+                int endSample = (int)((x + 1) * samplesPerPixel);
+                endSample = Math.Min(endSample, samples);
+
+                if (endSample <= startSample) continue;
+
+                float sum = 0f;
+                for (int i = startSample; i < endSample; i++)
+                {
+                    sum += Math.Abs(this.Data[i]);
+                }
+                float avgAmplitude = sum / (endSample - startSample);
+
+                // Y-Position basierend auf Amplitude berechnen
+                int y = (int)(height / 2.0f - (avgAmplitude * height / 2.0f / maxAmplitude));
+                y = Math.Max(0, Math.Min(height - 1, y));
+
+                // Linie zeichnen (ein Pixel breit)
+                if (y >= 0 && y < height)
+                {
+                    waveformImage[x, y] = lineColor;
+                }
+
+                // Optional: zwei Linien für die Wellenform (positiv und negativ)
+                int yPositive = (int)(height / 2.0f + (avgAmplitude * height / 2.0f / maxAmplitude));
+                int yNegative = (int)(height / 2.0f - (avgAmplitude * height / 2.0f / maxAmplitude));
+
+                yPositive = Math.Max(0, Math.Min(height - 1, yPositive));
+                yNegative = Math.Max(0, Math.Min(height - 1, yNegative));
+
+                if (yPositive >= 0 && yPositive < height)
+                {
+                    waveformImage[x, yPositive] = lineColor;
+                }
+                if (yNegative >= 0 && yNegative < height)
+                {
+                    waveformImage[x, yNegative] = lineColor;
+                }
+            }
+
+            // Ergebnis-ImageObj erstellen
+            var imageObj = new ImageObj(width, height)
+            {
+                Img = waveformImage,
+                Width = width,
+                Height = height
+            };
+
+            return imageObj;
+        }
     }
 }

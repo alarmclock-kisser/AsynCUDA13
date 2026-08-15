@@ -27,7 +27,7 @@
             <RadzenButton Icon="content_copy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Zeilen kopieren" Click="CopyLogAsync" />
             <RadzenButton Icon="download" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Log herunterladen" Click="DownloadLogAsync" />
         </div>
-        <div class="sidebar-log-lines @(WordWrap ? "word-wrap" : "no-word-wrap")">
+        <div class="sidebar-log-lines @(WordWrap ? "word-wrap" : "no-word-wrap")" @ref="logContainerRef">
             @foreach (var entry in LogLines.TakeLast(50))
             {
                 <div>@entry</div>
@@ -41,6 +41,8 @@
     private bool WordWrap { get; set; } = true;
     private List<string> LogLines { get; } = StaticLogger.GetLogLines().ToList();
     private readonly CancellationTokenSource LogRefreshCancellation = new();
+    private ElementReference logContainerRef;
+    private bool ShouldAutoScroll { get; set; } = true;
 
     protected override void OnInitialized()
     {
@@ -48,9 +50,9 @@
         _ = RefreshApiLogsAsync(LogRefreshCancellation.Token);
     }
 
-    private void ToggleSidebar()
+    private async Task ScrollToBottomAsync()
     {
-        SidebarOpen = !SidebarOpen;
+        await JS.InvokeVoidAsync("scrollToBottom", logContainerRef);
     }
 
     private void OnLogWritten(DateTime timestamp, string line)
@@ -58,8 +60,17 @@
         _ = InvokeAsync(() =>
         {
             LogLines.Add(line);
+            if (ShouldAutoScroll)
+            {
+                _ = ScrollToBottomAsync();
+            }
             StateHasChanged();
         });
+    }
+
+    private void ToggleSidebar()
+    {
+        SidebarOpen = !SidebarOpen;
     }
 
     private void ToggleWordWrap()
@@ -88,6 +99,10 @@
                 {
                     LogLines.Clear();
                     LogLines.AddRange(apiLines);
+                    if (ShouldAutoScroll)
+                    {
+                        _ = ScrollToBottomAsync();
+                    }
                     StateHasChanged();
                 }
             });

@@ -19,12 +19,12 @@
         <RadzenBody>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <RadzenFileInput TValue="byte[]" @bind-Value="VM.ImageUploadData" @bind-FileName="VM.ImageUploadName" Accept="image/*" />
-                    <RadzenButton Text="@L["Import"]" ButtonStyle="ButtonStyle.Primary" Class="mt-2" Click="ImportImageAsync" Disabled="@(VM.ImageUploadData == null || VM.ImageUploadData.Length == 0)" />
+                    <RadzenFileInput TValue="IBrowserFile" @bind-Value="VM.ImageUpload" Accept="image/*" />
+                    <RadzenButton Text="@L["ImportImage"]" ButtonStyle="ButtonStyle.Primary" Click="() => VM.ImportImageAsync()" Disabled="@(VM.ImageUpload == null)" Class="mt-2" />
                 </div>
                 <div class="col-md-6">
-                    <RadzenFileInput TValue="byte[]" @bind-Value="VM.AudioUploadData" @bind-FileName="VM.AudioUploadName" Accept="audio/*" />
-                    <RadzenButton Text="@L["Import"]" ButtonStyle="ButtonStyle.Primary" Class="mt-2" Click="ImportAudioAsync" Disabled="@(VM.AudioUploadData == null || VM.AudioUploadData.Length == 0)" />
+                    <RadzenFileInput TValue="IBrowserFile" @bind-Value="VM.AudioUpload" Accept="audio/*" />
+                    <RadzenButton Text="@L["ImportAudio"]" ButtonStyle="ButtonStyle.Primary" Click="() => VM.ImportAudioAsync()" Disabled="@(VM.AudioUpload == null)" Class="mt-2" />
                 </div>
             </div>
         </RadzenBody>
@@ -32,9 +32,9 @@
 
     <h4>@L["Images"]</h4>
     <RadzenAccordion>
-        @if (VM.Images != null && VM.Images.Length > 0)
+        @if (VM.ImageInfos != null && VM.ImageInfos.Length > 0)
         {
-            @foreach (var image in VM.Images)
+            @foreach (var image in VM.ImageInfos)
             {
                 <RadzenAccordionItem Text="@image.Name">
                     <div class="row">
@@ -46,6 +46,17 @@
                         </div>
                     </div>
                     <div class="mt-2">
+                        @if (VM.ImagePreviews != null)
+                        {
+                            var preview = VM.ImagePreviews.FirstOrDefault(p => p.Info.Id == image.Id);
+                            if (preview != null && !string.IsNullOrEmpty(preview.Base64Data))
+                            {
+                                <div class="mb-3">
+                                    <p class="text-muted">@L["Preview"]</p>
+                                    <img src="data:@preview.MimeType;base64,@preview.Base64Data" class="img-fluid rounded" style="max-width: 100%; max-height: 300px;" />
+                                </div>
+                            }
+                        }
                         <RadzenButton Text="@L["Delete"]" ButtonStyle="ButtonStyle.Danger" Click="() => VM.DeleteAssetAsync(image.Id.ToString(), VM.HasImageCudaPointer(image), image.Pointer)" />
                     </div>
                 </RadzenAccordionItem>
@@ -59,9 +70,9 @@
 
     <h4>@L["Audios"]</h4>
     <RadzenAccordion>
-        @if (VM.Audios != null && VM.Audios.Length > 0)
+        @if (VM.AudiosInfos != null && VM.AudiosInfos.Length > 0)
         {
-            @foreach (var audio in VM.Audios)
+            @foreach (var audio in VM.AudiosInfos)
             {
                 <RadzenAccordionItem Text="@audio.Name">
                     <div class="row">
@@ -74,6 +85,17 @@
                         </div>
                     </div>
                     <div class="mt-2">
+                        @if (VM.AudioPreviews != null)
+                        {
+                            var preview = VM.AudioPreviews.FirstOrDefault(p => p.Info.Id == audio.Id);
+                            if (preview != null && !string.IsNullOrEmpty(preview.Base64Data))
+                            {
+                                <div class="mb-3">
+                                    <p class="text-muted">@L["Preview"]</p>
+                                    <img src="data:@preview.MimeType;base64,@preview.Base64Data" class="img-fluid rounded" style="max-width: 100%; max-height: 100px;" />
+                                </div>
+                            }
+                        }
                         <RadzenButton Text="@L["Delete"]" ButtonStyle="ButtonStyle.Danger" Click="() => VM.DeleteAssetAsync(audio.Id.ToString(), VM.HasAudioCudaPointer(audio), audio.Pointer)" />
                     </div>
                 </RadzenAccordionItem>
@@ -91,7 +113,4 @@
     {
         await VM.LoadAssetsAsync();
     }
-
-    private async Task ImportImageAsync() => await VM.ImportImageAsync();
-    private async Task ImportAudioAsync() => await VM.ImportAudioAsync();
 }

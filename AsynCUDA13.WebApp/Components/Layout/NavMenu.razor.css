@@ -234,6 +234,25 @@
     overflow: auto;
     color: #cbd5e1;
     font: .72rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+    position: relative;
+}
+
+.sidebar-log-lines::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-log-lines::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.sidebar-log-lines::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.sidebar-log-lines::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .sidebar-log-lines.word-wrap {

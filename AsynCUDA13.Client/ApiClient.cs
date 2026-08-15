@@ -515,6 +515,32 @@ namespace AsynCUDA13.Client
             }
         }
 
+        public async Task<ImageData?> GetImagePreviewAsync(string idOrName, int maxDimensions = 256)
+        {
+            try
+            {
+                return await this.internalClient.ImagePreviewAsync(idOrName, maxDimensions);
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+        }
+
+        public async Task<ImageData?> GetAudioWaveformAsync(string idOrName, int width = 512, int height = 128)
+        {
+            try
+            {
+                return await this.internalClient.AudioPreviewAsync(idOrName, width, height);
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+        }
+
         public async Task<bool> DeleteMediaAsync(string idOrName)
         {
             try

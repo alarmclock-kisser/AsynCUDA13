@@ -20,76 +20,81 @@
                                     TextProperty="DeviceName"
                                     Placeholder="@L["SelectDevicePlaceholder"]" />
                 </div>
+                <div class="col-md-6 text-end">
+                    <RadzenButton Text="@(VM.IsInitialized ? L["Dispose"] : L["Initialize"])" 
+                                    ButtonStyle="@(VM.IsInitialized ? ButtonStyle.Secondary : ButtonStyle.Success)"
+                                    Click="HandleInitializeButton" 
+                                    Disabled="@(!VM.IsInitialized && (VM.SelectedDevice == null || VM.SelectedDevice.DeviceId == null))" />
+                </div>
             </div>
-
-            <RadzenButton Text="@(VM.IsInitialized ? L["Dispose"] : L["Initialize"])" 
-                          ButtonStyle="@(VM.IsInitialized ? ButtonStyle.Secondary : ButtonStyle.Success)"
-                          Click="HandleInitializeButton" 
-                          Disabled="@(!VM.IsInitialized && (VM.SelectedDevice == null || VM.SelectedDevice.DeviceId == null))" />
         </RadzenCard>
 
         @if (VM.IsInitialized && VM.ContextInfo?.DeviceInfo != null)
         {
-            <RadzenAccordion>
-                <RadzenAccordionItem Text="@(VM.SelectedDevice?.DeviceName ?? L["SelectedDeviceProperties"])">
-                    @if (VM.SelectedDevice?.Properties is { } properties)
-                    {
-                        <table class="table table-sm">
-                            <tbody>
-                                @foreach (var property in properties)
-                                {
-                                    <tr><th class="fw-bold">@property.Key</th><td>@property.Value</td></tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <p class="text-muted">@L["NoPropertiesAvailable"]</p>
-                    }
-                </RadzenAccordionItem>
-            </RadzenAccordion>
-        }
-
-        @if (VM.IsInitialized && VM.ContextInfo?.UsageInfo != null)
-        {
             <h4>@L["CudaContextInfo"]</h4>
             <RadzenCard>
-                <div class="row">
+                <div class="row mb-3">
                     <div class="col-md-3">
                         <RadzenLabel Text="@L["ActiveThreads"]" />
-                        <p><strong>@VM.ContextInfo.UsageInfo.ActiveThreads</strong></p>
+                        <p><strong>@VM.ContextInfo.UsageInfo?.ActiveThreads</strong></p>
                     </div>
                     <div class="col-md-3">
                         <RadzenLabel Text="@L["IdleThreads"]" />
-                        <p><strong>@VM.ContextInfo.UsageInfo.IdleThreads</strong></p>
+                        <p><strong>@VM.ContextInfo.UsageInfo?.IdleThreads</strong></p>
                     </div>
                     <div class="col-md-3">
                         <RadzenLabel Text="@L["TotalAllocatedBytes"]" />
-                        <p><strong>@VM.ContextInfo.UsageInfo.TotalAllocatedBytes</strong></p>
+                        <p><strong>@VM.ContextInfo.UsageInfo?.TotalAllocatedBytes</strong></p>
                     </div>
                     <div class="col-md-3">
                         <RadzenLabel Text="@L["RegisteredMemoryCount"]" />
-                        <p><strong>@VM.ContextInfo.UsageInfo.RegisteredMemoryCount</strong></p>
+                        <p><strong>@VM.ContextInfo.UsageInfo?.RegisteredMemoryCount</strong></p>
                     </div>
                 </div>
             </RadzenCard>
-        }
 
-        @if (VM.IsInitialized && VM.ContextInfo?.MemoryInfos != null && VM.ContextInfo.MemoryInfos.Length > 0)
-        {
+            <h4>@L["DeviceProperties"]</h4>
+            <RadzenCard>
+                @if (VM.SelectedDevice?.Properties is { } properties)
+                {
+                    <table class="table table-sm">
+                        <tbody>
+                            @foreach (var property in properties)
+                            {
+                                <tr><th class="fw-bold">@property.Key</th><td>@property.Value</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted">@L["NoPropertiesAvailable"]</p>
+                }
+            </RadzenCard>
+
             <h4>@L["MemoryObjects"]</h4>
             <RadzenAccordion>
-                <RadzenAccordionItem Text="@(L["AllCudaMemObjects"] + $" ({VM.ContextInfo.MemoryInfos.Length})")">
-                    <table class="table table-sm"><tbody>
-                        @foreach (var memInfo in VM.ContextInfo.MemoryInfos)
-                        {
-                            <tr><td>@memInfo.Id</td><td>@memInfo.IndexPointer</td><td>@memInfo.ElementType</td><td>@VM.GetMemInfoSizeKb(memInfo)</td></tr>
-                        }
-                    </tbody></table>
+                <RadzenAccordionItem Text="@(L["AllCudaMemObjects"] + $" ({VM.ContextInfo.MemoryInfos?.Length ?? 0})")">
+                    @if (VM.ContextInfo?.MemoryInfos != null && VM.ContextInfo.MemoryInfos.Length > 0)
+                    {
+                        <table class="table table-sm"><tbody>
+                            @foreach (var memInfo in VM.ContextInfo.MemoryInfos)
+                            {
+                                <tr><td>@memInfo.Id</td><td>@memInfo.IndexPointer</td><td>@memInfo.ElementType</td><td>@VM.GetMemInfoSizeKb(memInfo)</td></tr>
+                            }
+                        </tbody></table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">@L["NoCudaMemObjects"]</p>
+                    }
                 </RadzenAccordionItem>
             </RadzenAccordion>
         }
+    }
+    else
+    {
+        <p class="text-muted">@L["NoCudaDevicesFound"]</p>
     }
 </div>
 

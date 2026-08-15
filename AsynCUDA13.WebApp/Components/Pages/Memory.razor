@@ -2,6 +2,7 @@
 @inject MemoryViewModel VM
 @inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
+@inject AssetsViewModel AssetsVM
 @inject LanguageService L
 
 <div class="container mt-4">
@@ -28,34 +29,38 @@
             {
                 @foreach (var memInfo in VM.MemoryInfos)
                 {
-                    <RadzenAccordionItem Text="@($"{memInfo.Id} ({VM.FormatSize(long.Parse(memInfo.TotalSize))}) ({memInfo.ElementType})")">
+                    var isInDevice = !string.IsNullOrEmpty(memInfo.IndexPointer);
+                    var accordionTitle = $"{memInfo.Id} ({VM.FormatSize(long.Parse(memInfo.TotalSize))}) ({memInfo.ElementType}) - {(isInDevice ? L["OnDevice"] : L["OnHost"])}";
+                    <RadzenAccordionItem Text="@accordionTitle">
                         <div class="row">
-                            <div class="col-md-6">
-                                <RadzenTable Data="new[] { memInfo }" TItem="CudaMemInfo" ShowPaging="false" ShowSearch="false" ShowSort="false">
-                                    <RadzenHeader>
-                                        <tr>
-                                            <th>@L["GuidId"]</th>
-                                            <th>@L["ElementType"]</th>
-                                            <th>@L["IndexPointer"]</th>
-                                            <th>@L["TotalLength"]</th>
-                                            <th>@L["TotalSize"]</th>
-                                        </tr>
-                                    </RadzenHeader>
-                                    <RadzenRow Context="memInfo">
-                                        <tr>
-                                            <td>@memInfo.Id</td>
-                                            <td>@memInfo.ElementType</td>
-                                            <td>@memInfo.IndexPointer</td>
-                                            <td>@memInfo.TotalLength</td>
-                                            <td>@VM.FormatSize(long.Parse(memInfo.TotalSize))</td>
-                                        </tr>
-                                    </RadzenRow>
-                                </RadzenTable>
+                            <div class="col-md-8">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr><th>@L["GuidId"]</th><td>@memInfo.Id</td></tr>
+                                        <tr><th>@L["ElementType"]</th><td>@memInfo.ElementType</td></tr>
+                                        <tr><th>@L["IndexPointer"]</th><td>@memInfo.IndexPointer</td></tr>
+                                        <tr><th>@L["TotalLength"]</th><td>@memInfo.TotalLength</td></tr>
+                                        <tr><th>@L["TotalSize"]</th><td>@VM.FormatSize(long.Parse(memInfo.TotalSize))</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Click="() => HandleDeleteMemory(memInfo)" />
-                                    <RadzenButton Icon="download" ButtonStyle="ButtonStyle.Primary" Click="() => HandlePullMemory(memInfo)" />
+                                    @if (isInDevice)
+                                    {
+                                        <RadzenButton Icon="arrow_upward" ButtonStyle="ButtonStyle.Primary" 
+                                                      Title="@L["PullToDevice"]" 
+                                                      Click="() => VM.PullAsync(memInfo.IndexPointer, true)" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenButton Icon="arrow_downward" ButtonStyle="ButtonStyle.Success" 
+                                                      Title="@L["PushToHost"]" 
+                                                      Click="@(() => VM.PushAssetAsync(memInfo.Id, false, memInfo.ElementType.Contains("audio", StringComparison.OrdinalIgnoreCase)))" />
+                                    }
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" 
+                                                  Title="@L["Delete"]" 
+                                                  Click="() => VM.FreeMemoryAsync(memInfo.IndexPointer)" />
                                 </div>
                             </div>
                         </div>
@@ -84,16 +89,9 @@
             }
         </RadzenAccordion>
     }
-
-    @if (HomeVM.IsInitialized)
+    else
     {
-        <h4>@L["PushOperations"]</h4>
-        <RadzenCard>
-            <RadzenBody>
-                <p>@L["PushHighResMediaToCuda"]</p>
-                <RadzenButton Text="@L["PushToCuda"]" ButtonStyle="ButtonStyle.Primary" Click="PushAllToCuda" />
-            </RadzenBody>
-        </RadzenCard>
+        <p class="text-muted">@L["CudaNotInitialized"]</p>
     }
 </div>
 
@@ -104,27 +102,5 @@
         {
             await VM.LoadMemoryListAsync();
         }
-    }
-
-    private async Task HandleDeleteMemory(CudaMemInfo memInfo)
-    {
-        if (!string.IsNullOrEmpty(memInfo.IndexPointer))
-        {
-            await VM.FreeMemoryAsync(memInfo.IndexPointer);
-            await VM.LoadMemoryListAsync();
-        }
-    }
-
-    private async Task HandlePullMemory(CudaMemInfo memInfo)
-    {
-        if (!string.IsNullOrEmpty(memInfo.IndexPointer))
-        {
-            await VM.PullAsync(memInfo.IndexPointer, true);
-        }
-    }
-
-    private async Task PushAllToCuda()
-    {
-        // TODO: Implement push logic for all media objects
     }
 }

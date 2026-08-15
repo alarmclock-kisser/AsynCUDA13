@@ -1,12 +1,15 @@
 @page "/execute"
 @inject ExecuteViewModel VM
+@inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject LanguageService L
 
 <div class="container mt-4">
     <h2>@L["CudaKernelExecution"]</h2>
 
-    <RadzenAlert Text="@L["NoteCudaInitialized"]" Severity="AlertSeverity.Info" Visible="true" ShowCloseButton="false" />
+    <RadzenAlert Text="@(HomeVM.IsInitialized ? L["CudaInitialized"] : L["NoteCudaInitialized"])" 
+                 Severity="@(HomeVM.IsInitialized ? AlertStyle.Success : AlertStyle.Warning)" 
+                 Visible="true" ShowCloseButton="false" />
 
     <RadzenCard>
         <RadzenHeader>
@@ -18,7 +21,8 @@
                             Data="@VM.CompiledKernels"
                             TextProperty="FunctionName" ValueProperty="FunctionName"
                             Change="@(args => VM.PrepareArguments(VM.GetSelectedKernel()))"
-                            ShowClear="true" />
+                            ShowClear="true"
+                            Disabled="@(!HomeVM.IsInitialized)" />
 
             @if (VM.GetSelectedKernel() is { } selectedKernel && selectedKernel.ArgumentNames.Length > 0)
             {
@@ -47,14 +51,14 @@
                           ButtonStyle="ButtonStyle.Primary" 
                           Class="mt-3" 
                           Click="ExecuteKernel" 
-                          Disabled="@(string.IsNullOrEmpty(VM.SelectedKernelName))" />
+                          Disabled="@(!HomeVM.IsInitialized || string.IsNullOrEmpty(VM.SelectedKernelName))" />
         </RadzenCard>
     </RadzenCard>
 
     @if (VM.MemoryInfos != null && VM.MemoryInfos.Length > 0)
     {
         <h4>@L["AvailableCudaMemObjects"]</h4>
-        <RadzenPickList Data="@VM.MemoryInfos" TItem="CudaMemInfo">
+        <RadzenPickList Data="@VM.MemoryInfos" TItem="CudaMemInfo" Enabled="@HomeVM.IsInitialized">
             <Template Context="context">
                 <div class="card mb-2">
                     <div class="card-body d-flex justify-content-between align-items-center">

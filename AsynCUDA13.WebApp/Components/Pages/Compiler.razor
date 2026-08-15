@@ -1,12 +1,15 @@
 @page "/compiler"
 @inject CompilerViewModel VM
+@inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject LanguageService L
 
 <div class="container mt-4">
     <h2>@L["CudaKernelCompiler"]</h2>
 
-    <RadzenAlert Text="@L["NoteCudaInitialized"]" Severity="AlertSeverity.Info" Visible="true" ShowCloseButton="false" />
+    <RadzenAlert Text="@(HomeVM.IsInitialized ? L["CudaInitialized"] : L["NoteCudaInitialized"])"
+                 Severity="@(HomeVM.IsInitialized ? AlertStyle.Success : AlertStyle.Warning)"
+                 Visible="true" ShowCloseButton="false" />
 
     <RadzenCard>
         <RadzenCard>
@@ -14,7 +17,7 @@
         </RadzenCard>
         <RadzenBody>
             <RadzenTextArea @bind-Value="VM.KernelCode" Rows="10" Placeholder="@L["EnterCudaKernelCode"]" />
-            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="CompileKernel" />
+            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="() => VM.CompileKernelAsync(VM.KernelCode)" Disabled="@(!HomeVM.IsInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
         </RadzenBody>
     </RadzenCard>
 
@@ -23,7 +26,14 @@
         <CudaCompileDialog Response="VM.LastCompileResponse" />
     }
 
-    <h4>@L["CompiledKernels"]</h4>
+    @if (VM.LastCompileResponse == null)
+    {
+        <h4>@L["CompiledKernels"]</h4>
+    }
+    else
+    {
+        <h4>@L["CompilationResult"]</h4>
+    }
     <RadzenPickList Data="@VM.Kernels" TItem="CudaKernelInfo">
         <Template Context="context">
             <div class="card mb-2">
@@ -46,13 +56,5 @@
     protected override async Task OnInitializedAsync()
     {
         await VM.LoadKernelsAsync();
-    }
-
-    private async Task CompileKernel()
-    {
-        if (!string.IsNullOrWhiteSpace(VM.KernelCode))
-        {
-            await VM.CompileKernelAsync(VM.KernelCode);
-        }
     }
 }

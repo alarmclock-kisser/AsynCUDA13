@@ -2,6 +2,7 @@
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace AsynCUDA13.Media
 {
@@ -361,6 +362,48 @@ namespace AsynCUDA13.Media
             await this.Img.SaveAsync(ms, encoder);
             ms.Position = 0;
             return ms;
+        }
+
+        public string GetPreview(int maxDimenions, string format = "jpg")
+        {
+            format = format.ToLower() switch
+            {
+                "jpg" or "jpeg" => "jpg",
+                "png" => "png",
+                "bmp" => "bmp",
+                _ => "png"
+            };
+
+            if (this.Img == null)
+            {
+                return string.Empty;
+            }
+
+            int newWidth, newHeight;
+
+            if (this.Width > this.Height)
+            {
+                newWidth = maxDimenions;
+                newHeight = (int) (this.Height * ((float) maxDimenions / this.Width));
+            }
+            else
+            {
+                newHeight = maxDimenions;
+                newWidth = (int) (this.Width * ((float) maxDimenions / this.Height));
+            }
+
+            var previewImage = this.Img.Clone();
+            previewImage.Mutate(x => x.Resize(newWidth, newHeight));
+            using var ms = new MemoryStream();
+            IImageEncoder encoder = format switch
+            {
+                "jpg" => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder(),
+                "png" => new SixLabors.ImageSharp.Formats.Png.PngEncoder(),
+                "bmp" => new SixLabors.ImageSharp.Formats.Bmp.BmpEncoder(),
+                _ => new SixLabors.ImageSharp.Formats.Png.PngEncoder()
+            };
+            previewImage.Save(ms, encoder);
+            return Convert.ToBase64String(ms.ToArray());
         }
     }
 }

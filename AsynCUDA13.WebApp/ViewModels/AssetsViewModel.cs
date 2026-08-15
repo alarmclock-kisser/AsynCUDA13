@@ -1,7 +1,6 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.MediaDtos;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 
 namespace AsynCUDA13.WebApp.ViewModels
@@ -15,19 +14,43 @@ namespace AsynCUDA13.WebApp.ViewModels
             this._apiClient = apiClient;
         }
 
-        public ImageInfo[]? Images { get; set; }
-        public AudioInfo[]? Audios { get; set; }
+        public ImageInfo[]? ImageInfos { get; set; }
+        public AudioInfo[]? AudiosInfos { get; set; }
+        public ImageData[] ImagePreviews { get; set; } = [];
+        public ImageData[] AudioPreviews { get; set; } = [];
+        public int ImagePreviewSize { get; set; } = 512;
+        public int AudioPreviewSize { get; set; } = 512;
         public IBrowserFile? ImageUpload { get; set; }
         public IBrowserFile? AudioUpload { get; set; }
-        public byte[]? ImageUploadData { get; set; }
-        public byte[]? AudioUploadData { get; set; }
         public string ImageUploadName { get; set; } = "image.png";
         public string AudioUploadName { get; set; } = "audio.wav";
 
         public async Task LoadAssetsAsync()
         {
-            this.Images = await this._apiClient.GetImagesAsync();
-            this.Audios = await this._apiClient.GetAudiosAsync();
+            this.ImageInfos = await this._apiClient.GetImagesAsync();
+            this.AudiosInfos = await this._apiClient.GetAudiosAsync();
+
+            await this.LoadPreviewsAsync();
+        }
+
+        public async Task LoadPreviewsAsync()
+        {
+            if (this.ImageInfos is not null)
+            {
+                var imagePreviewTasks = this.ImageInfos.Select(async image =>
+                {
+                    return await this._apiClient.GetImagePreviewAsync(image.Id.ToString(), this.ImagePreviewSize);
+                });
+                this.ImagePreviews = (await Task.WhenAll(imagePreviewTasks)).Where(i => i is not null).Cast<ImageData>().ToArray();
+            }
+            if (this.AudiosInfos is not null)
+            {
+                var audioPreviewTasks = this.AudiosInfos.Select(async audio =>
+                {
+                    return await this._apiClient.GetAudioWaveformAsync(audio.Id.ToString(), this.AudioPreviewSize, this.AudioPreviewSize / 4);
+                });
+                this.AudioPreviews = (await Task.WhenAll(audioPreviewTasks)).Where(i => i is not null).Cast<ImageData>().ToArray();
+            }
         }
 
         public async Task DeleteAssetAsync(string idOrName, bool hasCudaPointer = false, string? indexPointer = null)
@@ -44,30 +67,41 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task ImportImageAsync()
         {
-            await this.ImportAsync(this.ImageUploadData, this.ImageUploadName, "image/png");
-            this.ImageUploadData = null;
-        }
-
-        public async Task ImportAudioAsync()
-        {
-            await this.ImportAsync(this.AudioUploadData, this.AudioUploadName, "audio/wav");
-            this.AudioUploadData = null;
-        }
-
-        private async Task ImportAsync(byte[]? data, string fileName, string contentType)
-        {
-            if (data is not { Length: > 0 })
+            if (this.ImageUpload == null)
             {
                 return;
             }
 
-            await using var stream = new MemoryStream(data);
-            var file = new FormFile(stream, 0, stream.Length, "file", fileName)
+            using var stream = this.ImageUpload.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", this.ImageUpload.Name)
             {
                 Headers = new HeaderDictionary(),
-                ContentType = contentType
+                ContentType = "image/png"
             };
             await this._apiClient.UploadMediaAsync(file);
+            this.ImageUpload = null;
+            await this.LoadAssetsAsync();
+        }
+
+        public async Task ImportAudioAsync()
+        {
+            if (this.AudioUpload == null)
+            {
+                return;
+            }
+
+            using var stream = this.AudioUpload.OpenReadStream();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            var file = new FormFile(memoryStream, 0, memoryStream.Length, "file", this.AudioUpload.Name)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "audio/wav"
+            };
+            await this._apiClient.UploadMediaAsync(file);
+            this.AudioUpload = null;
             await this.LoadAssetsAsync();
         }
     }

@@ -8,3 +8,11 @@ window.downloadTextFile = (fileName, content) => {
     link.remove();
     URL.revokeObjectURL(url);
 };
+
+window.scrollToBottom = (element) => {
+    if (element && element.scrollToBottom) {
+        element.scrollToBottom();
+    } else if (element) {
+        element.scrollTop = element.scrollHeight;
+    }
+};
