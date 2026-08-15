@@ -19,10 +19,12 @@
         <RadzenBody>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <RadzenFileInput @bind-value="VM.ImageUpload" Accept="image/*" />
+                    <RadzenFileInput TValue="byte[]" @bind-Value="VM.ImageUploadData" @bind-FileName="VM.ImageUploadName" Accept="image/*" />
+                    <RadzenButton Text="@L["Import"]" ButtonStyle="ButtonStyle.Primary" Class="mt-2" Click="ImportImageAsync" Disabled="@(VM.ImageUploadData == null || VM.ImageUploadData.Length == 0)" />
                 </div>
                 <div class="col-md-6">
-                    <RadzenFileInput @bind-value="VM.AudioUpload" Accept="audio/*" />
+                    <RadzenFileInput TValue="byte[]" @bind-Value="VM.AudioUploadData" @bind-FileName="VM.AudioUploadName" Accept="audio/*" />
+                    <RadzenButton Text="@L["Import"]" ButtonStyle="ButtonStyle.Primary" Class="mt-2" Click="ImportAudioAsync" Disabled="@(VM.AudioUploadData == null || VM.AudioUploadData.Length == 0)" />
                 </div>
             </div>
         </RadzenBody>
@@ -89,4 +91,7 @@
     {
         await VM.LoadAssetsAsync();
     }
+
+    private async Task ImportImageAsync() => await VM.ImportImageAsync();
+    private async Task ImportAudioAsync() => await VM.ImportAudioAsync();
 }

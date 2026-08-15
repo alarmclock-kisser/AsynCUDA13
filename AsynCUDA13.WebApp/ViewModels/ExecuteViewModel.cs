@@ -12,6 +12,11 @@ namespace AsynCUDA13.WebApp.ViewModels
             this._apiClient = apiClient;
         }
 
+        public string GetArgumentValue(int index)
+        {
+            return (uint)index < (uint)ArgumentValues.Length ? ArgumentValues[index] : string.Empty;
+        }
+
         public CudaKernelInfo[]? CompiledKernels { get; set; }
         public CudaMemInfo[]? MemoryInfos { get; set; }
 

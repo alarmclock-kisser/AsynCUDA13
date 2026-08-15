@@ -30,13 +30,20 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             }
 
             info.DeviceId = service.SelectedDeviceId;
-            info.DeviceName = service.SelectedDeviceProperties?.DeviceName ?? "N/A";
-            info.Properties = service.SelectedDeviceProperties?.GetType()
-                .GetProperties()
+            var selectedProperties = service.SelectedDeviceProperties;
+            if (selectedProperties == null)
+            {
+                info.DeviceName = "N/A";
+                info.Properties = [];
+                return info;
+            }
+
+            info.DeviceName = selectedProperties.DeviceName;
+            info.Properties = selectedProperties.GetType()
+                .GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
                 .ToDictionary(
                     prop => prop.Name,
-                    prop => prop.GetValue(service.SelectedDeviceProperties)?.ToString() ?? string.Empty)
-                ?? [];
+                    prop => prop.GetValue(selectedProperties)?.ToString() ?? string.Empty);
 
             return info;
         }
@@ -53,7 +60,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 DeviceId = index,
                 DeviceName = props.Value.DeviceName,
                 Properties = props.Value.GetType()
-                    .GetProperties()
+                    .GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
                     .ToDictionary(
                         prop => prop.Name,
                         prop => prop.GetValue(props.Value)?.ToString() ?? string.Empty)

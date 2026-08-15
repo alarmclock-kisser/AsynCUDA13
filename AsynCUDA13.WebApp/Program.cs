@@ -6,6 +6,7 @@ using AsynCUDA13.WebApp.ViewModels;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Localization;
+using Radzen;
 using System.Globalization;
 using System.Reflection;
 
@@ -20,6 +21,7 @@ namespace AsynCUDA13.WebApp
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+            builder.Services.AddRadzenComponents();
 
             // Add localization services
             builder.Services.AddLocalization();

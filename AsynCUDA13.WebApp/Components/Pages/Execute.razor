@@ -26,9 +26,10 @@
                 <div class="row g-3">
                     @for (int i = 0; i < selectedKernel.ArgumentNames.Length; i++)
                     {
+                        var argumentType = i < selectedKernel.ArgumentTypes.Length ? selectedKernel.ArgumentTypes[i] : "unknown";
                         <div class="col-md-6">
-                            <RadzenLabel Text="@($"{selectedKernel.ArgumentNames[i]} ({selectedKernel.ArgumentTypes[i]})")" />
-                            <RadzenTextBox Value="@(VM.ArgumentValues[i])" Change="@(args => VM.SetArgumentValue(i, args?.ToString()))" />
+                            <RadzenLabel Text="@($"{selectedKernel.ArgumentNames[i]} ({argumentType})")" />
+                            <RadzenTextBox Value="@VM.GetArgumentValue(i)" Change="@(args => VM.SetArgumentValue(i, args?.ToString()))" />
                         </div>
                     }
                 </div>

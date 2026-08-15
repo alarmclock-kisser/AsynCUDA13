@@ -2,6 +2,7 @@ using AsynCUDA13.Client;
 using AsynCUDA13.Shared.MediaDtos;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Http;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
@@ -18,6 +19,10 @@ namespace AsynCUDA13.WebApp.ViewModels
         public AudioInfo[]? Audios { get; set; }
         public IBrowserFile? ImageUpload { get; set; }
         public IBrowserFile? AudioUpload { get; set; }
+        public byte[]? ImageUploadData { get; set; }
+        public byte[]? AudioUploadData { get; set; }
+        public string ImageUploadName { get; set; } = "image.png";
+        public string AudioUploadName { get; set; } = "audio.wav";
 
         public async Task LoadAssetsAsync()
         {
@@ -36,5 +41,34 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public bool HasImageCudaPointer(ImageInfo image) => !string.IsNullOrEmpty(image.Pointer);
         public bool HasAudioCudaPointer(AudioInfo audio) => !string.IsNullOrEmpty(audio.Pointer);
+
+        public async Task ImportImageAsync()
+        {
+            await ImportAsync(this.ImageUploadData, this.ImageUploadName, "image/png");
+            this.ImageUploadData = null;
+        }
+
+        public async Task ImportAudioAsync()
+        {
+            await ImportAsync(this.AudioUploadData, this.AudioUploadName, "audio/wav");
+            this.AudioUploadData = null;
+        }
+
+        private async Task ImportAsync(byte[]? data, string fileName, string contentType)
+        {
+            if (data is not { Length: > 0 })
+            {
+                return;
+            }
+
+            await using var stream = new MemoryStream(data);
+            var file = new FormFile(stream, 0, stream.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+            await this._apiClient.UploadAudioAsync(file);
+            await this.LoadAssetsAsync();
+        }
     }
 }

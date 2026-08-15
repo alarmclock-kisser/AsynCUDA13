@@ -1,54 +1,51 @@
 ﻿@implements IDisposable
+@inject ApiClient ApiClient
+@inject IJSRuntime JS
 
-<RadzenHeader>
-    <div class="container-fluid">
-        <RadzenLink Text="AsynCUDA13.WebApp" Style="color: white;" />
+<aside class="app-sidebar @(SidebarOpen ? string.Empty : "is-collapsed")">
+    <div class="sidebar-brand">
+        <RadzenLink Text="AsynCUDA13" NavigateTo="/" />
+        <RadzenButton Icon="menu" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                      Title="Seitenleiste ein-/ausblenden" Click="ToggleSidebar" />
     </div>
-</RadzenHeader>
 
-<RadzenButton Icon="menu" ButtonStyle="ButtonStyle.Light" Click="ToggleSidebar" Class="m-2" />
+    <nav class="sidebar-navigation" aria-label="Hauptnavigation">
+        <NavLink class="sidebar-link" href="/" Match="NavLinkMatch.All"><RadzenIcon Icon="home" /><span>Startseite</span></NavLink>
+        <NavLink class="sidebar-link" href="/assets"><RadzenIcon Icon="image" /><span>Assets</span></NavLink>
+        <NavLink class="sidebar-link" href="/memory"><RadzenIcon Icon="memory" /><span>Speicher</span></NavLink>
+        <NavLink class="sidebar-link" href="/compiler"><RadzenIcon Icon="code" /><span>Compiler</span></NavLink>
+        <NavLink class="sidebar-link" href="/execute"><RadzenIcon Icon="play_arrow" /><span>Ausführen</span></NavLink>
+    </nav>
 
-@if (SidebarOpen)
-{
-<RadzenSidebar>
-    <RadzenMenu>
-        <RadzenMenuItem Text="Home" Icon="home" NavigateTo="/" />
-        <RadzenMenuItem Text="Assets" Icon="image" NavigateTo="/assets" />
-        <RadzenMenuItem Text="Memory" Icon="memory" NavigateTo="/memory" />
-        <RadzenMenuItem Text="Compiler" Icon="cpu" NavigateTo="/compiler" />
-        <RadzenMenuItem Text="Execute" Icon="play" NavigateTo="/execute" />
-    </RadzenMenu>
-</RadzenSidebar>
-
-<div class="log-container">
-    <RadzenCard>
-        <RadzenCard>
-            <small>Log (@LogLines.Count)</small>
-        </RadzenCard>
-        <RadzenBody Class="p-2" Style="height: 200px; overflow-y: auto; background: #f8f9fa;">
-            <div class="d-flex justify-content-end mb-1">
-                <RadzenButton Icon="format_lines" Title="WordWrap" />
-                <RadzenButton Icon="content_copy" Title="CopyLines" Class="ms-1" />
-                <RadzenButton Icon="download" Title="Download" Class="ms-1" />
-            </div>
-            <div id="logContainer" Style="font-size: 0.75rem; max-height: 150px; overflow-y: auto;">
-                @foreach (var entry in LogLines.TakeLast(50))
-                {
-                    <div Style="white-space: pre-wrap;">@entry</div>
-                }
-            </div>
-        </RadzenBody>
-    </RadzenCard>
-</div>
-}
+    <section class="sidebar-log" aria-label="Log">
+        <div class="sidebar-log-header">
+            <strong>Log</strong>
+            <span>@LogLines.Count</span>
+        </div>
+        <div class="sidebar-log-actions">
+            <RadzenButton Icon="wrap_text" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Zeilenumbruch" Click="ToggleWordWrap" />
+            <RadzenButton Icon="content_copy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Zeilen kopieren" Click="CopyLogAsync" />
+            <RadzenButton Icon="download" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Log herunterladen" Click="DownloadLogAsync" />
+        </div>
+        <div class="sidebar-log-lines @(WordWrap ? "word-wrap" : "no-word-wrap")">
+            @foreach (var entry in LogLines.TakeLast(50))
+            {
+                <div>@entry</div>
+            }
+        </div>
+    </section>
+</aside>
 
 @code {
     private bool SidebarOpen { get; set; } = true;
+    private bool WordWrap { get; set; } = true;
     private List<string> LogLines { get; } = StaticLogger.GetLogLines().ToList();
+    private readonly CancellationTokenSource LogRefreshCancellation = new();
 
     protected override void OnInitialized()
     {
         StaticLogger.LogWritten += OnLogWritten;
+        _ = RefreshApiLogsAsync(LogRefreshCancellation.Token);
     }
 
     private void ToggleSidebar()
@@ -65,8 +62,44 @@
         });
     }
 
+    private void ToggleWordWrap()
+    {
+        WordWrap = !WordWrap;
+    }
+
+    private async Task CopyLogAsync()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", string.Join(Environment.NewLine, LogLines));
+    }
+
+    private async Task DownloadLogAsync()
+    {
+        await JS.InvokeVoidAsync("downloadTextFile", "ascuda.log", string.Join(Environment.NewLine, LogLines));
+    }
+
+    private async Task RefreshApiLogsAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var apiLines = await ApiClient.GetLogListAsync(100);
+            await InvokeAsync(() =>
+            {
+                if (apiLines.Length > 0)
+                {
+                    LogLines.Clear();
+                    LogLines.AddRange(apiLines);
+                    StateHasChanged();
+                }
+            });
+
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+    }
+
     public void Dispose()
     {
+        LogRefreshCancellation.Cancel();
+        LogRefreshCancellation.Dispose();
         StaticLogger.LogWritten -= OnLogWritten;
     }
 }

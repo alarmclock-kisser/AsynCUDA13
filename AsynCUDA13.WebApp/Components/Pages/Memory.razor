@@ -1,16 +1,17 @@
 @page "/memory"
 @inject MemoryViewModel VM
+@inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject LanguageService L
 
 <div class="container mt-4">
     <h2>@L["CudaMemoryManagement"]</h2>
 
-    <RadzenAlert Text="@(VM.IsCudaInitialized ? L["CudaInitialized"] : L["CudaNotInitialized"])"
-                 Severity="@(VM.IsCudaInitialized ? AlertStyle.Success : AlertStyle.Warning)"
+    <RadzenAlert Text="@(HomeVM.IsInitialized ? L["CudaInitialized"] : L["CudaNotInitialized"])"
+                 Severity="@(HomeVM.IsInitialized ? AlertStyle.Success : AlertStyle.Warning)"
                  Visible="true" ShowCloseButton="false" />
 
-    @if (VM.IsCudaInitialized)
+    @if (HomeVM.IsInitialized)
     {
         <RadzenCard>
             <div class="rz-card-header">
@@ -84,19 +85,25 @@
         </RadzenAccordion>
     }
 
-    <h4>@L["PushOperations"]</h4>
-    <RadzenCard>
-        <RadzenBody>
-            <p>@L["PushHighResMediaToCuda"]</p>
-            <RadzenButton Text="@L["PushToCuda"]" ButtonStyle="ButtonStyle.Primary" Click="PushAllToCuda" />
-        </RadzenBody>
-    </RadzenCard>
+    @if (HomeVM.IsInitialized)
+    {
+        <h4>@L["PushOperations"]</h4>
+        <RadzenCard>
+            <RadzenBody>
+                <p>@L["PushHighResMediaToCuda"]</p>
+                <RadzenButton Text="@L["PushToCuda"]" ButtonStyle="ButtonStyle.Primary" Click="PushAllToCuda" />
+            </RadzenBody>
+        </RadzenCard>
+    }
 </div>
 
 @code {
     protected override async Task OnInitializedAsync()
     {
-        await VM.LoadMemoryListAsync();
+        if (HomeVM.IsInitialized)
+        {
+            await VM.LoadMemoryListAsync();
+        }
     }
 
     private async Task HandleDeleteMemory(CudaMemInfo memInfo)

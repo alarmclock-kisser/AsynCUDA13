@@ -24,7 +24,6 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadMemoryListAsync()
         {
-            this.ContextInfo = await this._apiClient.GetCudaContextInfo();
             this.MemoryInfos = await this._apiClient.GetMemoryListAsync();
         }
 

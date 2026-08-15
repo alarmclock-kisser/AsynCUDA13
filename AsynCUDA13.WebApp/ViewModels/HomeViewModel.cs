@@ -21,7 +21,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public CudaContextInfo? ContextInfo { get; set; }
 
-        public bool IsInitialized => this.ContextInfo?.DeviceInfo != null;
+        public bool IsInitialized => this.ContextInfo?.DeviceInfo?.DeviceId.HasValue == true;
 
         public async Task LoadDevicesAsync()
         {

@@ -1,33 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <supportedLanguage>de</supportedLanguage>
-  <silent>1</silent>
-  <mrk>0</mrk>
-  <entry name="Home">
-	<value>Home</value>
-  </entry>
-  <entry name="Assets">
-	<value>Assets</value>
-  </entry>
-  <entry name="Memory">
-	<value>Memory</value>
-  </entry>
-  <entry name="Compiler">
-	<value>Compiler</value>
-  </entry>
-  <entry name="Execute">
-	<value>Execute</value>
-  </entry>
-  <entry name="Log">
-	<value>Log</value>
-  </entry>
-  <entry name="WordWrap">
-	<value>WordWrap</value>
-  </entry>
-  <entry name="CopyLines">
-	<value>CopyLines</value>
-  </entry>
-  <entry name="Download">
-	<value>Download</value>
-  </entry>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Home" xml:space="preserve"><value>Startseite</value></data>
+  <data name="Assets" xml:space="preserve"><value>Assets</value></data>
+  <data name="Memory" xml:space="preserve"><value>Speicher</value></data>
+  <data name="Compiler" xml:space="preserve"><value>Compiler</value></data>
+  <data name="Execute" xml:space="preserve"><value>Ausführen</value></data>
+  <data name="Log" xml:space="preserve"><value>Log</value></data>
+  <data name="WordWrap" xml:space="preserve"><value>Zeilenumbruch</value></data>
+  <data name="CopyLines" xml:space="preserve"><value>Zeilen kopieren</value></data>
+  <data name="Download" xml:space="preserve"><value>Herunterladen</value></data>
+  <data name="CudaStatus" xml:space="preserve"><value>CUDA-Status</value></data>
+  <data name="CudaIsAvailable" xml:space="preserve"><value>CUDA ist verfügbar</value></data>
+  <data name="CudaIsNotAvailable" xml:space="preserve"><value>CUDA ist nicht verfügbar</value></data>
+  <data name="SelectDevicePlaceholder" xml:space="preserve"><value>CUDA-Gerät auswählen</value></data>
+  <data name="Initialize" xml:space="preserve"><value>Initialisieren</value></data>
+  <data name="Dispose" xml:space="preserve"><value>Freigeben</value></data>
+  <data name="SelectedDeviceProperties" xml:space="preserve"><value>Geräteeigenschaften</value></data>
+  <data name="NoPropertiesAvailable" xml:space="preserve"><value>Keine Eigenschaften verfügbar.</value></data>
+  <data name="CudaContextInfo" xml:space="preserve"><value>CUDA-Kontextinformationen</value></data>
+  <data name="ActiveThreads" xml:space="preserve"><value>Aktive Threads</value></data>
+  <data name="IdleThreads" xml:space="preserve"><value>Inaktive Threads</value></data>
+  <data name="TotalAllocatedBytes" xml:space="preserve"><value>Allokierte Bytes</value></data>
+  <data name="RegisteredMemoryCount" xml:space="preserve"><value>Speicherobjekte</value></data>
+  <data name="MemoryObjects" xml:space="preserve"><value>CUDA-Speicherobjekte</value></data>
+  <data name="AllCudaMemObjects" xml:space="preserve"><value>Alle CUDA-Speicherobjekte</value></data>
+  <data name="GuidId" xml:space="preserve"><value>GUID</value></data>
+  <data name="ElementType" xml:space="preserve"><value>Elementtyp</value></data>
+  <data name="IndexPointer" xml:space="preserve"><value>Index-Pointer</value></data>
+  <data name="TotalLength" xml:space="preserve"><value>Gesamtlänge</value></data>
+  <data name="TotalSize" xml:space="preserve"><value>Gesamtgröße</value></data>
+  <data name="BufferAddresses" xml:space="preserve"><value>Pufferadressen</value></data>
+  <data name="Pointer" xml:space="preserve"><value>Pointer</value></data>
+  <data name="Size" xml:space="preserve"><value>Größe</value></data>
+  <data name="CudaMemoryManagement" xml:space="preserve"><value>CUDA-Speicherverwaltung</value></data>
+  <data name="CudaInitialized" xml:space="preserve"><value>CUDA ist initialisiert</value></data>
+  <data name="CudaNotInitialized" xml:space="preserve"><value>CUDA ist nicht initialisiert</value></data>
+  <data name="VramStatus" xml:space="preserve"><value>VRAM-Status</value></data>
+  <data name="AllocatedCudaMemObjects" xml:space="preserve"><value>Allokierte CUDA-Speicherobjekte</value></data>
+  <data name="MemoryList" xml:space="preserve"><value>Speicherliste</value></data>
+  <data name="NoCudaMemObjects" xml:space="preserve"><value>Keine CUDA-Speicherobjekte vorhanden.</value></data>
+  <data name="PushOperations" xml:space="preserve"><value>Push-Operationen</value></data>
+  <data name="PushHighResMediaToCuda" xml:space="preserve"><value>Medien vom Host nach CUDA übertragen</value></data>
+  <data name="PushToCuda" xml:space="preserve"><value>Nach CUDA übertragen</value></data>
+  <data name="CudaKernelCompiler" xml:space="preserve"><value>CUDA-Kernel-Compiler</value></data>
+  <data name="NoteCudaInitialized" xml:space="preserve"><value>CUDA muss initialisiert sein, bevor diese Funktion verwendet wird.</value></data>
+  <data name="KernelCode" xml:space="preserve"><value>Kernel-Code</value></data>
+  <data name="EnterCudaKernelCode" xml:space="preserve"><value>CUDA-Kernel-Code eingeben</value></data>
+  <data name="Compile" xml:space="preserve"><value>Kompilieren</value></data>
+  <data name="CompiledKernels" xml:space="preserve"><value>Kompilierte Kernel</value></data>
+  <data name="Compiled" xml:space="preserve"><value>Kompiliert</value></data>
+  <data name="NotCompiled" xml:space="preserve"><value>Nicht kompiliert</value></data>
+  <data name="NoCompiledKernelsFound" xml:space="preserve"><value>Keine kompilierten Kernel gefunden.</value></data>
+  <data name="CudaKernelExecution" xml:space="preserve"><value>CUDA-Kernel ausführen</value></data>
+  <data name="KernelSelection" xml:space="preserve"><value>Kernel auswählen</value></data>
+  <data name="SelectKernel" xml:space="preserve"><value>Kernel auswählen</value></data>
+  <data name="KernelArguments" xml:space="preserve"><value>Kernel-Argumente</value></data>
+  <data name="InPlace" xml:space="preserve"><value>In-Place</value></data>
+  <data name="OutOfPlace" xml:space="preserve"><value>Out-of-Place</value></data>
+  <data name="AvailableCudaMemObjects" xml:space="preserve"><value>Verfügbare CUDA-Speicherobjekte</value></data>
+  <data name="CompilationResult" xml:space="preserve"><value>Kompilierungsergebnis</value></data>
+  <data name="Success" xml:space="preserve"><value>Erfolg</value></data>
+  <data name="KernelCompiled" xml:space="preserve"><value>Kernel erfolgreich kompiliert</value></data>
+  <data name="PtxPath" xml:space="preserve"><value>PTX-Pfad</value></data>
+  <data name="Error" xml:space="preserve"><value>Fehler</value></data>
+  <data name="CompilationFailed" xml:space="preserve"><value>Kompilierung fehlgeschlagen</value></data>
+  <data name="CheckKernelCode" xml:space="preserve"><value>Bitte den Kernel-Code und das Build-Log prüfen.</value></data>
+  <data name="NoCompilationResult" xml:space="preserve"><value>Kein Kompilierungsergebnis vorhanden.</value></data>
+  <data name="Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="NotFound" xml:space="preserve"><value>Seite nicht gefunden</value></data>
+  <data name="PageNotFound" xml:space="preserve"><value>Die angeforderte Seite existiert nicht.</value></data>
 </root>

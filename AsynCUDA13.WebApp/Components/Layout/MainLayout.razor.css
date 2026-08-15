@@ -4,6 +4,36 @@
     flex-direction: column;
 }
 
+.app-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    background: #f5f7fa;
+}
+
+.app-main {
+    min-width: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.content {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 2rem clamp(1rem, 3vw, 3rem);
+}
+
+@media (max-width: 800px) {
+    .app-shell {
+        display: block;
+    }
+
+    .app-main {
+        min-height: auto;
+    }
+}
+
 main {
     flex: 1;
 }
@@ -96,3 +126,41 @@ main {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.app-shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    background: #f5f7fa;
+}
+
+.app-main {
+    min-width: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.content {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 2rem clamp(1rem, 3vw, 3rem);
+}
+
+.app-shell:has(.app-sidebar.is-collapsed) {
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+}
+
+.app-sidebar.is-collapsed {
+    width: 4.25rem;
+}
+
+@media (max-width: 800px) {
+    .app-shell {
+        display: block;
+    }
+
+    .app-main {
+        min-height: auto;
+    }
+}
