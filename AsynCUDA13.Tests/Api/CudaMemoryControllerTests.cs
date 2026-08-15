@@ -1,5 +1,6 @@
 using AsynCUDA13.Api.Controllers;
 using AsynCUDA13.Api.Services.DtoBuilders;
+using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Api.Requests;
@@ -15,13 +16,17 @@ namespace AsynCUDA13.Tests.Api
     public class CudaMemoryControllerTests : TestBase
     {
         private Mock<ICudaService> _mockCuda = null!;
+        private Mock<AudioCollection> _mockAudios = null!;
+        private Mock<ImageCollection> _mockImages = null!;
         private CudaMemoryController _controller = null!;
 
         [TestInitialize]
         public void SetUp()
         {
             this._mockCuda = new Mock<ICudaService>();
-            this._controller = new CudaMemoryController(this._mockCuda.Object);
+            this._mockAudios = new Mock<AudioCollection>();
+            this._mockImages = new Mock<ImageCollection>();
+            this._controller = new CudaMemoryController(this._mockCuda.Object, this._mockAudios.Object, this._mockImages.Object);
         }
 
         // =====================================================================

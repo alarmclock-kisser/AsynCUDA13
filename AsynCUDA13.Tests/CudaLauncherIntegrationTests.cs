@@ -68,6 +68,7 @@ namespace AsynCUDA13.Tests
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; }";
             this.PrepareKernel(source);
             var input = new float[32];
+            Assert.IsNotNull(this.service);
             var memory = this.service.PushData(input)!;
             var launcher = this.service.Launcher!;
 

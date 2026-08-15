@@ -39,6 +39,7 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(503);
 
             var problemDetails = (objectResult.Value as ProblemDetails)!;
@@ -73,6 +74,7 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(200);
 
             var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
@@ -98,6 +100,7 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(404);
 
             var problemDetails = (objectResult.Value as ProblemDetails)!;
