@@ -14,7 +14,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public string GetArgumentValue(int index)
         {
-            return (uint)index < (uint) this.ArgumentValues.Length ? this.ArgumentValues[index] : string.Empty;
+            return (uint) index < (uint) this.ArgumentValues.Length ? this.ArgumentValues[index] : string.Empty;
         }
 
         public CudaKernelInfo[]? CompiledKernels { get; set; }
@@ -38,7 +38,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public void SetArgumentValue(int index, string? value)
         {
-            if ((uint)index < (uint) this.ArgumentValues.Length)
+            if ((uint) index < (uint) this.ArgumentValues.Length)
             {
                 this.ArgumentValues[index] = value ?? string.Empty;
             }

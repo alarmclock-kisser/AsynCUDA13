@@ -1,17 +1,22 @@
 ﻿using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
+using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.MediaDtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AsynCUDA13.Api.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     public class MediaController : ApiControllerBase
     {
+        private readonly ICudaService cuda;
         private readonly ImageCollection images;
         private readonly AudioCollection audios;
 
-        public MediaController(ImageCollection images, AudioCollection audios)
+        public MediaController(ICudaService cudaService, ImageCollection images, AudioCollection audios)
         {
+            this.cuda = cudaService;
             this.images = images;
             this.audios = audios;
         }
@@ -70,6 +75,7 @@ namespace AsynCUDA13.Api.Controllers
             }
 
             string tempFilePath = Path.GetTempFileName();
+            string originalFileName = Path.GetFileNameWithoutExtension(file.FileName);
 
             try
             {
@@ -91,6 +97,7 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 400
                         });
                     }
+                    img.Name = file.FileName;
 
                     var imageInfo = MediaInfosBuilder.BuildImageInfo(img);
                     return this.Ok(imageInfo);
@@ -107,6 +114,7 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 400
                         });
                     }
+                    audio.Name = file.FileName;
 
                     var audioInfo = MediaInfosBuilder.BuildAudioInfo(audio);
                     return this.Ok(audioInfo);
@@ -142,7 +150,7 @@ namespace AsynCUDA13.Api.Controllers
         }
 
         [HttpGet("download-media")]
-        public async Task<IActionResult> DownloadMediaAsync(string idOrName, string format = "png")
+        public async Task<IActionResult> DownloadMediaAsync(string idOrName, string format = "png", float normalizeAudio = 1.0f, bool pullIfRequired = true, bool keepBufferWhenPulled = false)
         {
             string tempFilePath = string.Empty;
 
@@ -153,6 +161,11 @@ namespace AsynCUDA13.Api.Controllers
                 var image = Guid.TryParse(idOrName, out var guid) ? this.images[guid] : this.images[idOrName];
                 if (image != null)
                 {
+                    if (pullIfRequired && image.Pointer != 0 && image.Pointer != IntPtr.Zero)
+                    {
+                        await image.SetImageAsync(await this.cuda.PullDataAsync<byte>((nint) image.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull image data from CUDA."));
+                    }
+
                     // Export image with format to temp path
                     tempFilePath = await this.images.ExportImageAsync(image.Id, tempFilePath, format) ?? tempFilePath;
                     var contentType = format.ToLower() switch
@@ -169,6 +182,24 @@ namespace AsynCUDA13.Api.Controllers
                 var audio = Guid.TryParse(idOrName, out guid) ? this.audios[guid] : this.audios[idOrName];
                 if (audio != null)
                 {
+                    if (pullIfRequired && audio.Pointer != 0 && audio.Pointer != IntPtr.Zero)
+                    {
+                        CudaMem audioMem = this.cuda[(nint) audio.Pointer] ?? throw new InvalidOperationException("Failed to retrieve audio data from CUDA.");
+                        if (audioMem.Count > 1)
+                        {
+                            await audio.AggregateChunksAsync(await this.cuda.PullChunksAsync<float>((nint) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int)audioMem.IndexLength);
+                        }
+                        else
+                        {
+                            audio.Data = await this.cuda.PullDataAsync<float>((nint) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA.");
+                        }
+                    }
+
+                    if (normalizeAudio > 0)
+                    {
+                        await audio.NormalizeAsync(normalizeAudio);
+                    }
+
                     // Export audio with bits from format to temp path
                     tempFilePath = await audio.ExportWavAsync(Path.GetDirectoryName(tempFilePath), null, int.TryParse(format, out int bits) ? bits : 16) ?? tempFilePath;
                     var contentType = "audio/wav";
@@ -296,6 +327,27 @@ namespace AsynCUDA13.Api.Controllers
                 var pd = new ProblemDetails
                 {
                     Title = "Error deleting media",
+                    Detail = ex.Message,
+                    Status = 500
+                };
+                return this.StatusCode(500, pd);
+            }
+        }
+
+        [HttpDelete("clear-all")]
+        public async Task<IActionResult> ClearAllMediaAsync()
+        {
+            try
+            {
+                await this.images.ClearAsync();
+                await this.audios.ClearAudiosAsync();
+                return this.NoContent();
+            }
+            catch (Exception ex)
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Error clearing media",
                     Detail = ex.Message,
                     Status = 500
                 };

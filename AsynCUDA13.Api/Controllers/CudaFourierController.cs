@@ -152,6 +152,7 @@ namespace AsynCUDA13.Api.Controllers
                 return this.StatusCode(503, pd);
             }
 
+            DateTime started = DateTime.Now;
             try
             {
                 var audio = this.audios[audioIdOrName] ?? this.audios[Guid.TryParse(audioIdOrName, out var guid) ? guid : Guid.Empty];
@@ -178,7 +179,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
                 else
                 {
-                    audioMem = this.cuda[(nint)audio.Pointer];
+                    audioMem = this.cuda[(nint) audio.Pointer];
                 }
                 if (audioMem == null)
                 {
@@ -206,7 +207,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
 
                 var resultMemPtr = audioMem.ElementType == typeof(float2) ? await this.cuda.Fourier.PerformIfftAsync(audioMem.IndexPointer, keepDataOrBuffer) : await this.cuda.Fourier.PerformFftAsync(audioMem.IndexPointer, keepDataOrBuffer);
-                var resultMem = this.cuda.RegisteredMemory.FirstOrDefault(m => m.IndexPointer == resultMemPtr);
+                var resultMem = this.cuda[resultMemPtr];
                 if (resultMem == null)
                 {
                     var pd = new ProblemDetails
@@ -217,6 +218,8 @@ namespace AsynCUDA13.Api.Controllers
                     };
                     return this.StatusCode(204, pd);
                 }
+
+                audio.Pointer = resultMem.IndexPointer;
 
                 ICudaPayload? payload = null;
                 if (autoPullResult)
@@ -245,7 +248,7 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = CudaResponsesBuilder.BuildCudaFourierResponse(inputMemInfo, CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, resultMem.IndexPointer.ToString()), payload, (int) (DateTime.Now - DateTime.Now).TotalMilliseconds);
+                var response = CudaResponsesBuilder.BuildCudaFourierResponse(inputMemInfo, CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, resultMem.IndexPointer.ToString()), payload, (int) (DateTime.Now - started).TotalMilliseconds);
                 return this.Ok(response);
             }
             catch (Exception ex)

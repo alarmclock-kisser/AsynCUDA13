@@ -25,6 +25,9 @@ namespace AsynCUDA13.Media
         public int BitDepth { get; set; } = 0;
         public TimeSpan Duration => (this.SampleRate > 0 && this.Channels > 0) ? TimeSpan.FromSeconds((double) this.Length / this.Channels / this.SampleRate) : TimeSpan.Zero;
 
+
+        public int ChunkSize { get; set; } = 0;
+        public float Overlap { get; set; } = 0.5f;
         public long Pointer { get; set; } = IntPtr.Zero;
 
         public AudioObj()
@@ -379,8 +382,16 @@ namespace AsynCUDA13.Media
             for (int start = 0; start < this.Data.Length; start += stepSize)
             {
                 int end = Math.Min(start + chunkSize, this.Data.Length);
-                float[] chunk = new float[end - start];
+                float[] chunk = new float[chunkSize];
                 Array.Copy(this.Data, start, chunk, 0, end - start);
+                // Padding am letzten Chunk füllen mit Wert 0
+                if (end - start < chunkSize)
+                {
+                    for (int i = end - start; i < chunkSize; i++)
+                    {
+                        chunk[i] = 0f;
+                    }
+                }
                 chunks.Add(chunk);
                 if (end == this.Data.Length)
                 {
@@ -393,7 +404,84 @@ namespace AsynCUDA13.Media
                 this.Data = [];
             }
 
+            this.ChunkSize = chunkSize;
+            this.Overlap = overlap;
+
             return chunks.ToArray();
+        }
+
+        public async Task AggregateChunksAsync(IEnumerable<IEnumerable<float>> chunks, int? chunkSize = null, float? overlap = null, bool keepPointer = false)
+        {
+            chunkSize ??= this.ChunkSize;
+            overlap ??= this.Overlap;
+
+            if (chunkSize <= 0)
+            {
+                throw new ArgumentException("Chunk size must be greater than zero.", nameof(chunkSize));
+            }
+
+            if (overlap < 0 || overlap >= 1)
+            {
+                throw new ArgumentException("Overlap must be between 0 (inclusive) and 1 (exclusive).", nameof(overlap));
+            }
+
+            await Task.Run(() =>
+            {
+                List<float> aggregatedData = new List<float>();
+                int stepSize = (int) (chunkSize.Value * (1 - overlap.Value));
+                foreach (var chunk in chunks)
+                {
+                    float[] chunkArray = chunk.ToArray();
+                    if (aggregatedData.Count == 0)
+                    {
+                        aggregatedData.AddRange(chunkArray);
+                    }
+                    else
+                    {
+                        // Overlap handling
+                        int overlapStartIndex = Math.Max(0, aggregatedData.Count - stepSize);
+                        for (int i = 0; i < chunkArray.Length; i++)
+                        {
+                            if (overlapStartIndex + i < aggregatedData.Count)
+                            {
+                                // Average overlapping samples
+                                aggregatedData[overlapStartIndex + i] = (aggregatedData[overlapStartIndex + i] + chunkArray[i]) / 2f;
+                            }
+                            else
+                            {
+                                aggregatedData.Add(chunkArray[i]);
+                            }
+                        }
+                    }
+                }
+                this.Data = aggregatedData.ToArray();
+            });
+
+            if (!keepPointer)
+            {
+                this.Pointer = IntPtr.Zero;
+            }
+        }
+
+        public async Task NormalizeAsync(float targetLevel = 1.0f)
+        {
+            await Task.Run(() =>
+            {
+                if (this.Data.Length == 0)
+                {
+                    return;
+                }
+                float maxAmplitude = this.Data.Max(Math.Abs);
+                if (maxAmplitude == 0)
+                {
+                    return; // Avoid division by zero
+                }
+                float normalizationFactor = targetLevel / maxAmplitude;
+                for (int i = 0; i < this.Data.Length; i++)
+                {
+                    this.Data[i] *= normalizationFactor;
+                }
+            });
         }
 
 

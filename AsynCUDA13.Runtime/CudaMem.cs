@@ -1,4 +1,5 @@
 ﻿using ManagedCuda.BasicTypes;
+using ManagedCuda.VectorTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;

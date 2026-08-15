@@ -838,21 +838,21 @@ namespace AsynCUDA13.Runtime
 
                 CudaMem mem = new(pointer, length, typeof(T));
 
-                                if (this.Memory.TryAdd(mem.Id, mem))
-                                {
-                                    GC.SuppressFinalize(devVariable);
-                                    this.AddMemorySize(mem.TotalSize);
-                                    this.RefreshMemoryList();
-                                    StaticLogger.Log($"[DIAG] PushData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} bytes={mem.TotalSize} registered={this.Memory.Count}.");
-                                    return mem;
-                                }
-                                else
-                                {
-                                    devVariable.Dispose();
-                                    mem.Dispose();
-                                    StaticLogger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
-                                    return null;
-                                }
+                if (this.Memory.TryAdd(mem.Id, mem))
+                {
+                    GC.SuppressFinalize(devVariable);
+                    this.AddMemorySize(mem.TotalSize);
+                    this.RefreshMemoryList();
+                    StaticLogger.Log($"[DIAG] PushData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} bytes={mem.TotalSize} registered={this.Memory.Count}.");
+                    return mem;
+                }
+                else
+                {
+                    devVariable.Dispose();
+                    mem.Dispose();
+                    StaticLogger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
+                    return null;
+                }
             }
             catch (Exception ex)
             {
@@ -903,26 +903,26 @@ namespace AsynCUDA13.Runtime
 
                 CudaMem mem = new(pointers, lengths, typeof(T));
 
-                                if (this.Memory.TryAdd(mem.Id, mem))
-                                {
-                                    foreach (var devVariable in devVariables)
-                                    {
-                                        GC.SuppressFinalize(devVariable);
-                                    }
-                                    this.AddMemorySize(mem.TotalSize);
-                                    this.RefreshMemoryList();
-                                    return mem;
-                                }
-                                else
-                                {
-                                    foreach (var devVariable in devVariables)
-                                    {
-                                        devVariable.Dispose();
-                                    }
-                                    mem.Dispose();
-                                    StaticLogger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
-                                    return null;
-                                }
+                if (this.Memory.TryAdd(mem.Id, mem))
+                {
+                    foreach (var devVariable in devVariables)
+                    {
+                        GC.SuppressFinalize(devVariable);
+                    }
+                    this.AddMemorySize(mem.TotalSize);
+                    this.RefreshMemoryList();
+                    return mem;
+                }
+                else
+                {
+                    foreach (var devVariable in devVariables)
+                    {
+                        devVariable.Dispose();
+                    }
+                    mem.Dispose();
+                    StaticLogger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
+                    return null;
+                }
             }
             catch (Exception ex)
             {
