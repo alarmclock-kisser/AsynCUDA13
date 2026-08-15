@@ -284,6 +284,49 @@ namespace AsynCUDA13.Client
         }
 
 
+        // Cuda Fourier Controller
+        public async Task<CudaFourierResponse?> PerformFourierTransformAsync(string indexPointerOrId, bool? inverse = null, bool keepBuffer = false)
+        {
+            var memInfo = await this.GetMemoryInfoAsync(indexPointerOrId);
+            if (memInfo == null)
+            {
+                await StaticLogger.LogAsync($"Memory info not found for index pointer or ID: {indexPointerOrId}");
+                return null;
+            }
+
+            var request = new CudaFourierRequest()
+            {
+                MemoryInfo = memInfo,
+                Inverse = inverse,
+                KeepInputBuffer = keepBuffer,
+                AsyncCall = true
+            };
+            try
+            {
+                var response = await this.internalClient.CuFFTAsync(request);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+        }
+
+        public async Task<CudaFourierResponse?> PerformFourierOnAudioAsync(string audioNameOrId, int chunkSize = 8192, float overlap = 0.5f, bool autoPull = false, bool keepDataOrBuffer = false)
+        {
+            try
+            {
+                return await this.internalClient.AudioAsync(chunkSize, overlap, autoPull, keepDataOrBuffer, audioNameOrId);
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+        }
+
+
         // CudaKernelController
         public async Task<CudaKernelInfo[]> GetKernelsAsync(bool filterCompiled = true)
         {

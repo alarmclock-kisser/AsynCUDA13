@@ -67,7 +67,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 Headers = new HeaderDictionary(),
                 ContentType = contentType
             };
-            await this._apiClient.UploadAudioAsync(file);
+            await this._apiClient.UploadMediaAsync(file);
             await this.LoadAssetsAsync();
         }
     }
