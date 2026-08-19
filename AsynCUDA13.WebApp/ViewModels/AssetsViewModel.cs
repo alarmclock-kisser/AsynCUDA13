@@ -38,8 +38,8 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadPreviewsAsync()
         {
-            this.AudioPreviews = await this.Api.GetAudioWaveformsAsync(this.AudiosInfos.Select(a => a.Id.ToString()).ToArray(), this.AudioPreviewSize) ?? [];
-            this.ImagePreviews = await this.Api.GetImagePreviewsAsync(this.ImageInfos.Select(i => i.Id.ToString()).ToArray(), this.ImagePreviewSize) ?? [];
+            this.AudioPreviews = this.AudiosInfos.Length> 0 ? await this.Api.GetAudioWaveformsAsync(this.AudiosInfos.Select(a => a.Id.ToString()).ToArray(), this.AudioPreviewSize) ?? [] : [];
+            this.ImagePreviews = this.ImageInfos.Length> 0 ? await this.Api.GetImagePreviewsAsync(this.ImageInfos.Select(i => i.Id.ToString()).ToArray(), this.ImagePreviewSize) ?? [] : [];
 
             await this.NotifyStateChangedAsync(false);
         }
@@ -80,7 +80,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
             try
             {
-                using var stream = file.OpenReadStream((long) (this.MaxUploadKb * 1024));
+                using var stream = file.OpenReadStream((long) (this.MaxUploadKb * 1024) );
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();

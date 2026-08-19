@@ -922,7 +922,10 @@ namespace AsynCUDA13.Client
             {
                 if (idsOrNames.Length <= 0)
                 {
-                    await StaticLogger.LogAsync("No image IDs or names provided for preview retrieval.");
+                    if (this.LogLevel >= LogLevel.Debug)
+                    {
+                        await StaticLogger.LogAsync("No image IDs or names provided for preview retrieval.");
+                    }
                     return [];
                 }
 
@@ -997,7 +1000,10 @@ namespace AsynCUDA13.Client
             {
                 if (idsOrNames.Length <= 0)
                 {
-                    await StaticLogger.LogAsync("No audio IDs or names provided for waveform retrieval.");
+                    if (this.LogLevel >= LogLevel.Debug)
+                    {
+                        await StaticLogger.LogAsync("No audio IDs or names provided for waveform retrieval.");
+                    }
                     return [];
                 }
 
