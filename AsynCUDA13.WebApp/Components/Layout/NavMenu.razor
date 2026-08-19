@@ -23,6 +23,7 @@
             <span>@LogLines.Count</span>
         </div>
         <div class="sidebar-log-actions">
+            <RadzenButton Icon="visibility" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Frontend-Logs ein-/ausschalten" Click="ToggleFrontendLogs" />
             <RadzenButton Icon="wrap_text" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Zeilenumbruch" Click="ToggleWordWrap" />
             <RadzenButton Icon="content_copy" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Zeilen kopieren" Click="CopyLogAsync" />
             <RadzenButton Icon="download" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Light" Title="Log herunterladen" Click="DownloadLogAsync" />
@@ -39,15 +40,15 @@
 @code {
     private bool SidebarOpen { get; set; } = true;
     private bool WordWrap { get; set; } = true;
-    private List<string> LogLines { get; } = StaticLogger.GetLogLines().ToList();
+    private List<string> LogLines { get; } = [];
     private readonly CancellationTokenSource LogRefreshCancellation = new();
     private ElementReference logContainerRef;
     private bool ShouldAutoScroll { get; set; } = true;
+    private bool FrontendLogs { get; set; } = false;
 
     protected override void OnInitialized()
     {
         StaticLogger.LogWritten += OnLogWritten;
-        _ = RefreshApiLogsAsync(LogRefreshCancellation.Token);
     }
 
     private async Task ScrollToBottomAsync()
@@ -78,6 +79,11 @@
         WordWrap = !WordWrap;
     }
 
+    private void ToggleFrontendLogs()
+    {
+        FrontendLogs = !FrontendLogs;
+    }
+
     private async Task CopyLogAsync()
     {
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", string.Join(Environment.NewLine, LogLines));
@@ -85,14 +91,14 @@
 
     private async Task DownloadLogAsync()
     {
-        await JS.InvokeVoidAsync("downloadTextFile", "asyncuda.log", string.Join(Environment.NewLine, LogLines));
+        await JS.InvokeVoidAsync("downloadTextFile", "asyncuda.log", string.Join(Environment.NewLine, await ApiClient.GetLogListAsync(FrontendLogs, 0)));
     }
 
     private async Task RefreshApiLogsAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            var apiLines = await ApiClient.GetLogListAsync(100);
+            var apiLines = await ApiClient.GetLogListAsync(FrontendLogs, 100);
             await InvokeAsync(() =>
             {
                 if (apiLines.Length > 0)

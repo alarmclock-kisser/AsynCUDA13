@@ -49,12 +49,12 @@ namespace AsynCUDA13.Client
 
 
         // LogController
-        public async Task<string[]> GetLogListAsync(int nLastMax = 0)
+        public async Task<string[]> GetLogListAsync(bool frontendLog = false, int nLastMax = 0)
         {
             DateTime started = DateTime.Now;
             try
             {
-                var logLines = await this.internalClient.LogLinesAsync(nLastMax);
+                var logLines = frontendLog ? StaticLogger.LogEntries.OrderBy(e => e.Key).TakeLast(nLastMax <= 0 ? StaticLogger.LogEntries.Count : nLastMax).Select(e => e.Value) : await this.internalClient.LogLinesAsync(nLastMax);
                 return logLines.ToArray();
             }
             catch (Exception ex)
