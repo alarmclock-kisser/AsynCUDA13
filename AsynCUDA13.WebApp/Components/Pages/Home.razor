@@ -18,7 +18,8 @@
                     <RadzenDropDown @bind-Value="VM.SelectedDevice"
                                     Data="@VM.Devices"
                                     TextProperty="DeviceName"
-                                    Placeholder="@L["SelectDevicePlaceholder"]" />
+                                    Placeholder="@L["SelectDevicePlaceholder"]"
+                                    Disabled="@(VM.IsInitialized || VM.Devices == null || !(VM.Devices?.Length > 0))" />
                 </div>
                 <div class="col-md-6 text-end">
                     <RadzenButton Text="@(VM.IsInitialized ? L["Dispose"] : L["Initialize"])" 

@@ -11,9 +11,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\AsynCUDA13.Media\AsynCUDA13.Media.csproj" />
     <ProjectReference Include="..\AsynCUDA13.Runtime\AsynCUDA13.Runtime.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.Shared\AsynCUDA13.Shared.csproj" />
   </ItemGroup>
 
 </Project>

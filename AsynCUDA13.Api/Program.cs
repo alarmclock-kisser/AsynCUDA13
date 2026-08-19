@@ -2,7 +2,9 @@
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared;
+using Microsoft.AspNetCore.SignalR;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using Newtonsoft.Json;
 
 namespace AsynCUDA13.Api
 {
@@ -40,12 +42,23 @@ namespace AsynCUDA13.Api
                 options.AddPolicy("WebApp", policy =>
                 {
                     var origins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() ?? [];
-                    policy.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader();
+                    policy.WithOrigins(origins)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
                 });
             });
 
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddControllers()
+                            .AddJsonOptions(options =>
+                            {
+                                options.JsonSerializerOptions.UnknownTypeHandling = System.Text.Json.Serialization.JsonUnknownTypeHandling.JsonNode;
+                            });
+                        builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = true;
+            });
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new() { Title = "AsynCUDA13.API v1", Version = "v1" });
@@ -70,8 +83,14 @@ namespace AsynCUDA13.Api
 
             app.UseAuthorization();
 
+            // Initialize LogBroadcaster with the HubContext
+            var hubContext = app.Services.GetRequiredService<IHubContext<Hubs.LogHub>>();
+            Hubs.LogBroadcaster.SetHubContext(hubContext);
+            Hubs.LogBroadcaster.SubscribeToLogger();
 
             app.MapControllers();
+            app.MapHub<Hubs.LogHub>("/logHub")
+                .RequireCors("WebApp");
 
             app.Run();
         }

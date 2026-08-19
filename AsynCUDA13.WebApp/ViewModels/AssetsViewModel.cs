@@ -1,8 +1,12 @@
 using AsynCUDA13.Client;
+using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.MediaDtos;
+using AsynCUDA13.WebApp.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.JSInterop;
+using Radzen;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
@@ -12,6 +16,8 @@ namespace AsynCUDA13.WebApp.ViewModels
             : base(apiClient, js, maxUploadKb)
         {
         }
+
+        public CudaContextInfo? ContextInfo => this._contextInfo;
 
         public ImageInfo[] ImageInfos { get; set; } = [];
         public AudioInfo[] AudiosInfos { get; set; } = [];
@@ -32,81 +38,65 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadPreviewsAsync()
         {
-            if (this.ImageInfos.LongLength > 0)
-            {
-                var imagePreviewTasks = this.ImageInfos.Select(async image =>
-                {
-                    return await this.Api.GetImagePreviewAsync(image.Id.ToString(), this.ImagePreviewSize);
-                });
-                this.ImagePreviews = (await Task.WhenAll(imagePreviewTasks)).Where(i => i is not null).Cast<ImageData>().ToArray();
-            }
-            if (this.AudiosInfos.LongLength > 0)
-            {
-                var audioPreviewTasks = this.AudiosInfos.Select(async audio =>
-                {
-                    return await this.Api.GetAudioWaveformAsync(audio.Id.ToString(), this.AudioPreviewSize, this.AudioPreviewSize / 4);
-                });
-                this.AudioPreviews = (await Task.WhenAll(audioPreviewTasks)).Where(i => i is not null).Cast<ImageData>().ToArray();
-            }
+            this.AudioPreviews = await this.Api.GetAudioWaveformsAsync(this.AudiosInfos.Select(a => a.Id.ToString()).ToArray(), this.AudioPreviewSize) ?? [];
+            this.ImagePreviews = await this.Api.GetImagePreviewsAsync(this.ImageInfos.Select(i => i.Id.ToString()).ToArray(), this.ImagePreviewSize) ?? [];
 
-            await this.NotifyStateChangedAsync();
+            await this.NotifyStateChangedAsync(false);
         }
 
         public async Task DeleteAssetAsync(string idOrName)
         {
-            IMediaInfo? mediaInfo = (IMediaInfo?) this.AudiosInfos?.FirstOrDefault(a => a.Id.ToString() == idOrName || a.Name == idOrName) ??
-                                   (IMediaInfo?) this.ImageInfos?.FirstOrDefault(i => i.Id.ToString() == idOrName || i.Name == idOrName);
-            if (mediaInfo is null)
+            string? mediaId = (string?) this.AudiosInfos.FirstOrDefault(a => a.Id.ToString() == idOrName || a.Name == idOrName)?.Id.ToString() ??
+                                   (string?) this.ImageInfos.FirstOrDefault(i => i.Id.ToString() == idOrName || i.Name == idOrName)?.Id.ToString();
+            if (mediaId is null)
             {
                 await this.UpdateInfoMessageAsync($"Asset with ID or Name '{idOrName}' not found.", "warning", true, 5, true);
                 return;
             }
+            bool hasPointer = this.AudiosInfos.Any(a => a.Id.ToString() == mediaId && a.OnGpu) ||
+                              this.ImageInfos.Any(i => i.Id.ToString() == mediaId && i.OnGpu);
 
-            if (mediaInfo.OnGpu)
+            string? freed = (this._contextInfo?.Online == true && hasPointer) ? await this.Api.FreeMemoryAsync(idOrName) : null;
+            if (!string.IsNullOrWhiteSpace(freed))
             {
-                string? freed = await this.Api.FreeMemoryAsync(idOrName);
-                if (!string.IsNullOrWhiteSpace(freed))
-                {
-                    await this.UpdateInfoMessageAsync($"Freed GPU memory for asset '{freed}'.", "info", true, 3);
-                }
-                else if (this.Api.GetMemoryInfoAsync(idOrName) != null)
-                {
-                    await this.UpdateInfoMessageAsync($"Failed to free GPU memory for asset '{idOrName}'.", "error", true, 5);
-                }
+                await this.UpdateInfoMessageAsync($"Freed GPU memory for asset '{freed}'.", "info", true, 3);
+            }
+            else if (hasPointer)
+            {
+                await this.UpdateInfoMessageAsync($"Asset '{idOrName}' is on GPU but could not free memory. It may be in use.", "warning", true, 5, true);
             }
 
             await this.Api.DeleteMediaAsync(idOrName);
             await this.LoadAssetsAsync();
         }
 
-        public async Task ImportMediaAsync()
+        public async Task OnInputFileChange(InputFileChangeEventArgs e)
         {
-            if (this.MediaUpload == null)
+            var file = e.File;
+            if (file == null)
             {
+                await this.UpdateInfoMessageAsync("No file selected.", "warning", true, 2, true);
                 return;
             }
-
-            using var stream = this.MediaUpload.OpenReadStream(this.MaxUploadKb * 1024);
-            IFormFile formFile = new FormFile(stream, 0, stream.Length, this.MediaUpload.Name, this.MediaUpload.Name)
+            try
             {
-                Headers = new HeaderDictionary(),
-                ContentType = this.MediaUpload.ContentType
-            };
+                using var stream = file.OpenReadStream((long) (this.MaxUploadKb * 1024));
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var bytes = ms.ToArray();
+                var fileParameter = new FileParameter(new MemoryStream(bytes), file.Name, file.ContentType);
 
-            var mediaInfo = await this.Api.UploadMediaAsync(formFile);
+               string guid = await this.Api.UploadMediaAsync(fileParameter) ?? throw new Exception("Upload failed, no ID returned.");
 
-            if (mediaInfo == null)
-            {
-                await this.UpdateInfoMessageAsync($"Failed to upload media '{this.MediaUpload.Name}'.", "error", true, 5);
-
-            }
-            else
-            {
-                await this.UpdateInfoMessageAsync($"Successfully uploaded media '{mediaInfo.Name}' with ID '{mediaInfo.Id}'.", "success", true, 5);
+                this.MediaUpload = null;
                 await this.LoadAssetsAsync();
+                await this.UpdateInfoMessageAsync("Image uploaded successfully", "success", true, 2, true);
             }
-
-            this.MediaUpload = null;
+            catch (Exception ex)
+            {
+                await this.UpdateInfoMessageAsync($"Upload failed: {ex.Message}", "error", true, 4, true);
+            }
         }
+
     }
 }

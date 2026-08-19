@@ -82,4 +82,12 @@
   <data name="PullToDevice" xml:space="preserve"><value>Auf Gerät pullen</value></data>
   <data name="PushToHost" xml:space="preserve"><value>Auf Host pushen</value></data>
   <data name="Delete" xml:space="preserve"><value>Löschen</value></data>
+  <data name="UploadImage" xml:space="preserve"><value>Bild hochladen</value></data>
+  <data name="UploadAudio" xml:space="preserve"><value>Audio hochladen</value></data>
+  <data name="NoImages" xml:space="preserve"><value>Keine Bilder</value></data>
+  <data name="NoAudios" xml:space="preserve"><value>Keine Audios</value></data>
+  <data name="Duration" xml:space="preserve"><value>Dauer</value></data>
+  <data name="SampleRate" xml:space="preserve"><value>Sample-Rate</value></data>
+  <data name="Channels" xml:space="preserve"><value>Kanäle</value></data>
+  <data name="BitDepth" xml:space="preserve"><value>Bit-Tiefe</value></data>
 </root>

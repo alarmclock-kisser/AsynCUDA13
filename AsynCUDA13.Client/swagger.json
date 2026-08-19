@@ -1367,17 +1367,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/IMediaInfo"
+                  "type": "string"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IMediaInfo"
+                  "type": "string"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IMediaInfo"
+                  "type": "string"
                 }
               }
             }
@@ -1817,6 +1817,10 @@
             "type": "string",
             "nullable": true
           },
+          "mediaType": {
+            "type": "string",
+            "nullable": true
+          },
           "sampleRate": {
             "type": "integer",
             "format": "int32"
@@ -1845,6 +1849,10 @@
           "pointer": {
             "type": "string",
             "nullable": true
+          },
+          "onGpu": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -1908,6 +1916,10 @@
               "$ref": "#/components/schemas/CudaKernelInfo"
             },
             "nullable": true
+          },
+          "online": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -2300,24 +2312,6 @@
         },
         "additionalProperties": false
       },
-      "IMediaInfo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "pointer": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "ImageData": {
         "required": [
           "info"
@@ -2339,6 +2333,11 @@
             "type": "string",
             "nullable": true
           },
+          "base64Image": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
           "dataSizeMb": {
             "type": "number",
             "format": "float",
@@ -2355,6 +2354,10 @@
             "format": "uuid"
           },
           "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "mediaType": {
             "type": "string",
             "nullable": true
           },
@@ -2377,6 +2380,10 @@
           "pointer": {
             "type": "string",
             "nullable": true
+          },
+          "onGpu": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false

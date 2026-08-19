@@ -26,7 +26,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                var imageInfos = this.images.Images.Select(MediaInfosBuilder.BuildImageInfo);
+                var imageInfos = this.images.Images.Select(MediaInfosBuilder.BuildImageInfo).ToList();
                 return this.Ok(imageInfos);
             }
             catch (Exception ex)
@@ -46,7 +46,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                var audioInfos = this.audios.Audios.Select(MediaInfosBuilder.BuildAudioInfo);
+                var audioInfos = this.audios.Audios.Select(MediaInfosBuilder.BuildAudioInfo).ToList();
                 return this.Ok(audioInfos);
             }
             catch (Exception ex)
@@ -62,7 +62,7 @@ namespace AsynCUDA13.Api.Controllers
         }
 
         [HttpPost("upload-media")]
-        public async Task<ActionResult<IMediaInfo>> UploadMediaAsync(IFormFile file)
+        public async Task<ActionResult<string?>> UploadMediaAsync(IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
@@ -79,6 +79,7 @@ namespace AsynCUDA13.Api.Controllers
 
             try
             {
+                string? mediaId = null;
                 // Copy to temp path
                 using (var stream = new FileStream(tempFilePath, FileMode.Create))
                 {
@@ -97,10 +98,10 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 400
                         });
                     }
-                    img.Name = originalFileName;
+                    this.images[img.Id]?.Name = originalFileName;
 
-                    var imageInfo = MediaInfosBuilder.BuildImageInfo(img);
-                    return this.Ok(imageInfo);
+                    mediaId = MediaInfosBuilder.BuildImageInfo(img)?.Id.ToString();
+                    return this.Ok(mediaId);
                 }
                 else if (file.ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase))
                 {
@@ -114,10 +115,10 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 400
                         });
                     }
-                    audio.Name = originalFileName;
+                    this.audios[audio.Id]?.Name = originalFileName;
 
-                    var audioInfo = MediaInfosBuilder.BuildAudioInfo(audio);
-                    return this.Ok(audioInfo);
+                    mediaId = MediaInfosBuilder.BuildAudioInfo(audio)?.Id.ToString();
+                    return this.Ok(mediaId);
                 }
                 else
                 {

@@ -12,7 +12,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         }
 
         public CudaMemInfo[]? MemoryInfos { get; set; }
-        public bool IsCudaInitialized => this.ContextInfo?.DeviceInfo != null;
+        public bool IsCudaInitialized => this._contextInfo?.DeviceInfo != null;
 
         public string? SelectedIndexPointer { get; set; }
         public int ChunkSize { get; set; } = 0;

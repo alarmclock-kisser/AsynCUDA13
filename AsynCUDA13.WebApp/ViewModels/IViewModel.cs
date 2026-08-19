@@ -30,7 +30,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <summary>
         /// Gets the current CUDA context information. This property is updated when the state of the view model changes with optional context refresh. It may be null if the context information has not been retrieved yet or if CUDA is not available.
         /// </summary>
-        public CudaContextInfo? ContextInfo { get; private set; } = null;
+        protected CudaContextInfo? _contextInfo  = null;
 
         /// <summary>
         /// Event that is triggered when the state of the view model changes. Subscribers can use this event to update their UI or perform other actions in response to state changes.
@@ -123,7 +123,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
             if (refreshContextInfo)
             {
-                this.ContextInfo = this.Api.GetCudaContextInfoAsync().ConfigureAwait(true).GetAwaiter().GetResult();
+                this._contextInfo = this.Api.GetCudaContextInfoAsync().ConfigureAwait(true).GetAwaiter().GetResult();
             }
             this.StateChanged?.Invoke();
         }
@@ -137,7 +137,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
             if (refreshContextInfo)
             {
-                this.ContextInfo = await this.Api.GetCudaContextInfoAsync();
+                this._contextInfo = await this.Api.GetCudaContextInfoAsync();
             }
             this.StateChanged?.Invoke();
         }

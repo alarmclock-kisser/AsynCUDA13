@@ -40,15 +40,18 @@
 @code {
     private bool SidebarOpen { get; set; } = true;
     private bool WordWrap { get; set; } = true;
-    private List<string> LogLines { get; } = [];
+    private List<string> LogLines { get; set; } = [];
     private readonly CancellationTokenSource LogRefreshCancellation = new();
     private ElementReference logContainerRef;
     private bool ShouldAutoScroll { get; set; } = true;
     private bool FrontendLogs { get; set; } = false;
+    private bool SignalRConnected => ApiClient.IsSignalRConnected;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        StaticLogger.LogWritten += OnLogWritten;
+        // Registriere das lokale LogWritten Event für Frontend-Logs
+        StaticLogger.LogWritten += OnLocalLogWritten;
+        await ConnectToSignalRAsync();
     }
 
     private async Task ScrollToBottomAsync()
@@ -56,17 +59,51 @@
         await JS.InvokeVoidAsync("scrollToBottom", logContainerRef);
     }
 
-    private void OnLogWritten(DateTime timestamp, string line)
+    private void OnLocalLogWritten(DateTime timestamp, string line)
     {
-        _ = InvokeAsync(() =>
+        // Nur empfangen wenn auf Frontend-Logs umgestellt
+        if (FrontendLogs)
         {
-            LogLines.Add(line);
-            if (ShouldAutoScroll)
+            _ = InvokeAsync(() =>
             {
-                _ = ScrollToBottomAsync();
-            }
-            StateHasChanged();
-        });
+                LogLines.Add(line);
+                if (ShouldAutoScroll)
+                {
+                    _ = ScrollToBottomAsync();
+                }
+                StateHasChanged();
+            });
+        }
+    }
+
+    private async Task ConnectToSignalRAsync()
+    {
+        try
+        {
+            ApiClient.LogWritten += OnSignalRLogWritten;
+            await ApiClient.StartSignalRConnectionAsync(LogRefreshCancellation.Token);
+        }
+        catch (Exception ex)
+        {
+            await StaticLogger.LogAsync(ex);
+        }
+    }
+
+    private void OnSignalRLogWritten(DateTime timestamp, string line)
+    {
+        // Nur empfangen wenn nicht auf Frontend-Logs umgestellt
+        if (!FrontendLogs)
+        {
+            _ = InvokeAsync(() =>
+            {
+                LogLines.Add(line);
+                if (ShouldAutoScroll)
+                {
+                    _ = ScrollToBottomAsync();
+                }
+                StateHasChanged();
+            });
+        }
     }
 
     private void ToggleSidebar()
@@ -79,9 +116,42 @@
         WordWrap = !WordWrap;
     }
 
-    private void ToggleFrontendLogs()
+    private async Task ToggleFrontendLogs()
     {
+        // Aktuelle Quelle merken
+        bool wasFrontendLogs = FrontendLogs;
+
+        // Liste löschen und Toggle durchführen
+        this.LogLines.Clear();
         FrontendLogs = !FrontendLogs;
+
+        // Wenn wir jetzt API-Logs verwenden wollen (FrontendLogs=false), aber vorher Frontend-Logs aktiv waren,
+        // dann stellen wir sicher, dass die SignalR-Verbindung aktiv ist
+        if (!FrontendLogs && wasFrontendLogs)
+        {
+            try
+            {
+                // SignalR-Verbindung sicherstellen
+                await ApiClient.StartSignalRConnectionAsync(LogRefreshCancellation.Token);
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+            }
+        }
+
+        // Log-Liste laden
+        try
+        {
+            var logLines = await ApiClient.GetLogListAsync(FrontendLogs, 50);
+            LogLines.AddRange(logLines);
+            _ = ScrollToBottomAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await StaticLogger.LogAsync(ex);
+        }
     }
 
     private async Task CopyLogAsync()
@@ -94,34 +164,13 @@
         await JS.InvokeVoidAsync("downloadTextFile", "asyncuda.log", string.Join(Environment.NewLine, await ApiClient.GetLogListAsync(FrontendLogs, 0)));
     }
 
-    private async Task RefreshApiLogsAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            var apiLines = await ApiClient.GetLogListAsync(FrontendLogs, 100);
-            await InvokeAsync(() =>
-            {
-                if (apiLines.Length > 0)
-                {
-                    LogLines.Clear();
-                    LogLines.AddRange(apiLines);
-                    if (ShouldAutoScroll)
-                    {
-                        _ = ScrollToBottomAsync();
-                    }
-                    StateHasChanged();
-                }
-            });
-
-            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-        }
-    }
-
     public void Dispose()
     {
         LogRefreshCancellation.Cancel();
         LogRefreshCancellation.Dispose();
-        StaticLogger.LogWritten -= OnLogWritten;
+        StaticLogger.LogWritten -= OnLocalLogWritten;
+        _ = ApiClient.StopSignalRConnectionAsync();
+        ApiClient.LogWritten -= OnSignalRLogWritten;
     }
 }
 

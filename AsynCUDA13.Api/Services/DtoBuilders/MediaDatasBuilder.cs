@@ -42,7 +42,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Info = MediaInfosBuilder.BuildImageInfo(image),
                 Pointer = image.Pointer.ToString(),
                 MimeType = $"image/{format.ToLower()}",
-                Base64Data = image.GetPreview(maxDimenions)
+                Base64Data = image.GetPreview(maxDimenions, format)
             };
         }
         public static ImageData BuildAudioPreview(AudioObj audio, int width, int height, string format = "jpg")
@@ -62,7 +62,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Info = MediaInfosBuilder.BuildImageInfo(waveform),
                 Pointer = audio.Pointer.ToString(),
                 MimeType = $"image/{format.ToLower()}",
-                Base64Data = waveform.Base64Image(format, false)
+                Base64Data = waveform.GetPreview(Math.Max(width, height), format)
             };
         }
     }

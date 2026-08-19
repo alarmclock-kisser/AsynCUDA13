@@ -16,6 +16,20 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public readonly bool IsCudaAvailable;
 
+        public CudaContextInfo? ContextInfo
+        {
+            get
+            {
+                return this._contextInfo;
+            }
+            private set
+            {
+                this.SelectedDevice = this.ContextInfo?.DeviceInfo != null
+                    ? this.Devices?.FirstOrDefault(d => d.DeviceId == this.ContextInfo.DeviceInfo.DeviceId)
+                    : null;
+                this._contextInfo = value;
+            }
+        }
         public CudaDeviceInfo[]? Devices { get; set; }
 
         public CudaDeviceInfo? SelectedDevice { get; set; }
@@ -81,10 +95,11 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task DisposeCudaAsync()
         {
+            int? previousDeviceId = this.ContextInfo?.DeviceInfo?.DeviceId;
+
             var response = await this.Api.DisposeCudaAsync(this.FreeBuffersAtDispose);
             if (response?.Success == true)
             {
-                this.SelectedDevice = null;
                 await this.UpdateInfoMessageAsync("CUDA context disposed successfully.", "success", true, 3);
             }
             else

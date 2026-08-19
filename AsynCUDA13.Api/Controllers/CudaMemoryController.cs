@@ -37,21 +37,16 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "CUDA not available",
-                        Detail = "CUDA is not available on this system.",
+                        Title = "CUDA not initialized",
+                        Detail = "CUDA is not initialized.",
                         Status = 503
                     });
                 }
 
                 var memoryList = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda);
-                if (!memoryList.Any())
+                if (memoryList == null || !memoryList.Any())
                 {
-                    return this.StatusCode(404, new ProblemDetails
-                    {
-                        Title = "No CUDA memory found",
-                        Detail = "No CUDA memory objects were found on this system.",
-                        Status = 404
-                    });
+                    memoryList = Array.Empty<CudaMemInfo>();
                 }
 
                 return this.Ok(memoryList);
@@ -78,8 +73,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "CUDA not available",
-                        Detail = "CUDA is not available on this system.",
+                        Title = "CUDA not initialized",
+                        Detail = "CUDA is not initialized.",
                         Status = 503
                     });
                 }
@@ -118,8 +113,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "CUDA not available",
-                        Detail = "CUDA is not available on this system.",
+                        Title = "CUDA not initialized",
+                        Detail = "CUDA is not initialized.",
                         Status = 503
                     });
                 }
@@ -183,8 +178,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "CUDA not available",
-                        Detail = "CUDA is not available on this system.",
+                        Title = "CUDA not initialized",
+                        Detail = "CUDA is not initialized.",
                         Status = 503
                     });
                 }
@@ -217,8 +212,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "CUDA not available",
-                        Detail = "CUDA is not available on this system.",
+                        Title = "CUDA not initialized",
+                        Detail = "CUDA is not initialized.",
                         Status = 503
                     });
                 }
@@ -297,8 +292,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "CUDA not available",
-                        Detail = "CUDA is not available on this system.",
+                        Title = "CUDA not initialized",
+                        Detail = "CUDA is not initialized.",
                         Status = 503
                     });
                 }

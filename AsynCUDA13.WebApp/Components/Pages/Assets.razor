@@ -14,40 +14,42 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">@L["Upload Image"]</label>
-                    <InputFile OnChange="@UploadMediaAsync" accept="image/*" class="form-control" />
+                    <InputFile OnChange="@VM.OnInputFileChange" accept="image/*" class="form-control" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">@L["Upload Audio"]</label>
-                    <InputFile OnChange="@UploadMediaAsync" accept="audio/*" class="form-control" />
+                    <InputFile OnChange="@VM.OnInputFileChange" accept="audio/*" class="form-control" />
                 </div>
             </div>
         </RadzenBody>
     </RadzenCard>
 
     <h4>@L["Images"]</h4>
-    <RadzenAccordion>
-        @if (VM.ImageInfos != null && VM.ImageInfos.Length > 0)
-        {
+    @if (VM.ImageInfos.Length > 0)
+    {
+        <RadzenAccordion Multiple="true">
+            <Items>
             @foreach (var image in VM.ImageInfos)
             {
-                <RadzenAccordionItem Text="@image.Name">
+                <RadzenAccordionItem @key="image.Id" Text="@image.Name" Selected="true">
                     <div class="row">
                         <div class="col-md-6">
                             <table class="table table-sm"><tbody><tr>
-                                <th>@L["GuidId"]</th><td>@image.Id</td><th>@L["Size"]</th><td>@image.OriginalSizeMb.ToString("F2") MB</td>
-                                <th>@L["OnHost"]</th><td>@(!image.OnGpu ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(image.OnGpu ? $"cuda:" + @VM.ContextInfo?.DeviceInfo?.DeviceId ?? "*" : L["No"])</td>
+                                <th>@L["GuidId"]</th><td>@image.Id.ToString()</td><th>@L["Size"]</th><td>@image.OriginalSizeMb.ToString("F2") MB</td>
+                                <th>@L["Width"]</th><td>@image.Width.ToString() px</td><th>@L["Height"]</th><td>@image.Height.ToString() px</td>
+                                <th>@L["OnHost"]</th><td>@(!image.OnGpu ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(image.OnGpu ? $"cuda:" + (VM.ContextInfo?.DeviceInfo?.DeviceId?.ToString() ?? "*") : L["No"])</td>
                             </tr></tbody></table>
                         </div>
                     </div>
                     <div class="mt-2">
-                        @if (VM.ImagePreviews != null)
+                        @if (VM.ImagePreviews.Length > 0)
                         {
                             var preview = VM.ImagePreviews.FirstOrDefault(p => p.Info.Id == image.Id);
                             if (preview != null && !string.IsNullOrEmpty(preview.Base64Data))
                             {
                                 <div class="mb-3">
                                     <p class="text-muted">@L["Preview"]</p>
-                                    <img src="data:@preview.MimeType;base64,@preview.Base64Data" class="img-fluid rounded" style="max-width: 100%; max-height: 300px;" />
+                                    <img src="@preview.Base64Image" class="img-fluid rounded" style="max-width: 100%; max-height: 300px;" />
                                 </div>
                             }
                         }
@@ -55,26 +57,28 @@
                     </div>
                 </RadzenAccordionItem>
             }
-        }
-        else
-        {
-            <p class="text-muted">@L["NoImages"]</p>
-        }
-    </RadzenAccordion>
+            </Items>
+        </RadzenAccordion>
+    }
+    else
+    {
+        <p class="text-muted">@L["NoImages"]</p>
+    }
 
     <h4>@L["Audios"]</h4>
-    <RadzenAccordion>
+    <RadzenAccordion Multiple="true">
+        <Items>
         @if (VM.AudiosInfos != null && VM.AudiosInfos.Length > 0)
         {
             @foreach (var audio in VM.AudiosInfos)
             {
-                <RadzenAccordionItem Text="@audio.Name">
+                <RadzenAccordionItem @key="audio.Id" Text="@audio.Name" Selected="true">
                     <div class="row">
                         <div class="col-md-6">
                             <table class="table table-sm"><tbody><tr>
-                                <th>@L["GuidId"]</th><td>@audio.Id</td><th>@L["Duration"]</th><td>@audio.DurationSeconds.ToString("F2") s</td>
-                                <th>@L["SampleRate"]</th><td>@audio.SampleRate Hz</td><th>@L["Channels"]</th><td>@audio.Channels</td><th>@L["BitDepth"]</th><td>@audio.BitDepth bit</td>
-                                <th>@L["OnHost"]</th><td>@(audio.Pointer == null ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.Pointer != null ? $"cuda:{audio.Pointer}" : L["No"])</td>
+                                <th>@L["GuidId"]</th><td>@audio.Id.ToString()</td><th>@L["Duration"]</th><td>@audio.DurationSeconds.ToString("F2") s</td>
+                                <th>@L["SampleRate"]</th><td>@audio.SampleRate.ToString() Hz</td><th>@L["Channels"]</th><td>@audio.Channels.ToString()</td><th>@L["BitDepth"]</th><td>@audio.BitDepth.ToString() bit</td>
+                                <th>@L["OnHost"]</th><td>@(audio.OnGpu == false ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.Pointer != null ? $"cuda:{VM.ContextInfo?.DeviceInfo?.DeviceId.ToString() ?? "*"}" : L["No"])</td>
                             </tr></tbody></table>
                         </div>
                     </div>
@@ -86,7 +90,7 @@
                             {
                                 <div class="mb-3">
                                     <p class="text-muted">@L["Preview"]</p>
-                                    <img src="data:@preview.MimeType;base64,@preview.Base64Data" class="img-fluid rounded" style="max-width: 100%; max-height: 100px;" />
+                                    <img src="@preview.Base64Image" class="img-fluid rounded" style="max-width: 100%; max-height: 100px;" />
                                 </div>
                             }
                         }
@@ -99,6 +103,7 @@
         {
             <p class="text-muted">@L["NoAudios"]</p>
         }
+        </Items>
     </RadzenAccordion>
 </div>
 
@@ -106,11 +111,5 @@
     protected override Task LoadViewModelAsync()
     {
         return VM.LoadAssetsAsync();
-    }
-
-    private async Task UploadMediaAsync(InputFileChangeEventArgs e)
-    {
-        VM.MediaUpload = e.File;
-        await VM.ImportMediaAsync();
     }
 }

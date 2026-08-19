@@ -21,12 +21,12 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return contextInfo;
         }
 
-        public static CudaDeviceInfo BuildCudaDeviceInfo(ICudaService service)
+        public static CudaDeviceInfo? BuildCudaDeviceInfo(ICudaService service)
         {
             var info = new CudaDeviceInfo();
             if (service.SelectedDeviceId < 0)
             {
-                return info;
+                return null;
             }
 
             info.DeviceId = service.SelectedDeviceId;
@@ -69,11 +69,11 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return infos;
         }
 
-        public static CudaUsageInfo BuildCudaUsageInfo(ICudaService service)
+        public static CudaUsageInfo? BuildCudaUsageInfo(ICudaService service)
         {
             if (!service.Online)
             {
-                return new CudaUsageInfo();
+                return null;
             }
 
             var info = new CudaUsageInfo
@@ -87,11 +87,11 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return info;
         }
 
-        public static CudaMemInfo[] BuildCudaMemoryInfos(ICudaService service, string? indexPointerOrId = null)
+        public static CudaMemInfo[]? BuildCudaMemoryInfos(ICudaService service, string? indexPointerOrId = null)
         {
             if (!service.Online)
             {
-                return [];
+                return null;
             }
 
             var infos = service.RegisteredMemory.Select(mem => new CudaMemInfo
@@ -130,11 +130,11 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return info;
         }
 
-        public static CudaKernelInfo[] BuildCudaKernelInfos(ICudaService service, bool filterCompiled = true)
+        public static CudaKernelInfo[]? BuildCudaKernelInfos(ICudaService service, bool filterCompiled = true)
         {
             if (!service.Online || service.Compiler == null || service.Launcher == null)
             {
-                return [];
+                return null;
             }
 
             string[] cuPaths = CudaCompiler.SourceFiles.ToArray() ?? [];
