@@ -1,5 +1,5 @@
 @page "/memory"
-@inject MemoryViewModel VM
+@inherits ViewModelComponentBase<MemoryViewModel>
 @inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject AssetsViewModel AssetsVM
@@ -96,11 +96,13 @@
 </div>
 
 @code {
-    protected override async Task OnInitializedAsync()
+    protected override Task LoadViewModelAsync()
     {
         if (HomeVM.IsInitialized)
         {
-            await VM.LoadMemoryListAsync();
+            return VM.LoadMemoryListAsync();
         }
+
+        return Task.CompletedTask;
     }
 }

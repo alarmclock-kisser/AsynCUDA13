@@ -16,6 +16,18 @@ namespace AsynCUDA13.Api
             string? logDirectory = builder.Configuration.GetValue<string>("LogDirectory");
             bool createLogFile = builder.Configuration.GetValue<bool>("CreateLogFile");
             int maxLogFiles = builder.Configuration.GetValue<int>("MaxLogFiles");
+            string? filterPhrase = builder.Configuration.GetValue<string>("FilterPhrase");
+            bool? echoToConsole = builder.Configuration.GetValue<bool?>("EchoToConsole", null);
+            string[] echoToConsoleKeyPhrases = builder.Configuration.GetValue<string[]>("EchoToConsoleKeyPhrases", ["[[["]);
+            string innerExOpeningBracket = builder.Configuration.GetValue<string>("InnerExOpeningBracket", "(");
+            string innerExClosingBracket = builder.Configuration.GetValue<string>("InnerExClosingBracket", ")");
+            string innerExSeparator = builder.Configuration.GetValue<string>("InnerExSeparator", " ");
+            StaticLogger.FilterPhrase = filterPhrase;
+            StaticLogger.EchoToConsole = echoToConsole.HasValue ? echoToConsole.Value : null;
+            StaticLogger.EchoToConsoleKeyPhrases = echoToConsoleKeyPhrases;
+            StaticLogger.InnerExceptionOpeningBracket = innerExOpeningBracket;
+            StaticLogger.InnerExceptionClosingBracket = innerExClosingBracket;
+            StaticLogger.InnerExceptionSeparator = innerExSeparator;
             StaticLogger.InitializeLogFiles(logDirectory, createLogFile, maxLogFiles);
 
             // Add services to the container.

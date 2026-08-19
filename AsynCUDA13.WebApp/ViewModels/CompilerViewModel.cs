@@ -1,16 +1,15 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.CudaDtos;
+using Microsoft.JSInterop;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class CompilerViewModel
+    public class CompilerViewModel : ViewModelBase
     {
-        private readonly ApiClient _apiClient;
-
-        public CompilerViewModel(ApiClient apiClient)
+        public CompilerViewModel(ApiClient apiClient, IJSRuntime js)
+            : base(apiClient, js)
         {
-            this._apiClient = apiClient;
         }
 
         public CudaKernelInfo[]? Kernels { get; set; }
@@ -19,7 +18,8 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadKernelsAsync(bool filterCompiled = true)
         {
-            this.Kernels = await this._apiClient.GetKernelsAsync(filterCompiled);
+            this.Kernels = await this.Api.GetKernelsAsync(filterCompiled);
+            this.NotifyStateChanged();
         }
 
         public async Task<CudaCompileResponse?> CompileKernelAsync(string? kernelCode)
@@ -28,7 +28,8 @@ namespace AsynCUDA13.WebApp.ViewModels
             {
                 return null;
             }
-            this.LastCompileResponse = await this._apiClient.CompileKernelAsync(kernelCode);
+            this.LastCompileResponse = await this.Api.CompileKernelAsync(kernelCode);
+            this.NotifyStateChanged();
             return this.LastCompileResponse;
         }
 

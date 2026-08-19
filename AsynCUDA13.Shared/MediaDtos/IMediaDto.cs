@@ -9,6 +9,7 @@ namespace AsynCUDA13.Shared.MediaDtos
         Guid Id { get; set; }
         string Name { get; set; }
         string? Pointer { get; set; }
+        bool OnGpu { get; }
     }
 
     public interface IMediaData

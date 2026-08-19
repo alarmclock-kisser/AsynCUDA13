@@ -41,14 +41,15 @@ namespace AsynCUDA13.WebApp
 
             // ApiClient (Singleton, liest ApiBaseUrl aus appsettings.json)
             string apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl") ?? "https://localhost:7186";
-            builder.Services.AddSingleton<ApiClient>(provider => new ApiClient(apiBaseUrl));
+            int apiClientLogLevel = builder.Configuration.GetValue<int>("ApiClientLogLevel", 4); // Default to LogLevel.Warning if not specified
+            builder.Services.AddSingleton<ApiClient>(provider => new ApiClient(apiBaseUrl, apiClientLogLevel));
 
             // ViewModels (Singleton)
-            builder.Services.AddSingleton<HomeViewModel>();
-            builder.Services.AddSingleton<AssetsViewModel>();
-            builder.Services.AddSingleton<MemoryViewModel>();
-            builder.Services.AddSingleton<CompilerViewModel>();
-            builder.Services.AddSingleton<ExecuteViewModel>();
+            builder.Services.AddScoped<HomeViewModel>();
+            builder.Services.AddScoped<AssetsViewModel>();
+            builder.Services.AddScoped<MemoryViewModel>();
+            builder.Services.AddScoped<CompilerViewModel>();
+            builder.Services.AddScoped<ExecuteViewModel>();
 
             // Set UI context for StaticLogger before building the app
             var syncContext = new SynchronizationContext();

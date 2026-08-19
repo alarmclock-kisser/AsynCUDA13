@@ -1,5 +1,5 @@
 @page "/execute"
-@inject ExecuteViewModel VM
+@inherits ViewModelComponentBase<ExecuteViewModel>
 @inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject LanguageService L
@@ -72,7 +72,7 @@
 </div>
 
 @code {
-    protected override async Task OnInitializedAsync()
+    protected override async Task LoadViewModelAsync()
     {
         await VM.LoadKernelsAsync();
         await VM.LoadMemoryListAsync();

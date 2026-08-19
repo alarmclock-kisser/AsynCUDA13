@@ -20,6 +20,7 @@ namespace AsynCUDA13.Shared.MediaDtos
 
 
         public string? Pointer { get; set; } = null;
+        public bool OnGpu => !string.IsNullOrEmpty(this.Pointer) && !this.Pointer.Equals("null", StringComparison.OrdinalIgnoreCase) && !this.Pointer.Equals(IntPtr.Zero.ToString(), StringComparison.OrdinalIgnoreCase);
 
     }
 }

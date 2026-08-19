@@ -190,7 +190,7 @@ namespace AsynCUDA13.Api.Controllers
                         CudaMem audioMem = this.cuda[(nint) audio.Pointer] ?? throw new InvalidOperationException("Failed to retrieve audio data from CUDA.");
                         if (audioMem.Count > 1)
                         {
-                            await audio.AggregateChunksAsync(await this.cuda.PullChunksAsync<float>((nint) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int)audioMem.IndexLength);
+                            await audio.AggregateChunksAsync(await this.cuda.PullChunksAsync<float>((nint) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int) audioMem.IndexLength);
                         }
                         else
                         {

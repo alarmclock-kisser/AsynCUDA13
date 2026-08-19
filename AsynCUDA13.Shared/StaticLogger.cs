@@ -11,9 +11,20 @@ namespace AsynCUDA13.Shared
 {
     public static class StaticLogger
     {
+        /// <summary>
+        /// A thread-safe dictionary that stores log entries with their corresponding timestamps. The key is the timestamp when the log entry was recorded, and the value is the fully formatted log line (including the timestamp prefix).
+        /// </summary>
         public static readonly ConcurrentDictionary<DateTime, string> LogEntries = new();
+
+        /// <summary>
+        /// A thread-safe binding list that provides a chronological view of log entries for UI components. This list is updated whenever a new log entry is recorded, and it can be used to display log entries in a user interface. The list is synchronized with the UI context to ensure thread safety when updating the UI.
+        /// </summary>
         public static readonly BindingList<string> LogEntriesBindingList = [];
-        public static readonly BindingList<string> NativeRuntimeLogEntriesBindingList = [];
+
+        /// <summary>
+        /// A thread-safe binding list that provides a filtered view of log entries based on a specified filter phrase. This list is updated whenever a new log entry is recorded, and it can be used to display filtered log entries in a user interface. The list is synchronized with the UI context to ensure thread safety when updating the UI.
+        /// </summary>
+        public static readonly BindingList<string> FilteredLogEntriesBindingList = [];
 
         /// <summary>
         /// Raised whenever a new line has been recorded. The first argument is the timestamp the entry was
@@ -23,23 +34,72 @@ namespace AsynCUDA13.Shared
         public static event Action<DateTime, string>? LogWritten;
 
         /// <summary>
-        /// Gets or sets a value indicating whether log lines are echoed to the console. When enabled, only
-        /// success, error and warning lines are printed (per the project's CLI logging guideline).
+        /// Gets or sets a value indicating whether log lines are echoed to the console. True echoes every log, false echoes none, and null echoes only lines containing the phrases in <see cref="EchoToConsoleKeyPhrases"/>.
         /// </summary>
-        public static bool EchoToConsole { get; set; } = true;
+        public static bool? EchoToConsole { get; set; } = null;
 
+        /// <summary>
+        /// Gets or sets the key phrases that determine which log lines are echoed to the console when <see cref="EchoToConsole"/> is null. Only log lines containing any of these phrases will be echoed to the console.
+        /// </summary>
+        public static string[] EchoToConsoleKeyPhrases { get; set; } = new[] { "[SUCCESS]", "[ERROR]", "[WARN", "Exception:" };
+
+        /// <summary>
+        /// The directory where log files are stored.
+        /// </summary>
         public static string LogDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+
+        /// <summary>
+        /// Gets the full path of the current log file. If no log file has been created, this property will be null.
+        /// </summary>
         public static string? LogFilePath { get; private set; } = null;
 
-        // UI synchronization context (set from the UI at startup)
+        /// <summary>
+        /// Gets or sets a value indicating whether the logger should operate in silent mode. When set to true, log entries will not be echoed to the console or written to a log file, but they will still be recorded in the internal log entries dictionary and binding lists. This can be useful for scenarios where logging is needed for internal tracking but should not produce output to the console or files.
+        /// </summary>
+        public static bool Silent { get; set; } = false;
+
+        /// <summary>
+        /// The phrase used to filter log entries into separate BindingList.
+        /// </summary>
+        public static string? FilterPhrase { get; set; } = null;
+
+        /// <summary>
+        /// The opening bracket used when formatting inner exception messages in the log. This can be customized to change how inner exceptions are displayed in the log output.
+        /// </summary>
+        public static string InnerExceptionOpeningBracket { get; set; } = "(";
+
+        /// <summary>
+        /// The closing bracket used when formatting inner exception messages in the log. This can be customized to change how inner exceptions are displayed in the log output.
+        /// </summary>
+        public static string InnerExceptionClosingBracket { get; set; } = ")";
+
+        /// <summary>
+        /// The separator used when formatting inner exception messages in the log. This can be customized to change how inner exceptions are displayed in the log output.
+        /// </summary>
+        public static string InnerExceptionSeparator { get; set; } = " ";
+
+        /// <summary>
+        /// UI synchronization context (set from the UI at startup)
+        /// </summary>
         private static SynchronizationContext? UiContext;
 
-        public static void SetUiContext(SynchronizationContext context)
+        /// <summary>
+        /// Sets the UI synchronization context for updating the BindingList from the UI thread. This method should be called from the UI thread during application startup to ensure that log entries are added to the BindingList in a thread-safe manner.
+        /// </summary>
+        /// <param name="context">The synchronization context of the UI thread.</param>
+        public static void SetUiContext(SynchronizationContext? context)
         {
+            context ??= SynchronizationContext.Current;
             UiContext = context;
             Log("[Logger] StaticLogger UI context set");
         }
 
+        /// <summary>
+        /// Initializes the log files in the specified directory. If the directory does not exist, it will be created. If <paramref name="createLogFile"/> is true, a new log file will be created with a timestamped name. The method also manages the number of previous log files to retain based on <paramref name="maxPreviousLogFiles"/>. If set to 0, all previous logs will be cleared; if set to 1 or more, only the most recent specified number of logs will be kept.
+        /// </summary>
+        /// <param name="logDirectory">The directory where log files are stored.</param>
+        /// <param name="createLogFile">Whether to create a new log file.</param>
+        /// <param name="maxPreviousLogFiles">The maximum number of previous log files to retain.</param>
         public static void InitializeLogFiles(string? logDirectory = null, bool createLogFile = false, int maxPreviousLogFiles = 3)
         {
             if (!string.IsNullOrEmpty(logDirectory))
@@ -93,14 +153,21 @@ namespace AsynCUDA13.Shared
             }
         }
 
-
+        /// <summary>
+        /// Logs a message with a timestamp. The message is added to the internal log entries dictionary, and if it matches the filter phrase (if any), it is also added to the filtered log entries binding list. The method raises the LogWritten event and optionally echoes the message to the console and writes it to a log file if configured.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
         public static void Log(string message)
         {
             DateTime timestamp = DateTime.Now;
             string logEntry = $"[{timestamp:HH:mm:ss.fff}] {message}";
             LogEntries[timestamp] = logEntry;
+            if (Silent)
+            {
+                return;
+            }
 
-            if (!logEntry.Contains("[Native", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(FilterPhrase) || !logEntry.Contains(FilterPhrase, StringComparison.OrdinalIgnoreCase))
             {
                 if (UiContext != null)
                 {
@@ -119,21 +186,21 @@ namespace AsynCUDA13.Shared
             {
                 if (UiContext != null)
                 {
-                    UiContext.Post(_ => NativeRuntimeLogEntriesBindingList.Add(logEntry), null);
+                    UiContext.Post(_ => FilteredLogEntriesBindingList.Add(logEntry), null);
                 }
                 else
                 {
                     // Fallback: add on current thread
-                    lock (NativeRuntimeLogEntriesBindingList)
+                    lock (FilteredLogEntriesBindingList)
                     {
-                        NativeRuntimeLogEntriesBindingList.Add(logEntry);
+                        FilteredLogEntriesBindingList.Add(logEntry);
                     }
                 }
             }
 
             RaiseLogWritten(timestamp, logEntry);
 
-            if (EchoToConsole && ShouldEchoToConsole(logEntry))
+            if (EchoToConsole == true || ShouldEchoToConsole(logEntry))
             {
                 Console.WriteLine(logEntry);
             }
@@ -157,10 +224,23 @@ namespace AsynCUDA13.Shared
         /// </summary>
         private static bool ShouldEchoToConsole(string logEntry)
         {
-            return logEntry.Contains("[SUCCESS]", StringComparison.OrdinalIgnoreCase)
-                || logEntry.Contains("[ERROR]", StringComparison.OrdinalIgnoreCase)
-                || logEntry.Contains("[WARN", StringComparison.OrdinalIgnoreCase)
-                || logEntry.Contains("Exception:", StringComparison.OrdinalIgnoreCase);
+            if (Silent)
+            {
+                return false;
+            }
+
+            if (EchoToConsole == true)
+            {
+                return true;
+            }
+            else if (EchoToConsole == false)
+            {
+                return false;
+            }
+            else
+            {
+                return EchoToConsoleKeyPhrases.Any(phrase => logEntry.Contains(phrase, StringComparison.OrdinalIgnoreCase));
+            }
         }
 
         /// <summary>
@@ -177,6 +257,11 @@ namespace AsynCUDA13.Shared
             }
         }
 
+        /// <summary>
+        /// Logs an exception with an optional pre-text message. The exception's message and stack trace are included in the log entry. If a pre-text message is provided, it is logged before the exception details.
+        /// </summary>
+        /// <param name="ex">The exception to log.</param>
+        /// <param name="preText">An optional pre-text message to include before the exception details.</param>
         public static void Log(Exception ex, string? preText = null)
         {
             if (!string.IsNullOrEmpty(preText))
@@ -215,11 +300,18 @@ namespace AsynCUDA13.Shared
         /// <param name="message">The message to log.</param>
         public static void LogError(string message) => Log($"[ERROR] {message}");
 
+        /// <summary>Logs an exception with an optional pre-text message (echoed to the console).</summary>
+        /// <param name="ex">The exception to log.</param>
+        /// <param name="configureAwait">Whether to configure await.</param>
         public static async Task LogAsync(string message, bool configureAwait = false)
         {
             await Task.Run(() => Log(message)).ConfigureAwait(configureAwait);
         }
 
+        /// <summary>Logs an exception with an optional pre-text message (echoed to the console).</summary>
+        /// <param name="ex">The exception to log.</param>
+        /// <param name="preText">An optional pre-text message to include before the exception details.</param>
+        /// <param name="configureAwait">Whether to configure await.</param>
         public static async Task LogAsync(Exception ex, string? preText = null, bool configureAwait = false)
         {
             await Task.Run(() => Log(ex, preText)).ConfigureAwait(configureAwait);
@@ -231,15 +323,16 @@ namespace AsynCUDA13.Shared
         /// </summary>
         /// <param name="capturedAt">The timestamp captured at the moment the comment was initiated.</param>
         /// <param name="comment">The free-form comment text.</param>
-        public static void AddComment(DateTime capturedAt, string comment)
+        public static void AddComment(DateTime? capturedAt = null, string comment = "<!!!>")
         {
             if (string.IsNullOrWhiteSpace(comment))
             {
                 return;
             }
 
+            capturedAt ??= DateTime.Now;
             string logEntry = $"[{capturedAt:HH:mm:ss.fff}] [COMMENT] {comment}";
-            LogEntries[capturedAt] = logEntry;
+            LogEntries[capturedAt.Value] = logEntry;
 
             if (UiContext != null)
             {
@@ -253,7 +346,7 @@ namespace AsynCUDA13.Shared
                 }
             }
 
-            RaiseLogWritten(capturedAt, logEntry);
+            RaiseLogWritten(capturedAt.Value, logEntry);
 
             if (LogFilePath != null)
             {
@@ -285,12 +378,32 @@ namespace AsynCUDA13.Shared
         /// <see cref="MaxRepositoryLogFiles"/> files remain.
         /// </summary>
         /// <returns>The full path of the written file.</returns>
-        public static string SaveToRepository()
+        public static string SaveToRepository(string? differentFilePathOrDirectory = null)
         {
-            string directory = ResolveRepositoryLogDirectory();
-            Directory.CreateDirectory(directory);
+            string directory;
+            if (Directory.Exists(differentFilePathOrDirectory))
+            {
+                directory = differentFilePathOrDirectory;
+            }
+            else
+            {
+                directory = ResolveRepositoryLogDirectory();
+                Directory.CreateDirectory(directory);
+            }
 
-            string fileName = $"AggregatedLog_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
+            string fileName;
+            if (!string.IsNullOrEmpty(differentFilePathOrDirectory) && !Directory.Exists(differentFilePathOrDirectory))
+            {
+                fileName = Path.GetFileName(differentFilePathOrDirectory);
+                if (string.IsNullOrWhiteSpace(fileName))
+                {
+                    fileName = $"AggregatedLog_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
+                }
+            }
+            else
+            {
+                fileName = $"AggregatedLog_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.txt";
+            }
             string path = Path.Combine(directory, fileName);
 
             IReadOnlyList<string> snapshot = GetLogLines();
@@ -313,6 +426,27 @@ namespace AsynCUDA13.Shared
             Log($"[SUCCESS] Log saved to {fileName} ({snapshot.Count} entries)");
 
             return path;
+        }
+
+        /// <summary>
+        /// Returns the full paths of all log files in the log directory, ordered by creation time (newest first). This method searches for files with the extensions ".txt" and ".log" in the specified log directory and returns their paths as an enumerable collection. The returned list can be used to access or manage existing log files.
+        /// </summary>
+        /// <returns>An enumerable collection of full paths to log files.</returns>
+        public static IEnumerable<string> GetAllLogFilePaths()
+        {
+            return Directory.GetFiles(LogDirectory, "*.txt").Concat(Directory.GetFiles(LogDirectory, "*.log"))
+                .OrderByDescending(f => f)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Returns the full path of a previous log file based on the specified index. The index is zero-based, where 0 corresponds to the most recent log file, 1 corresponds to the second most recent log file, and so on. If the specified index is out of range (i.e., there are fewer log files than the index), this method returns null.
+        /// </summary>
+        /// <param name="backIndex">The zero-based index of the log file to retrieve, where 0 is the most recent log file.</param>
+        /// <returns>The full path of the previous log file, or null if the index is out of range.</returns>
+        public static string? GetPreviousLogFilePath(int backIndex)
+        {
+            return GetAllLogFilePaths().Skip(backIndex).FirstOrDefault();
         }
 
         /// <summary>
@@ -371,13 +505,16 @@ namespace AsynCUDA13.Shared
         }
 
 
-
+        /// <summary>
+        /// Clears all recorded log entries from the internal dictionary and the binding lists. This method is thread-safe and ensures that the UI context is used to update the binding lists if available. After calling this method, both <see cref="LogEntriesBindingList"/> and <see cref="FilteredLogEntriesBindingList"/> will be empty.
+        /// </summary>
         public static void ClearLogs()
         {
             LogEntries.Clear();
             if (UiContext != null)
             {
                 UiContext.Post(_ => LogEntriesBindingList.Clear(), null);
+                UiContext.Post(_ => FilteredLogEntriesBindingList.Clear(), null);
             }
             else
             {
@@ -385,12 +522,23 @@ namespace AsynCUDA13.Shared
                 {
                     LogEntriesBindingList.Clear();
                 }
+                lock (FilteredLogEntriesBindingList)
+                {
+                    FilteredLogEntriesBindingList.Clear();
+                }
             }
         }
 
 
-        // Inner EX unraveler
-        public static string GetAllInnerExceptionsRecursively(Exception ex)
+        /// <summary>
+        /// Returns a string representation of all inner exceptions of the provided exception, including their messages and stack traces, recursively. This method is useful for logging or displaying detailed information about nested exceptions.
+        /// </summary>
+        /// <param name="ex">The exception to process.</param>
+        /// <param name="openingBracket">The opening bracket to use for inner exception messages.</param>
+        /// <param name="closingBracket">The closing bracket to use for inner exception messages.</param>
+        /// <param name="separator">The separator to use between inner exception messages.</param>
+        /// <returns>A string containing the details of the exception and all its inner exceptions.</returns>
+        public static string GetAllInnerExceptionsRecursively(Exception ex, string openingBracket = "(", string closingBracket = ")", string separator = " ")
         {
             if (ex == null) return string.Empty;
             StringBuilder sb = new StringBuilder();
@@ -401,15 +549,25 @@ namespace AsynCUDA13.Shared
             int count = 0;
             while (inner != null)
             {
-                message = message + $" ({inner.Message}";
+                message = message + $"{separator}{openingBracket}{inner.Message}";
                 inner = inner.InnerException;
                 count++;
             }
-            message = message + string.Concat(Enumerable.Repeat(")", count));
+            message = message + string.Concat(Enumerable.Repeat(closingBracket, count));
 
             sb.AppendLine(message);
             sb.AppendLine($"StackTrace: {ex.StackTrace}");
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Returns a string representation of all inner exceptions of the provided exception, including their messages and stack traces, recursively. This method is useful for logging or displaying detailed information about nested exceptions. It uses default formatting with parentheses and spaces to separate inner exception messages.
+        /// </summary>
+        /// <param name="ex">The exception to process.</param>
+        /// <returns>A string containing the details of the exception and all its inner exceptions.</returns>
+        public static string GetAllInnerExceptionsRecursively(Exception ex)
+        {
+            return GetAllInnerExceptionsRecursively(ex, InnerExceptionOpeningBracket, InnerExceptionClosingBracket, InnerExceptionSeparator);
         }
 
 

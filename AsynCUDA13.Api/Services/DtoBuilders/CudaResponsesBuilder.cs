@@ -23,6 +23,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
         {
             return new CudaDisposeResponse
             {
+                Success = !service.Online,
                 FreedMemoryBytes = service.TotalAllocated.ToString(),
                 ElapsedMs = elapsedMs
             };

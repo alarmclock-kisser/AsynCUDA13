@@ -13,5 +13,8 @@ namespace AsynCUDA13.Shared.CudaDtos
         public CudaMemInfo[]? MemoryInfos { get; set; } = null; // Null if CUDA is not initialized
         public CudaKernelInfo[]? KernelInfos { get; set; } = null;  // Null if CUDA is not initialized
 
+
+        public bool Online => this.DeviceInfo != null && this.DeviceInfo.DeviceId >= 0;
+
     }
 }

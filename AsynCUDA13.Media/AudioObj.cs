@@ -651,13 +651,13 @@ namespace AsynCUDA13.Media
 
             // Wellenform generieren
             int samples = this.Data.Length;
-            float samplesPerPixel = samples / (float)width;
+            float samplesPerPixel = samples / (float) width;
 
             for (int x = 0; x < width; x++)
             {
                 // Mittelwert der Samples für diesen Pixelbereich berechnen
-                int startSample = (int)(x * samplesPerPixel);
-                int endSample = (int)((x + 1) * samplesPerPixel);
+                int startSample = (int) (x * samplesPerPixel);
+                int endSample = (int) ((x + 1) * samplesPerPixel);
                 endSample = Math.Min(endSample, samples);
 
                 if (endSample <= startSample) continue;
@@ -670,7 +670,7 @@ namespace AsynCUDA13.Media
                 float avgAmplitude = sum / (endSample - startSample);
 
                 // Y-Position basierend auf Amplitude berechnen
-                int y = (int)(height / 2.0f - (avgAmplitude * height / 2.0f / maxAmplitude));
+                int y = (int) (height / 2.0f - (avgAmplitude * height / 2.0f / maxAmplitude));
                 y = Math.Max(0, Math.Min(height - 1, y));
 
                 // Linie zeichnen (ein Pixel breit)
@@ -680,8 +680,8 @@ namespace AsynCUDA13.Media
                 }
 
                 // Optional: zwei Linien für die Wellenform (positiv und negativ)
-                int yPositive = (int)(height / 2.0f + (avgAmplitude * height / 2.0f / maxAmplitude));
-                int yNegative = (int)(height / 2.0f - (avgAmplitude * height / 2.0f / maxAmplitude));
+                int yPositive = (int) (height / 2.0f + (avgAmplitude * height / 2.0f / maxAmplitude));
+                int yNegative = (int) (height / 2.0f - (avgAmplitude * height / 2.0f / maxAmplitude));
 
                 yPositive = Math.Max(0, Math.Min(height - 1, yPositive));
                 yNegative = Math.Max(0, Math.Min(height - 1, yNegative));

@@ -1,5 +1,5 @@
 @page "/compiler"
-@inject CompilerViewModel VM
+@inherits ViewModelComponentBase<CompilerViewModel>
 @inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject LanguageService L
@@ -53,8 +53,8 @@
 </div>
 
 @code {
-    protected override async Task OnInitializedAsync()
+    protected override Task LoadViewModelAsync()
     {
-        await VM.LoadKernelsAsync();
+        return VM.LoadKernelsAsync();
     }
 }

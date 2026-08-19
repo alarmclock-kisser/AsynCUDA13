@@ -1,15 +1,14 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.CudaDtos;
+using Microsoft.JSInterop;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class ExecuteViewModel
+    public class ExecuteViewModel : ViewModelBase
     {
-        private readonly ApiClient _apiClient;
-
-        public ExecuteViewModel(ApiClient apiClient)
+        public ExecuteViewModel(ApiClient apiClient, IJSRuntime js)
+            : base(apiClient, js)
         {
-            this._apiClient = apiClient;
         }
 
         public string GetArgumentValue(int index)
@@ -27,7 +26,8 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadKernelsAsync()
         {
-            this.CompiledKernels = await this._apiClient.GetKernelsAsync(true);
+            this.CompiledKernels = await this.Api.GetKernelsAsync(true);
+            this.NotifyStateChanged();
         }
 
         public void PrepareArguments(CudaKernelInfo? kernel)
@@ -46,7 +46,8 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadMemoryListAsync()
         {
-            this.MemoryInfos = await this._apiClient.GetMemoryListAsync();
+            this.MemoryInfos = await this.Api.GetMemoryListAsync();
+            this.NotifyStateChanged();
         }
 
         public CudaKernelInfo? GetSelectedKernel()
@@ -78,7 +79,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             if (kernel == null)
                 return null;
 
-            var response = await this._apiClient.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, args ?? this.ArgumentValues, false);
+            var response = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, args ?? this.ArgumentValues, false);
             return response?.ResultPointer?.ToString();
         }
     }
