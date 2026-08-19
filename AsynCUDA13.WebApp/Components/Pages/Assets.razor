@@ -66,10 +66,10 @@
     }
 
     <h4>@L["Audios"]</h4>
-    <RadzenAccordion Multiple="true">
-        <Items>
-        @if (VM.AudiosInfos != null && VM.AudiosInfos.Length > 0)
-        {
+    @if (VM.AudiosInfos != null && VM.AudiosInfos.Length > 0)
+    {
+        <RadzenAccordion Multiple="true">
+            <Items>
             @foreach (var audio in VM.AudiosInfos)
             {
                 <RadzenAccordionItem @key="audio.Id" Text="@audio.Name" Selected="true">
@@ -78,7 +78,7 @@
                             <table class="table table-sm"><tbody><tr>
                                 <th>@L["GuidId"]</th><td>@audio.Id.ToString()</td><th>@L["Duration"]</th><td>@audio.DurationSeconds.ToString("F2") s</td>
                                 <th>@L["SampleRate"]</th><td>@audio.SampleRate.ToString() Hz</td><th>@L["Channels"]</th><td>@audio.Channels.ToString()</td><th>@L["BitDepth"]</th><td>@audio.BitDepth.ToString() bit</td>
-                                <th>@L["OnHost"]</th><td>@(audio.OnGpu == false ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.Pointer != null ? $"cuda:{VM.ContextInfo?.DeviceInfo?.DeviceId.ToString() ?? "*"}" : L["No"])</td>
+                                <th>@L["OnHost"]</th><td>@(audio.OnGpu == false ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.OnGpu ? $"cuda:{VM.ContextInfo?.DeviceInfo?.DeviceId.ToString() ?? "*"}" : L["No"])</td>
                             </tr></tbody></table>
                         </div>
                     </div>
@@ -98,13 +98,13 @@
                     </div>
                 </RadzenAccordionItem>
             }
-        }
-        else
-        {
-            <p class="text-muted">@L["NoAudios"]</p>
-        }
-        </Items>
-    </RadzenAccordion>
+            </Items>
+        </RadzenAccordion>
+    }
+    else
+    {
+        <p class="text-muted">@L["NoAudios"]</p>
+    }
 </div>
 
 @code {
