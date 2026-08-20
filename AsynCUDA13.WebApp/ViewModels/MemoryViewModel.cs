@@ -11,8 +11,8 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
         }
 
-        public CudaMemInfo[]? MemoryInfos { get; set; }
-        public bool IsCudaInitialized => this._contextInfo?.DeviceInfo != null;
+        public CudaMemInfo[] MemoryInfos { get; private set; } = [];
+        public bool IsCudaInitialized => this._contextInfo?.Online == true;
 
         public string? SelectedIndexPointer { get; set; }
         public int ChunkSize { get; set; } = 0;
@@ -22,8 +22,11 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadMemoryListAsync()
         {
-            this.MemoryInfos = await this.Api.GetMemoryListAsync();
-            this.NotifyStateChanged();
+            this._contextInfo = await this.Api.GetCudaContextInfoAsync();
+            this.MemoryInfos = this.IsCudaInitialized
+                ? await this.Api.GetMemoryListAsync()
+                : [];
+            await this.NotifyStateChangedAsync(false);
         }
 
         public async Task<CudaMemInfo?> GetMemoryInfoAsync(string indexPointerOrId)
@@ -57,18 +60,32 @@ namespace AsynCUDA13.WebApp.ViewModels
             return result;
         }
 
+        public string FormatSize(string? bytes)
+        {
+            return long.TryParse(bytes, out var parsedBytes)
+                ? this.FormatSize(parsedBytes)
+                : bytes ?? string.Empty;
+        }
+
         public string FormatSize(long bytes)
         {
             if (bytes >= 1024 * 1024)
+            {
                 return $"{bytes / (1024.0 * 1024.0):F2} MB";
+            }
+
             if (bytes >= 1024)
+            {
                 return $"{bytes / 1024.0:F2} kB";
+            }
+
             return $"{bytes} B";
         }
 
-        public bool Is1D(CudaMemInfo memInfo)
+        public bool IsOnDevice(CudaMemInfo memInfo)
         {
-            return memInfo.Pointers.Length <= 1;
+            return memInfo.Pointers.Any(pointer =>
+                long.TryParse(pointer, out var address) && address != 0);
         }
     }
 }

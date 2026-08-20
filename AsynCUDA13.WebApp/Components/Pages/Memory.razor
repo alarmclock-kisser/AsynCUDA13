@@ -1,37 +1,35 @@
 @page "/memory"
 @inherits ViewModelComponentBase<MemoryViewModel>
-@inject HomeViewModel HomeVM
-@inject ApiClient ApiClient
-@inject AssetsViewModel AssetsVM
 @inject LanguageService L
 
 <div class="container mt-4">
     <h2>@L["CudaMemoryManagement"]</h2>
 
-    <RadzenAlert Text="@(HomeVM.IsInitialized ? L["CudaInitialized"] : L["CudaNotInitialized"])"
-                 Severity="@(HomeVM.IsInitialized ? AlertStyle.Success : AlertStyle.Warning)"
-                 Visible="true" ShowCloseButton="false" />
+    <RadzenAlert Text="@(VM.IsCudaInitialized ? L["CudaInitialized"] : L["CudaNotInitialized"])"
+                 Severity="@(VM.IsCudaInitialized ? AlertStyle.Success : AlertStyle.Warning)"
+                 Visible="true"
+                 ShowCloseButton="false" />
 
-    @if (HomeVM.IsInitialized)
+    @if (VM.IsCudaInitialized)
     {
         <RadzenCard>
             <div class="rz-card-header">
                 <h5>@L["VramStatus"]</h5>
             </div>
             <div class="rz-card-body">
-                <p><strong>@L["AllocatedCudaMemObjects"]</strong> @(VM.MemoryInfos?.Length ?? 0)</p>
+                <p><strong>@L["AllocatedCudaMemObjects"]:</strong> @VM.MemoryInfos.Length</p>
             </div>
         </RadzenCard>
 
         <h4>@L["MemoryList"]</h4>
         <RadzenAccordion>
-            @if (VM.MemoryInfos != null && VM.MemoryInfos.Length > 0)
-            {
+            <Items>
                 @foreach (var memInfo in VM.MemoryInfos)
                 {
-                    var isInDevice = !string.IsNullOrEmpty(memInfo.IndexPointer);
-                    var accordionTitle = $"{memInfo.Id} ({VM.FormatSize(long.Parse(memInfo.TotalSize))}) ({memInfo.ElementType}) - {(isInDevice ? L["OnDevice"] : L["OnHost"])}";
-                    <RadzenAccordionItem Text="@accordionTitle">
+                    var isOnDevice = VM.IsOnDevice(memInfo);
+                    var accordionTitle = $"{memInfo.Id} ({VM.FormatSize(memInfo.TotalSize)}) ({memInfo.ElementType}) - {(isOnDevice ? L["OnDevice"] : L["OnHost"])}";
+
+                    <RadzenAccordionItem @key="memInfo.Id" Text="@accordionTitle">
                         <div class="row">
                             <div class="col-md-8">
                                 <table class="table table-sm">
@@ -40,27 +38,31 @@
                                         <tr><th>@L["ElementType"]</th><td>@memInfo.ElementType</td></tr>
                                         <tr><th>@L["IndexPointer"]</th><td>@memInfo.IndexPointer</td></tr>
                                         <tr><th>@L["TotalLength"]</th><td>@memInfo.TotalLength</td></tr>
-                                        <tr><th>@L["TotalSize"]</th><td>@VM.FormatSize(long.Parse(memInfo.TotalSize))</td></tr>
+                                        <tr><th>@L["TotalSize"]</th><td>@VM.FormatSize(memInfo.TotalSize)</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="col-md-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    @if (isInDevice)
+                                    @if (isOnDevice)
                                     {
-                                        <RadzenButton Icon="arrow_upward" ButtonStyle="ButtonStyle.Primary" 
-                                                      Title="@L["PullToDevice"]" 
-                                                      Click="() => VM.PullAsync(memInfo.IndexPointer, true)" />
+                                        <RadzenButton Icon="arrow_downward"
+                                                      ButtonStyle="ButtonStyle.Primary"
+                                                      Title="@L["PushToHost"]"
+                                                      Click="@(() => VM.PullAsync(memInfo.IndexPointer, true))" />
                                     }
                                     else
                                     {
-                                        <RadzenButton Icon="arrow_downward" ButtonStyle="ButtonStyle.Success" 
-                                                      Title="@L["PushToHost"]" 
+                                        <RadzenButton Icon="arrow_upward"
+                                                      ButtonStyle="ButtonStyle.Success"
+                                                      Title="@L["PullToDevice"]"
                                                       Click="@(() => VM.PushAssetAsync(memInfo.Id, false, memInfo.ElementType.Contains("audio", StringComparison.OrdinalIgnoreCase)))" />
                                     }
-                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" 
-                                                  Title="@L["Delete"]" 
-                                                  Click="() => VM.FreeMemoryAsync(memInfo.IndexPointer)" />
+                                    <RadzenButton Icon="delete"
+                                                  ButtonStyle="ButtonStyle.Danger"
+                                                  Title="@L["Delete"]"
+                                                  Disabled="@(!isOnDevice)"
+                                                  Click="@(() => VM.FreeMemoryAsync(memInfo.IndexPointer))" />
                                 </div>
                             </div>
                         </div>
@@ -82,12 +84,13 @@
                         }
                     </RadzenAccordionItem>
                 }
-            }
-            else
-            {
-                <p class="text-muted">@L["NoCudaMemObjects"]</p>
-            }
+            </Items>
         </RadzenAccordion>
+
+        @if (VM.MemoryInfos.Length == 0)
+        {
+            <p class="text-muted">@L["NoCudaMemObjects"]</p>
+        }
     }
     else
     {
@@ -98,11 +101,6 @@
 @code {
     protected override Task LoadViewModelAsync()
     {
-        if (HomeVM.IsInitialized)
-        {
-            return VM.LoadMemoryListAsync();
-        }
-
-        return Task.CompletedTask;
+        return VM.LoadMemoryListAsync();
     }
 }
