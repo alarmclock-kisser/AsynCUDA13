@@ -148,11 +148,11 @@ main {
 }
 
 .app-shell:has(.app-sidebar.is-collapsed) {
-    grid-template-columns: 4.25rem minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr);
 }
 
 .app-sidebar.is-collapsed {
-    width: 4.25rem;
+    width: 40px;
 }
 
 @media (max-width: 800px) {

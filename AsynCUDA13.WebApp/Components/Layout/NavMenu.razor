@@ -2,7 +2,7 @@
 @inject ApiClient ApiClient
 @inject IJSRuntime JS
 
-<aside class="app-sidebar @(SidebarOpen ? string.Empty : "is-collapsed")">
+<aside class="app-sidebar @(SidebarOpen ? string.Empty : "is-collapsed")" @ref="sidebarRef">
     <div class="sidebar-brand">
         <RadzenButton Icon="menu" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                       Title="Seitenleiste ein-/ausblenden" Click="ToggleSidebar" />
@@ -35,6 +35,7 @@
             }
         </div>
     </section>
+    <div class="sidebar-resize-handle" @ref="resizeHandleRef"></div>
 </aside>
 
 @code {
@@ -43,15 +44,27 @@
     private List<string> LogLines { get; set; } = [];
     private readonly CancellationTokenSource LogRefreshCancellation = new();
     private ElementReference logContainerRef;
+    private ElementReference sidebarRef;
+    private ElementReference resizeHandleRef;
     private bool ShouldAutoScroll { get; set; } = true;
     private bool FrontendLogs { get; set; } = false;
     private bool SignalRConnected => ApiClient.IsSignalRConnected;
+    private bool resizeInitialized;
 
     protected override async Task OnInitializedAsync()
     {
         // Registriere das lokale LogWritten Event für Frontend-Logs
         StaticLogger.LogWritten += OnLocalLogWritten;
         await ConnectToSignalRAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !resizeInitialized)
+        {
+            resizeInitialized = true;
+            await JS.InvokeVoidAsync("initSidebarResize", resizeHandleRef, sidebarRef);
+        }
     }
 
     private async Task ScrollToBottomAsync()
@@ -106,9 +119,10 @@
         }
     }
 
-    private void ToggleSidebar()
+    private async Task ToggleSidebar()
     {
         SidebarOpen = !SidebarOpen;
+        await JS.InvokeVoidAsync("toggleSidebarCollapse", !SidebarOpen);
     }
 
     private void ToggleWordWrap()

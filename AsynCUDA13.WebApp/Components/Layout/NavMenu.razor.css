@@ -118,6 +118,26 @@
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 11;
+    background: transparent;
+    transition: background 0.15s ease;
+}
+
+.sidebar-resize-handle:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.app-sidebar.is-collapsed .sidebar-resize-handle {
+    display: none;
+}
+
 .sidebar-brand {
     min-height: 4.25rem;
     display: flex;
@@ -161,7 +181,8 @@
 }
 
 .app-sidebar.is-collapsed .sidebar-navigation,
-.app-sidebar.is-collapsed .sidebar-log {
+.app-sidebar.is-collapsed .sidebar-log,
+.app-sidebar.is-collapsed .sidebar-brand ::deep a {
     display: none;
 }
 
