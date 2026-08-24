@@ -17,7 +17,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             var contextInfo = new RuntimeContextInfo
             {
                 RuntimeType = service is ICudaService ? "CUDA" : service is IOpenClService ? "OpenCL" : "N/A",
-                DeviceInfo = BuildRuntimeDeviceInfo(service),
+                DeviceInfo = BuildRuntimeDeviceInfo(service, null),
                 UsageInfo = BuildRuntimeUsageInfo(service),
                 MemoryInfos = BuildRuntimeMemoryInfos(service),
                 KernelInfos = BuildRuntimeKernelInfos(service)

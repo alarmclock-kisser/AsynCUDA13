@@ -39,6 +39,7 @@ namespace AsynCUDA13.Client
 
         public bool IsSignalRConnected => this._hubConnection?.State == HubConnectionState.Connected;
 
+        public readonly string BackendType = "N/A";
 
         public ApiClient(string baseUrl, int logLevel = (int) LogLevel.Information)
         {
@@ -51,6 +52,8 @@ namespace AsynCUDA13.Client
             };
             this.internalClient = new(baseUrl, this.httpClient);
             this.LogLevel = (LogLevel) logLevel;
+
+            this.BackendType = this.internalClient.asyn
 
             if ((int) this.LogLevel >= 5)
             {

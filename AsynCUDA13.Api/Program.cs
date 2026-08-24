@@ -38,13 +38,33 @@ namespace AsynCUDA13.Api
             // dedicated service interface (IRuntimeService / IOpenClService) and the interchangeable
             // IRuntimeService, so the rest of the API can depend on IRuntimeService regardless of backend.
             string backend = builder.Configuration.GetValue<string>("Backend") ?? "CUDA";
+            bool switchIfUnavailable = builder.Configuration.GetValue<bool>("SwitchBackendIfUnavailable", true);
+
+            string apiName = "AsynCUDA13.API";
+            bool? cudaAvailable = null;
             if (string.Equals(backend, "CUDA", StringComparison.OrdinalIgnoreCase))
             {
-                builder.Services.AddSingleton<IRuntimeService, CudaService>();
+                cudaAvailable = CudaAvailabilityTester.IsCudaAvailable();
+                if (cudaAvailable.Value)
+                {
+                    builder.Services.AddSingleton<IRuntimeService, CudaService>();
+                    StaticLogger.LogInfo("CUDA backend selected and available. --> " + apiName);
+                }
+            }
+
+            if (switchIfUnavailable || string.Equals(backend, "OpenCL", StringComparison.OrdinalIgnoreCase))
+            {
+                if (cudaAvailable == false)
+                {
+                    StaticLogger.LogWarning("CUDA backend is not available. Switching to OpenCL backend.");
+                }
+                builder.Services.AddSingleton<IRuntimeService, OpenClService>();
+                apiName = "AsynCL.API";
+                StaticLogger.LogInfo("OpenCL backend selected. --> " + apiName);
             }
             else
             {
-                builder.Services.AddSingleton<IRuntimeService, OpenClService>();
+                throw new InvalidOperationException($"The specified backend '{backend}' is not available and switching to an alternative backend is disabled.");
             }
 
             // Add services to the container.
@@ -76,7 +96,7 @@ namespace AsynCUDA13.Api
             });
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new() { Title = "AsynCUDA13.API v1", Version = "v1" });
+                c.SwaggerDoc("v1", new() { Title = $"{apiName} v1", Version = "v1" });
             });
 
             var app = builder.Build();
@@ -87,7 +107,7 @@ namespace AsynCUDA13.Api
                 app.UseSwagger();
                 app.UseSwaggerUI(options =>
                 {
-                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "AsynCUDA13.API v1");
+                    options.SwaggerEndpoint("/swagger/v1/swagger.json", $"{apiName} v1");
                     options.RoutePrefix = "swagger";
                 });
             }
