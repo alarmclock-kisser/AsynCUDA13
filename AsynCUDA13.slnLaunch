@@ -14,6 +14,21 @@
     "Projects": [
       {
         "Path": "AsynCUDA13.Api\\AsynCUDA13.Api.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "AsynCUDA13.WebApp\\AsynCUDA13.WebApp.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      }
+    ]
+  },
+  {
+    "Name": "WebApp (https)",
+    "Projects": [
+      {
+        "Path": "AsynCUDA13.Api\\AsynCUDA13.Api.csproj",
         "Action": "StartWithoutDebugging",
         "DebugTarget": "https_silent"
       },

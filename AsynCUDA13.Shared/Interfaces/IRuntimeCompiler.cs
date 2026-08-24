@@ -16,6 +16,11 @@ namespace AsynCUDA13.Shared.Interfaces
         string? KernelName { get; }
 
         /// <summary>
+        /// Gets the directory where kernel source files are located, or <c>null</c> if not set.
+        /// </summary>
+        string KernelDirectory { get; }
+
+        /// <summary>
         /// Unloads the currently loaded kernel.
         /// </summary>
         void UnloadKernel(string? name);
@@ -38,6 +43,14 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="name">The name of the kernel to retrieve.</param>
         /// <returns>The kernel, or <c>null</c> if not found.</returns>
         object? GetKernel(string name);
+
+
+        /// <summary>
+        /// Gets the source file of the kernel with the specified name.
+        /// </summary>
+        /// <param name="name">The name of the kernel.</param>
+        /// <returns>The file path of the kernel source file, or <c>null</c> if not found.</returns>
+        string? GetKernelSourceFile(string name);
 
 
         /// <summary>
@@ -76,6 +89,13 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="kernelCode">The source code of the kernel to compile.</param>
         /// <returns>The compiled kernel object.</returns>
         string CompileKernel(string kernelCode);
+
+        /// <summary>
+        /// Precompiles the provided kernel code and returns whether the precompilation was successful.
+        /// </summary>
+        /// <param name="code">The source code of the kernel to precompile.</param>
+        /// <returns>The name of the kernel if the precompilation was successful; otherwise <c>null</c>.</returns>
+        string? PrecompileKernel(string code);
 
         /// <summary>
         /// Merges the provided arguments with the input and output pointers for an image processing kernel.

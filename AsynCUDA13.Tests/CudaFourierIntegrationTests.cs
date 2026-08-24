@@ -37,14 +37,14 @@ namespace AsynCUDA13.Tests
         {
             var input = Enumerable.Range(0, 64).Select(i => MathF.Sin(2 * MathF.PI * i / 16)).ToArray();
             var inputMem = this.service!.PushData(input)!;
-            var spectrumPointer = this.service._fourier!.PerformFft(inputMem.IndexPointer, true);
+            var spectrumPointer = this.service.Fourier!.PerformFft(inputMem.IndexPointer, true);
             spectrumPointer.ShouldNotBe(IntPtr.Zero);
             var spectrum = this.service.PullData<float2>(spectrumPointer, true);
             spectrum.ShouldNotBeNull();
-            var restoredPointer = this.service._fourier.PerformIfft(spectrumPointer, false);
+            var restoredPointer = this.service.Fourier.PerformIfft(spectrumPointer, false);
             restoredPointer.ShouldNotBe(IntPtr.Zero);
             var restored = this.service.PullData<float>(restoredPointer, false)!;
-            var normalized = this.service._fourier.NormalizeIfftResult(restored);
+            var normalized = this.service.Fourier.NormalizeIfftResult(restored);
             normalized.Length.ShouldBe(input.Length);
             restored.Any(float.IsNaN).ShouldBeFalse();
             restored.Max(x => MathF.Abs(x)).ShouldBeGreaterThan(0.5f);
@@ -55,11 +55,11 @@ namespace AsynCUDA13.Tests
         {
             var input = Enumerable.Range(0, 64).Select(i => MathF.Sin(2 * MathF.PI * i / 8)).ToArray();
             var inputMem = (await this.service!.PushDataAsync(input))!;
-            var spectrumPointer = await this.service._fourier!.PerformFftAsync(inputMem.IndexPointer, true);
+            var spectrumPointer = await this.service.Fourier!.PerformFftAsync(inputMem.IndexPointer, true);
             spectrumPointer.ShouldNotBe(IntPtr.Zero);
-            var restoredPointer = await this.service._fourier.PerformIfftAsync(spectrumPointer, false);
+            var restoredPointer = await this.service.Fourier.PerformIfftAsync(spectrumPointer, false);
             var restored = this.service.PullData<float>(restoredPointer, false)!;
-            this.service._fourier.NormalizeIfftResultAsync(restored).Result.Length.ShouldBe(input.Length);
+            this.service.Fourier.NormalizeIfftResultAsync(restored).Result.Length.ShouldBe(input.Length);
         }
 
         [TestMethod]
@@ -67,10 +67,10 @@ namespace AsynCUDA13.Tests
         {
             var chunks = Enumerable.Range(0, 3).Select(c => Enumerable.Range(0, 32).Select(i => MathF.Sin((i + c) * 0.2f)).ToArray()).ToArray();
             var inputMem = (await this.service!.PushChunksAsync(chunks))!;
-            var spectrumPointer = await this.service._fourier!.PerformFftManyAsync(inputMem.IndexPointer, true);
+            var spectrumPointer = await this.service.Fourier!.PerformFftAsync(inputMem.IndexPointer, true);
             spectrumPointer.ShouldNotBe(IntPtr.Zero);
             spectrumPointer.ShouldNotBe(IntPtr.Zero);
-            var restoredPointer = await this.service._fourier.PerformIfftManyAsync(spectrumPointer, false);
+            var restoredPointer = await this.service.Fourier.PerformIfftAsync(spectrumPointer, false);
             restoredPointer.ShouldNotBe(IntPtr.Zero);
             restoredPointer.ShouldNotBe(IntPtr.Zero);
         }

@@ -8,10 +8,10 @@ namespace AsynCUDA13.Shared.Localization
 {
     public class LanguageService
     {
-        private readonly StringLocalizer<SharedResources> _localizer;
+        private readonly IStringLocalizer<SharedResources> _localizer;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public LanguageService(StringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
+        public LanguageService(IStringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
         {
             this._localizer = localizer;
             this._httpContextAccessor = httpContextAccessor;

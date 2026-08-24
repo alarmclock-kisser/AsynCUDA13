@@ -118,6 +118,28 @@ namespace AsynCUDA13.OpenClBackend
         }
 
 
+        // Launch (async)
+        public async Task<int?> ExecuteAsync(string kernelName, params object[] arguments)
+        {
+            DateTime started = DateTime.Now;
+            bool ok = await Task.Run(() => this.Execute(kernelName, 0, 0, arguments));
+            if (!ok)
+            {
+                return null;
+            }
+            return (int) (DateTime.Now - started).TotalMilliseconds;
+        }
+
+        public async Task<bool> ExecuteAsync(string kernelName, long globalWorkSize = 0, params object[] arguments)
+        {
+            return await Task.Run(() => this.Execute(kernelName, globalWorkSize, 0, arguments));
+        }
+
+        public async Task<bool> ExecuteAsync(string kernelName, long globalWorkSize = 0, long localWorkSize = 0, params object[] arguments)
+        {
+            return await Task.Run(() => this.Execute(kernelName, globalWorkSize, localWorkSize, arguments));
+        }
+
 
         // Arguments
         /// <summary>

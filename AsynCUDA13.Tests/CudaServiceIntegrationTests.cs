@@ -48,7 +48,7 @@ namespace AsynCUDA13.Tests
         {
             this.service!.Initialize(0).ShouldBeTrue();
             this.service.Online.ShouldBeTrue();
-            this.service.SelectedCudaDeviceProperties.ShouldNotBeNull();
+            this.service.SelectedDeviceProperties.ShouldNotBeNull();
         }
 
         [TestMethod]

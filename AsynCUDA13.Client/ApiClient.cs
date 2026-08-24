@@ -53,8 +53,6 @@ namespace AsynCUDA13.Client
             this.internalClient = new(baseUrl, this.httpClient);
             this.LogLevel = (LogLevel) logLevel;
 
-            this.BackendType = this.internalClient.asyn
-
             if ((int) this.LogLevel >= 5)
             {
                 StaticLogger.Log($"ApiClient initialized with log level: {this.LogLevel}, URL='{this.BaseUrl}'");

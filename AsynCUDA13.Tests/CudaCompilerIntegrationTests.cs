@@ -35,13 +35,13 @@ namespace AsynCUDA13.Tests
         public void CompilestringCreatesPtxAndArgumentDefinitions()
         {
             const string source = "extern \"C\" __global__ void AddConstant(float* data, float value, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += value; }";
-            var compiler = this.service!._compiler!;
-            var ptxPath = compiler.Compilestring(source, true);
+            var compiler = this.service!.Compiler!;
+            var ptxPath = compiler.CompileKernel(source);
             ptxPath.ShouldNotBeNull();
             File.Exists(ptxPath).ShouldBeTrue();
-            compiler.PrecompileKernelstring(source, true).ShouldBe("AddConstant");
-            var sourcePath = Path.Combine(CudaCompiler.KernelPath, "CU", "AddConstant.cu");
-            var arguments = compiler.GetArguments(sourcePath, true);
+            compiler.PrecompileKernel(source).ShouldBe("AddConstant");
+            var sourcePath = this.service.Compiler.GetKernelSourceFile("AddConstant");
+            var arguments = compiler.GetArguments(sourcePath);
             arguments.Values.ShouldContain(typeof(IntPtr));
             arguments.Values.ShouldContain(typeof(float));
             arguments.Values.ShouldContain(typeof(int));
@@ -51,15 +51,15 @@ namespace AsynCUDA13.Tests
         [TestMethod]
         public void CompileCuFileAndEnumerateKernelFiles()
         {
-            var compiler = this.service!._compiler!;
-            var sourcePath = Path.Combine(CudaCompiler.KernelPath, "CU", $"FileKernel_{Guid.NewGuid():N}.cu");
+            var compiler = this.service!.Compiler!;
+            var sourcePath = compiler.GetKernelSourceFile("FileKernel") ?? Path.GetTempFileName();
             File.WriteAllText(sourcePath, "extern \"C\" __global__ void FileKernel(float* data, int length) { int i = blockIdx.x * blockDim.x + threadIdx.x; if (i < length) data[i] += 1.0f; }");
             try
             {
-                var ptxPath = compiler.CompileKernel(sourcePath, true);
+                var ptxPath = compiler.CompileKernel(sourcePath);
                 ptxPath.ShouldNotBeNull();
-                CudaCompiler.GetCuFiles(Path.GetDirectoryName(sourcePath)!).ShouldContain(sourcePath);
-                CudaCompiler.GetPtxFiles(Path.Combine(CudaCompiler.KernelPath, "PTX")).ShouldContain(ptxPath);
+                this.service.Compiler.GetSourceFiles().ShouldContain(sourcePath);
+                this.service.Compiler.GetCompiledFiles().ShouldContain(ptxPath);
             }
             finally { File.Delete(sourcePath); }
         }
@@ -67,11 +67,11 @@ namespace AsynCUDA13.Tests
         [TestMethod]
         public void InvalidKernelReturnsNullAndInvalidSignatureIsRejected()
         {
-            var compiler = this.service!._compiler!;
-            compiler.Compilestring("extern \"C\" __global__ void Broken(float* data { data[0] = 1.0f;", true).ShouldBeNull();
-            compiler.PrecompileKernelstring("__global__ void noExtern(float* data, int length) {}", true).ShouldBeNull();
-            compiler.GetArgumentType("float*").ShouldBe(typeof(IntPtr));
-            compiler.GetArgumentType("int").ShouldBe(typeof(int));
+            var compiler = this.service!.Compiler!;
+            compiler.CompileKernel("extern \"C\" __global__ void Broken(float* data { data[0] = 1.0f;").ShouldBeNull();
+            compiler.PrecompileKernel("__global__ void noExtern(float* data, int length) {}").ShouldBeNull();
+            compiler.GetArguments("NonExistentKernel").ShouldBeEmpty();
+            compiler.HasKernel("NonExistentKernel").ShouldBeFalse();
         }
     }
 }

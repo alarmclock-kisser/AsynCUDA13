@@ -38,11 +38,11 @@ namespace AsynCUDA13.Tests
                 .Select(match => match.Groups[1].Value);
             foreach (var kernelName in kernelNames)
             {
-                var path = Path.Combine(CudaCompiler.KernelPath, "CU", kernelName + ".cu");
+                var path = Path.Combine(this.service!.Compiler!.KernelDirectory, kernelName + ".cu");
                 File.WriteAllText(path, source);
                 var service = Require(this.service);
-                var compiler = Require(service._compiler);
-                compiler.CompileKernel(path, true).ShouldNotBeNull();
+                var compiler = Require(service.Compiler);
+                compiler.CompileKernel(path).ShouldNotBeNull();
             }
         }
 
@@ -54,11 +54,11 @@ namespace AsynCUDA13.Tests
             var input = new float[32];
             var service = Require(this.service);
             var memory = Require(service.PushData(input));
-            var launcher = Require(service._launcher);
-            var elapsedMs = await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, 1f, input.Length]);
+            var launcher = Require(service.Launcher);
+            var elapsedMs = await Task.Run(() => launcher.Execute("AddConstant", [memory.IndexPointer, 1f, input.Length]));
             Assert.IsNotNull(elapsedMs);
             elapsedMs.Value.ShouldBeGreaterThanOrEqualTo(0);
-            var result = Require(service.PullData<float>(memory, false));
+            var result = Require(service.PullData<float>(memory.IndexPointer));
             result.ShouldBe(input.Select(x => x + 1f).ToArray());
         }
 
@@ -70,13 +70,13 @@ namespace AsynCUDA13.Tests
             var input = new float[32];
             Assert.IsNotNull(this.service);
             var memory = this.service.PushData(input)!;
-            var launcher = this.service._launcher!;
+            var launcher = this.service.Launcher!;
 
             // Test that invalid kernel calls return null
-            (await launcher.ExecuteGenericKernelAsync("AddConstant", [])).ShouldBeNull();
-            (await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, "wrong", input.Length])).ShouldBeNull();
-            (await launcher.ExecuteGenericKernelAsync("AddConstant", [IntPtr.Zero, 1f, input.Length])).ShouldBeNull();
-            (await launcher.ExecuteGenericKernelAsync("MissingKernel", [memory.IndexPointer, 1f, input.Length])).ShouldBeNull();
+            (await launcher.ExecuteAsync("AddConstant", [])).ShouldBeNull();
+            (await launcher.ExecuteAsync("AddConstant", memory.IndexPointer, "wrong", input.Length)).ShouldBeNull();
+            (await launcher.ExecuteAsync("AddConstant", IntPtr.Zero, 1f, input.Length)).ShouldBeNull();
+            (await launcher.ExecuteAsync("MissingKernel", memory.IndexPointer, 1f, input.Length)).ShouldBeNull();
         }
 
         [TestMethod]
@@ -89,12 +89,12 @@ namespace AsynCUDA13.Tests
             var inputMemory = Require(service.PushData(input));
             var outputMemory = Require(service.AllocateSingle<float>(input.Length));
 
-            var elapsedMs = await Require(service._launcher).ExecuteGenericKernelAsync(
+            var elapsedMs = await Require(service.Launcher).ExecuteAsync(
                 "AddVectors",
                 [inputMemory.IndexPointer, outputMemory.IndexPointer, input.Length]);
 
             Assert.IsNotNull(elapsedMs);
-            var result = Require(service.PullData<float>(outputMemory, false));
+            var result = Require(service.PullData<float>(outputMemory.IndexPointer));
             result.ShouldBe(input.Select(x => x + 2f).ToArray());
         }
 
@@ -106,12 +106,12 @@ namespace AsynCUDA13.Tests
             var input = Enumerable.Repeat(2f, 64).ToArray();
             var service = Require(this.service);
             var memory = Require(service.PushData(input));
-            var launcher = Require(service._launcher);
+            var launcher = Require(service.Launcher);
 
-            (await launcher.ExecuteGenericKernelAsync("AddConstant", [memory.IndexPointer, 3f, input.Length])).ShouldNotBeNull();
-            (await launcher.ExecuteGenericKernelAsync("MultiplyConstant", [memory.IndexPointer, 4f, input.Length])).ShouldNotBeNull();
+            (await launcher.ExecuteAsync("AddConstant", [memory.IndexPointer, 3f, input.Length])).ShouldNotBeNull();
+            (await launcher.ExecuteAsync("MultiplyConstant", [memory.IndexPointer, 4f, input.Length])).ShouldNotBeNull();
 
-            Require(service.PullData<float>(memory, false)).ShouldBe(Enumerable.Repeat(20f, input.Length).ToArray());
+            Require(service.PullData<float>(memory.IndexPointer)).ShouldBe(Enumerable.Repeat(20f, input.Length).ToArray());
         }
 
         [TestMethod]
@@ -123,14 +123,13 @@ namespace AsynCUDA13.Tests
             var service = Require(this.service);
             var memory = Require(service.PushData(input));
 
-            var elapsedMs = await Require(service._launcher).ExecuteGenericKernelAsync(
+            var elapsedMs = await Require(service.Launcher).ExecuteAsync(
                 "AddConstant",
-                [memory.IndexPointer, 1f, input.Length],
-                unloadWhenExecuted: true);
+                [memory.IndexPointer, 1f, input.Length]);
 
             Assert.IsNotNull(elapsedMs);
-            Require(service.PullData<float>(memory, false)).ShouldBe(Enumerable.Repeat(1f, input.Length).ToArray());
-            Require(service._launcher).KernelName.ShouldBeNull();
+            Require(service.PullData<float>(memory.IndexPointer)).ShouldBe(Enumerable.Repeat(1f, input.Length).ToArray());
+            Require(service.Launcher).KernelName.ShouldBeNull();
         }
 
     }

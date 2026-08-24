@@ -196,7 +196,7 @@ namespace AsynCUDA13.Tests
             var fileName = $"TestReport_{timestamp}.txt";
             var filePath = Path.Combine(reportsDir, fileName);
 
-            var sb = new stringBuilder();
+            var sb = new StringBuilder();
             sb.AppendLine("=== Test Report ===");
             sb.AppendLine($"Datum: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine("Alle Tests erfolgreich — keine Fehler gefunden.");
@@ -265,7 +265,7 @@ namespace AsynCUDA13.Tests
             var fileName = $"FailedTests_{timestamp}.txt";
             var filePath = Path.Combine(reportsDir, fileName);
 
-            var sb = new stringBuilder();
+            var sb = new StringBuilder();
             sb.AppendLine("=== Fehlgeschlagene Tests ===");
             sb.AppendLine($"Datum: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"Anzahl: {failedTests.Length}");

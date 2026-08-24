@@ -29,7 +29,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Gets the directory the kernel source files were loaded from.
         /// </summary>
-        public string KernelDirectory { get; }
+        public string KernelDirectory => EnsureKernelDirectory();
 
         /// <summary>
         /// Gets the names of all successfully compiled kernels.
@@ -52,6 +52,31 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         /// <returns>An array of file paths to compiled kernel files.</returns>
         public string[] GetCompiledFiles() => this.GetClFiles().Select(s => this._kernels.ContainsKey(Path.GetFileNameWithoutExtension(s)) ? s : null).Where(s => s != null).Cast<string>().ToArray();
+
+        /// <summary>
+        /// Gets the source file of the kernel with the specified name. Returns null if the kernel name is not set or if the file does not exist.
+        /// </summary>
+        /// <param name="name">The name of the kernel.</param>
+        /// <returns>The file path of the kernel source file, or <c>null</c> if not found.</returns>
+        public string? GetKernelSourceFile(string name)
+        {
+            if (string.IsNullOrEmpty(this.KernelName))
+            {
+                return null;
+            }
+
+            if (File.Exists(name) && string.Equals(Path.GetExtension(name), ".cl", StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetFullPath(name);
+            }
+
+            string clPath = Path.Combine(this.KernelDirectory, name + ".cl");
+            if (File.Exists(clPath))
+            {
+                return Path.GetFullPath(clPath);
+            }
+            return null;
+        }
 
         /// <summary>
         /// Gets the source code of the kernel with the specified name.
@@ -117,15 +142,15 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="context">The OpenCL context to compile for.</param>
         /// <param name="device">The device to build the programs for.</param>
         /// <param name="kernelDirectory">An optional explicit kernel directory; auto-resolved when omitted.</param>
-        internal OpenClCompiler(CLContext context, CLDevice device, string? kernelDirectory = null)
+        internal OpenClCompiler(CLContext context, CLDevice device, bool compileAll = true)
         {
             this._context = context;
             this._device = device;
-            this.KernelDirectory = string.IsNullOrWhiteSpace(kernelDirectory)
-                ? EnsureKernelDirectory()
-                : kernelDirectory;
 
-            this.CompileAll();
+            if (compileAll)
+            {
+                this.CompileAll();
+            }
         }
 
 
@@ -285,6 +310,115 @@ namespace AsynCUDA13.OpenClBackend
                 this._kernels[kernelName] = kernel;
             }
             return string.Join(", ", ExtractKernelNames(kernelCode));
+        }
+
+        /// <summary>
+        /// Precompiles an OpenCL kernel string by checking for required keywords and balanced brackets, returning the kernel name if valid.
+        /// </summary>
+        /// <param name="code">The source code of the OpenCL kernel to precompile.</param>
+        /// <returns>The name of the kernel if the precompilation was successful; otherwise <c>null</c>.</returns>
+        public string? PrecompileKernel(string code)
+        {
+            bool silent = false;
+
+            // Check contains "__kernel" or "kernel"
+            if (!code.Contains("__kernel") && !code.Contains("kernel "))
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string does not contain '__kernel' or 'kernel'");
+                }
+                return null;
+            }
+
+            // Check contains "void "
+            if (!code.Contains("void "))
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string does not contain 'void '");
+                }
+                return null;
+            }
+
+            // Check contains int, long, or size_t (typical index types in OpenCL)
+            if (!code.Contains("int ") && !code.Contains("long ") && !code.Contains("size_t "))
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string does not contain 'int ', 'long ' or 'size_t ' (for array length/indexing)");
+                }
+                return null;
+            }
+
+            // Check if every bracket is closed (even amount) for {} and () and []
+            int open = code.Count(c => c == '{');
+            int close = code.Count(c => c == '}');
+            if (open != close)
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string has unbalanced brackets { }");
+                }
+                return null;
+            }
+
+            open = code.Count(c => c == '(');
+            close = code.Count(c => c == ')');
+            if (open != close)
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string has unbalanced brackets ( )");
+                }
+                return null;
+            }
+
+            open = code.Count(c => c == '[');
+            close = code.Count(c => c == ']');
+            if (open != close)
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string has unbalanced brackets [ ]");
+                }
+                return null;
+            }
+
+            // Check if kernel contains OpenCL thread indexing functions
+            if (!code.Contains("get_global_id") && !code.Contains("get_local_id"))
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Kernel string should contain 'get_global_id' or 'get_local_id'");
+                }
+            }
+
+            // Get name between "void " and "("
+            int start = code.IndexOf("void ") + "void ".Length;
+            int end = code.IndexOf("(", start);
+
+            if (start < 0 || end < 0 || end <= start)
+            {
+                if (!silent)
+                {
+                    StaticLogger.Log("Could not parse kernel function name");
+                }
+                return null;
+            }
+
+            string name = code.Substring(start, end - start).Trim();
+
+            // Trim line ends from empty spaces
+            code = string.Join("\n", code.Split('\n').Select(x => x.TrimEnd()));
+
+            // Log name
+            if (!silent)
+            {
+                StaticLogger.Log($"Successfully precompiled OpenCL kernel string '{name}'");
+            }
+
+            return name;
         }
 
 

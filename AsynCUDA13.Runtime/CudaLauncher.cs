@@ -334,6 +334,11 @@ namespace AsynCUDA13.Runtime
             return this.ExecuteGenericKernel(kernelName, arguments);
         }
 
+        public async Task<int?> ExecuteAsync(string kernelName, params object[] arguments)
+        {
+            return await this.ExecuteGenericKernelAsync(kernelName, arguments);
+        }
+
 
         // Generic async EXEC
         public async Task<int?> ExecuteGenericKernelAsync(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)

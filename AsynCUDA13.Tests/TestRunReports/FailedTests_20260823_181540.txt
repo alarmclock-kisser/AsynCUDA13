@@ -6,7 +6,7 @@ Anzahl: 14
 Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
 Klasse: AsynCUDA13.Tests.Api.CudaContextControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 200
     but was
@@ -21,7 +21,7 @@ at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailable_
 Test: PushAsync_With1DPayload_Success_Returns200
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With1DPayload_Success_Returns200“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 200
     but was
@@ -38,7 +38,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With1DPayload_Succes
 Test: GetDevices_WhenCudaAvailableButNoDevices_Returns404
 Klasse: AsynCUDA13.Tests.Api.CudaContextControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailableButNoDevices_Returns404“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 200
     but was
@@ -53,7 +53,7 @@ at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailableB
 Test: GetMemoryList_WhenOnlineWithMemory_Returns200
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMemory_Returns200“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.Value
+Shouldly.ShouldAssertException: ObjectResult.Value
     should be of type
 System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaMemInfo]
     but was
@@ -68,7 +68,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMe
 Test: FreeMemory_WhenInvalidPointer_Returns400
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.FreeMemory_WhenInvalidPointer_Returns400“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 400
     but was
@@ -83,7 +83,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.FreeMemory_WhenInvalidPointer_
 Test: PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 200
     but was
@@ -100,7 +100,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryF
 Test: GetDevice_WhenDeviceIdNotFound_Returns404
 Klasse: AsynCUDA13.Tests.Api.CudaContextControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevice_WhenDeviceIdNotFound_Returns404“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 404
     but was
@@ -115,7 +115,7 @@ at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevice_WhenDeviceIdNotFoun
 Test: PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 200
     but was
@@ -148,7 +148,7 @@ at ManagedCuda.CudaContext..ctor(int deviceId, CUCtxFlags flags, bool createNew)
 Test: PushAsync_With2DPayload_Success_Returns200
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With2DPayload_Success_Returns200“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 200
     but was
@@ -182,7 +182,7 @@ at AsynCUDA13.Tests.CudaLauncherIntegrationTests.InvalidKernelCallsReturnNullWit
 Test: PushAsync_WhenPushReturnsNull_Returns500
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenPushReturnsNull_Returns500“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.StatusCode
+Shouldly.ShouldAssertException: ObjectResult.StatusCode
     should be
 500
     but was
@@ -199,7 +199,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenPushReturnsNull_
 Test: GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.Value
+Shouldly.ShouldAssertException: ObjectResult.Value
     should be of type
 System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaMemInfo]
     but was
@@ -214,7 +214,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMu
 Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
 Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
 Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices“ hat eine Ausnahme ausgelöst: 
-Shouldly.ShouldAssertException: objectResult.Value
+Shouldly.ShouldAssertException: ObjectResult.Value
     should be of type
 System.Collections.Generic.IEnumerable`1[AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo]
     but was

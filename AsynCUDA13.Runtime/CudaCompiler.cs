@@ -75,6 +75,11 @@ namespace AsynCUDA13.Runtime
         /// <summary>Gets the resolved root directory that contains the CU, PTX and Logs sub-folders for kernels.</summary>
         public static string KernelPath = EnsureKernelDirectory();
 
+        /// <summary>
+        /// Gets the directory that contains the CUDA source (<c>.cu</c>) files for kernels.
+        /// </summary>
+        public string KernelDirectory => Path.Join(KernelPath, "CU");
+
         /// <summary>Gets the list of available CUDA source (<c>.cu</c>) files.</summary>
         public static List<string> SourceFiles => GetCuFiles();
 
@@ -93,7 +98,36 @@ namespace AsynCUDA13.Runtime
         /// <returns>An array of file paths to compiled PTX files.</returns>
         public string[] GetCompiledFiles() => CompiledFiles.ToArray();
 
+        /// <summary>
+        /// Gets the source file of the kernel with the specified name.
+        /// </summary>
+        /// <param name="name">The name of the kernel.</param>
+        /// <returns>The file path of the kernel source file, or <c>null</c> if not found.</returns>
+        public string? GetKernelSourceFile(string name)
+        {
+            if (string.IsNullOrEmpty(this.KernelName))
+            {
+                return null;
+            }
 
+            if (File.Exists(name) && string.Equals(Path.GetExtension(name), ".cu", StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.GetFullPath(name);
+            }
+
+            string cuPath = Path.Combine(KernelPath, "CU", name + ".cu");
+            if (File.Exists(cuPath))
+            {
+                return cuPath;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the source code of the kernel with the specified name.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel.</param>
+        /// <returns>The source code of the kernel, or <c>null</c> if not found.</returns>
         public string? GetKernelCode(string? kernelName)
         {
             kernelName ??= this.KernelName;
@@ -649,13 +683,14 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Performs a preliminary check on a kernel string to ensure it follows expected patterns.
         /// </summary>
-        /// <param name="kernelstring">The raw CUDA kernel source code to check.</param>
+        /// <param name="code">The raw CUDA kernel source code to check.</param>
         /// <param name="silent">If true, suppresses logging during the check.</param>
         /// <returns>The extracted kernel name if valid; otherwise, null.</returns>
-        public string? PrecompileKernelstring(string kernelstring, bool silent = false)
+        public string? PrecompileKernel(string code)
         {
+            bool silent = false;
             // Check contains "extern c"
-            if (!kernelstring.Contains("extern \"C\""))
+            if (!code.Contains("extern \"C\""))
             {
                 if (!silent)
                 {
@@ -665,7 +700,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check contains "__global__ "
-            if (!kernelstring.Contains("__global__"))
+            if (!code.Contains("__global__"))
             {
                 if (!silent)
                 {
@@ -675,7 +710,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check contains "void "
-            if (!kernelstring.Contains("void "))
+            if (!code.Contains("void "))
             {
                 if (!silent)
                 {
@@ -685,7 +720,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check contains int
-            if (!kernelstring.Contains("int ") && !kernelstring.Contains("long "))
+            if (!code.Contains("int ") && !code.Contains("long "))
             {
                 if (!silent)
                 {
@@ -695,8 +730,8 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check if every bracket is closed (even amount) for {} and () and []
-            int open = kernelstring.Count(c => c == '{');
-            int close = kernelstring.Count(c => c == '}');
+            int open = code.Count(c => c == '{');
+            int close = code.Count(c => c == '}');
             if (open != close)
             {
                 if (!silent)
@@ -705,8 +740,8 @@ namespace AsynCUDA13.Runtime
                 }
                 return null;
             }
-            open = kernelstring.Count(c => c == '(');
-            close = kernelstring.Count(c => c == ')');
+            open = code.Count(c => c == '(');
+            close = code.Count(c => c == ')');
             if (open != close)
             {
                 if (!silent)
@@ -715,8 +750,8 @@ namespace AsynCUDA13.Runtime
                 }
                 return null;
             }
-            open = kernelstring.Count(c => c == '[');
-            close = kernelstring.Count(c => c == ']');
+            open = code.Count(c => c == '[');
+            close = code.Count(c => c == ']');
             if (open != close)
             {
                 if (!silent)
@@ -727,7 +762,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check if kernel contains "blockIdx.x" and "blockDim.x" and "threadIdx.x"
-            if (!kernelstring.Contains("blockIdx.x") || !kernelstring.Contains("blockDim.x") || !kernelstring.Contains("threadIdx.x"))
+            if (!code.Contains("blockIdx.x") || !code.Contains("blockDim.x") || !code.Contains("threadIdx.x"))
             {
                 if (!silent)
                 {
@@ -736,12 +771,12 @@ namespace AsynCUDA13.Runtime
             }
 
             // Get name between "void " and "("
-            int start = kernelstring.IndexOf("void ") + "void ".Length;
-            int end = kernelstring.IndexOf("(", start);
-            string name = kernelstring.Substring(start, end - start);
+            int start = code.IndexOf("void ") + "void ".Length;
+            int end = code.IndexOf("(", start);
+            string name = code.Substring(start, end - start);
 
             // Trim every line ends from empty spaces (split -> trim -> aggregate)
-            kernelstring = kernelstring.Split("\n").Select(x => x.TrimEnd()).Aggregate((x, y) => x + "\n" + y);
+            code = code.Split("\n").Select(x => x.TrimEnd()).Aggregate((x, y) => x + "\n" + y);
 
             // Log name
             if (!silent)

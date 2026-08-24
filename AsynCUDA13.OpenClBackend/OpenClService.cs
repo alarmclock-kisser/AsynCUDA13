@@ -1,10 +1,11 @@
+using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
+using OpenTK.Audio.OpenAL;
+using OpenTK.Compute.OpenCL;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
-using AsynCUDA13.Shared;
-using AsynCUDA13.Shared.Interfaces;
-using OpenTK.Compute.OpenCL;
 
 namespace AsynCUDA13.OpenClBackend
 {
@@ -264,124 +265,12 @@ namespace AsynCUDA13.OpenClBackend
 
         internal Dictionary<string, string> GetDeviceProperties(CLDevice? clDevice, int clDeviceIndex = 0)
         {
-            var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            clDevice ??= this.SelectedDevice?.Device ?? this.AvailableDevices.FirstOrDefault(d => d.Index == clDeviceIndex)?.Device;
-            if (clDevice == null)
+            if (clDevice.HasValue)
             {
-                return properties;
+                return OpenClDevicePropertyFormatter.GetProperties(clDevice.Value);
             }
 
-            try
-            {
-                DeviceInfo[] infoTypes = Enum.GetValues<DeviceInfo>();
-
-                foreach (DeviceInfo infoType in infoTypes)
-                {
-                    CLResultCode result = CL.GetDeviceInfo(clDevice.Value, infoType, out byte[] outBytes);
-                    if (result != CLResultCode.Success)
-                    {
-                        StaticLogger.LogWarning($"GetDeviceProperties: failed to retrieve property '{infoType}' for device {clDevice.Value.Handle} ({result}).");
-                        continue;
-                    }
-
-                    // Hier feuert jetzt die elegante Auto-Formatierung
-                    properties[infoType.ToString()] = FormatCLDeviceInfo(infoType, outBytes);
-                }
-            }
-            catch (Exception ex)
-            {
-                StaticLogger.LogError($"GetDeviceProperties: failed to retrieve properties for device {clDevice.Value.Handle} - {ex.Message}");
-            }
-
-            return properties;
-        }
-
-        private static string FormatCLDeviceInfo(DeviceInfo infoType, byte[] bytes)
-        {
-            if (bytes == null || bytes.Length == 0)
-            {
-                return string.Empty;
-            }
-
-            // 1. Strings erkennen (Null-terminiert & druckbare ASCII/UTF-8 Zeichen)
-            if (IsNullTerminatedString(bytes))
-            {
-                return System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0', ' ', '\r', '\n', '\t');
-            }
-
-            // 2. Primitiv-Typen & Arrays anhand der Byte-Länge auflösen
-            return bytes.Length switch
-            {
-                1 => (bytes[0] != 0).ToString(), // cl_bool (8-Bit Variant)
-
-                4 => Format4Bytes(BitConverter.ToUInt32(bytes, 0)),
-
-                8 => Format8Bytes(BitConverter.ToUInt64(bytes, 0)),
-
-                // Size-T Arrays (z. B. MAX_WORK_ITEM_SIZES -> 3x size_t)
-                _ when bytes.Length % IntPtr.Size == 0 => FormatSizeTArray(bytes),
-
-                // Fallback für Rohdaten/Bitmasken
-                _ => BitConverter.ToString(bytes)
-            };
-        }
-
-        private static bool IsNullTerminatedString(byte[] bytes)
-        {
-            int len = bytes.Length;
-            if (len < 2 || bytes[len - 1] != 0)
-            {
-                return false;
-            }
-
-            // Prüfen, ob alle Zeichen vor dem \0 gültige druckbare Textzeichen sind
-            for (int i = 0; i < len - 1; i++)
-            {
-                byte b = bytes[i];
-                if (b == 0) break; // Frühes String-Ende ist okay
-                if (b < 32 && b != '\t' && b != '\r' && b != '\n') return false; // Nicht-druckbares Steuerzeichen
-            }
-            return true;
-        }
-
-        private static string Format4Bytes(uint val)
-        {
-            // Bools in OpenCL sind meist 4-Byte uints (CL_TRUE = 1, CL_FALSE = 0)
-            if (val == 1) return "True (1)";
-            if (val == 0) return "False (0)";
-            return val.ToString();
-        }
-
-        private static string Format8Bytes(ulong val)
-        {
-            // Speichergrößen (z. B. GLOBAL_MEM_SIZE) direkt lesbar in MB/GB mit anzeigen
-            if (val >= 1024 * 1024 * 1024)
-            {
-                return $"{val} ({val / (1024.0 * 1024.0 * 1024.0):F2} GB)";
-            }
-            if (val >= 1024 * 1024)
-            {
-                return $"{val} ({val / (1024.0 * 1024.0):F2} MB)";
-            }
-            return val.ToString();
-        }
-
-        private static string FormatSizeTArray(byte[] bytes)
-        {
-            int size = IntPtr.Size;
-            int count = bytes.Length / size;
-            var values = new List<string>(count);
-
-            for (int i = 0; i < count; i++)
-            {
-                ulong val = size == 8
-                    ? BitConverter.ToUInt64(bytes, i * size)
-                    : BitConverter.ToUInt32(bytes, i * size);
-                values.Add(val.ToString());
-            }
-
-            return $"[{string.Join(", ", values)}]";
+            return OpenClDevicePropertyFormatter.GetProperties(clDeviceIndex);
         }
 
 
