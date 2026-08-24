@@ -60,13 +60,19 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <returns>The source code of the kernel, or <c>null</c> if not found.</returns>
         string? GetKernelCode(string? kernelName);
 
+        /// <summary>
+        /// Gets the function name of the kernel with the specified name or file path or source code.
+        /// </summary>
+        /// <param name="kernel">The name, file path, or source code of the kernel.</param>
+        /// <returns>The function name of the kernel, or <c>null</c> if not found.</returns>
+        string? GetFunctionName(string? kernel);
 
         /// <summary>
         /// Gets the arguments of the kernel with the specified name.
         /// </summary>
-        /// <param name="kernelName">The name of the kernel.</param>
+        /// <param name="kernel">The name, file path, or source code of the kernel.</param>
         /// <returns>A dictionary mapping argument names to their types.</returns>
-        Dictionary<string, Type> GetArguments(string? kernelName);
+        Dictionary<string, Type> GetArguments(string? kernel);
 
         /// <summary>
         /// Checks if a kernel with the specified name exists.

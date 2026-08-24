@@ -126,35 +126,38 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Gets the source code of the kernel with the specified name.
         /// </summary>
-        /// <param name="kernelName">The name of the kernel.</param>
+        /// <param name="kernel">The name or file path of the kernel.</param>
         /// <returns>The source code of the kernel, or <c>null</c> if not found.</returns>
-        public string? GetKernelCode(string? kernelName)
+        public string? GetKernelCode(string? kernel)
         {
-            kernelName ??= this.KernelName;
-            if (string.IsNullOrWhiteSpace(kernelName))
+            kernel ??= this.KernelName;
+            if (string.IsNullOrWhiteSpace(kernel))
             {
                 return null;
             }
+            
             // If it's an existing file path, read it directly
-            if (File.Exists(kernelName))
+            if (File.Exists(kernel))
             {
-                return File.ReadAllText(kernelName);
+                return File.ReadAllText(kernel);
             }
+
             // Extract the base name (without extension)
-            string fileName = Path.GetFileNameWithoutExtension(kernelName);
+            string fileName = Path.GetFileNameWithoutExtension(kernel);
             // Try in KernelPath/CU (most reliable location for .cu files)
             string cuPath = Path.Combine(KernelPath, "CU", fileName + ".cu");
             if (File.Exists(cuPath))
             {
                 return File.ReadAllText(cuPath);
             }
+
             // Try to find .cu file by name or full path
-            if (!Path.HasExtension(kernelName))
+            if (!Path.HasExtension(kernel))
             {
                 // Already tried KernelPath/CU above
                 // Try in the project's Kernels/CU directory (relative to this assembly)
                 string assemblyDir = AppContext.BaseDirectory;
-                string projectCuPath = Path.Combine(assemblyDir, "..", "..", "..", "Kernels", "CU", kernelName + ".cu");
+                string projectCuPath = Path.Combine(assemblyDir, "..", "..", "..", "Kernels", "CU", kernel + ".cu");
                 if (File.Exists(projectCuPath))
                 {
                     return File.ReadAllText(projectCuPath);
@@ -163,7 +166,7 @@ namespace AsynCUDA13.Runtime
             else
             {
                 // Try with the full path (handle both .cu and .ptx extensions)
-                string dir = Path.GetDirectoryName(kernelName) ?? "";
+                string dir = Path.GetDirectoryName(kernel) ?? "";
                 if (!string.IsNullOrEmpty(dir))
                 {
                     // Try co-located .cu file in the same directory as the .ptx/.cu file
@@ -181,6 +184,28 @@ namespace AsynCUDA13.Runtime
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Gets the function name of the kernel with the specified name, file path, or source code.
+        /// </summary>
+        /// <param name="kernel">The name, file path, or source code of the kernel.</param>
+        /// <returns>The function name of the kernel, or <c>null</c> if not found.</returns>
+        public string? GetFunctionName(string? kernel)
+        {
+            kernel ??= this.KernelName;
+            if (string.IsNullOrWhiteSpace(kernel))
+            {
+                return null;
+            }
+
+            // If it's an existing file path, read it directly
+            if (File.Exists(kernel))
+            {
+                kernel = File.ReadAllText(kernel);
+            }
+           
+            return this.PrecompileKernel(kernel);
         }
 
         /// <summary>
@@ -352,7 +377,6 @@ namespace AsynCUDA13.Runtime
             // Return files
             return files.ToList();
         }
-
 
         /// <summary>
         /// Unloads the currently loaded CUDA kernel and clears the kernel state.
@@ -824,22 +848,22 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Parses a kernel's source code to extract its argument names and types.
         /// </summary>
-        /// <param name="kernelCodeOrFile">The source code of the kernel, or a path/name to resolve it.</param>
+        /// <param name="kernel">The source code of the kernel, or a path/name to resolve it.</param>
         /// <param name="silent">If true, suppresses logging during parsing.</param>
         /// <returns>A dictionary mapping argument names to their .NET <see cref="Type"/>.</returns>
-        public Dictionary<string, Type> GetArguments(string? kernelCodeOrFile = null)
+        public Dictionary<string, Type> GetArguments(string? kernel = null)
         {
             string? sourceCode = null;
 
             // If the input looks like source code (contains __global__), parse it directly
-            if (!string.IsNullOrWhiteSpace(kernelCodeOrFile) && kernelCodeOrFile.Contains("__global__"))
+            if (!string.IsNullOrWhiteSpace(kernel) && kernel.Contains("__global__"))
             {
-                sourceCode = kernelCodeOrFile;
+                sourceCode = kernel;
             }
             else
             {
                 // Otherwise, try to resolve it as a file path or name
-                sourceCode = GetKernelCode(kernelCodeOrFile ?? string.Empty);
+                sourceCode = this.GetKernelCode(kernel);
             }
 
             // If no source code yet, try to load from KernelCode property

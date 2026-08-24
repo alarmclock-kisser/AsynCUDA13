@@ -89,6 +89,12 @@ namespace AsynCUDA13.OpenClBackend
             {
                 return null;
             }
+            // Check if filePath
+            if (File.Exists(kernelName) && string.Equals(Path.GetExtension(kernelName), ".cl", StringComparison.OrdinalIgnoreCase))
+            {
+                return File.ReadAllText(kernelName);
+            }
+
             string filePath = Path.Combine(this.KernelDirectory, kernelName + ".cl");
             if (File.Exists(filePath))
             {
@@ -97,33 +103,87 @@ namespace AsynCUDA13.OpenClBackend
             return null;
         }
 
+        public string? GetFunctionName(string? kernel)
+        {
+            if (string.IsNullOrWhiteSpace(kernel))
+            {
+                return null;
+            }
+
+            // If the kernel is a file path, read its content
+            if (File.Exists(kernel) && string.Equals(Path.GetExtension(kernel), ".cl", StringComparison.OrdinalIgnoreCase))
+            {
+                kernel = File.ReadAllText(kernel);
+            }
+
+            return this.PrecompileKernel(kernel);
+        }
+
+        internal CLKernel? Kernel { get; private set; }
+
         /// <summary>
         /// Gets the name of the currently loaded kernel, always null, since OpenCL does not have CLKernels loaded, they persist, once compiled, in memory.
         /// </summary>
-        public string? KernelName => null;
+        public string? KernelName { get; private set; }
 
         /// <summary>
         /// Attempts to load and compile a kernel by name from the kernel directory. Returns true if successful, false otherwise.
         /// </summary>
-        /// <param name="name">The name of the kernel to load.</param>
+        /// <param name="kernel">The name or path of the kernel to load.</param>
         /// <returns>True if the kernel was successfully loaded and compiled; otherwise, false.</returns>
-        public bool LoadKernel(string name)
+        public bool LoadKernel(string kernel)
         {
-            if (this._kernels.ContainsKey(name))
+            if (File.Exists(kernel) && string.Equals(Path.GetExtension(kernel), ".cl", StringComparison.OrdinalIgnoreCase))
             {
+                kernel = Path.GetFileNameWithoutExtension(kernel);
+            }
+
+            if (this._kernels.Keys.Any(k => string.Equals(k, kernel, StringComparison.OrdinalIgnoreCase)))
+            {
+                this.Kernel = this._kernels.First(k => string.Equals(k.Key, kernel, StringComparison.OrdinalIgnoreCase)).Value;
+                this.KernelName = this._kernels.Keys.First(k => string.Equals(k, kernel, StringComparison.OrdinalIgnoreCase));
                 return true;
             }
-            string filePath = Path.Combine(this.KernelDirectory, name + ".cl");
+            else
+            {
+                string? code = this.GetKernelCode(kernel);
+                if (!string.IsNullOrEmpty(code))
+                {
+                    this.CompileKernel(code);
+                }
+                else
+                {
+                    string kernelFile = Path.Combine(this.KernelDirectory, kernel + ".cl");
+                    if (!File.Exists(kernelFile))
+                    {
+                        StaticLogger.LogWarning($"OpenClCompiler: kernel source file '{kernelFile}' not found.");
+                        return false;
+                    }
+
+                    try
+                    {
+                        this.CompileFile(kernelFile);
+                        return this._kernels.ContainsKey(kernel);
+                    }
+                    catch (Exception ex)
+                    {
+                        StaticLogger.Log($"OpenClCompiler: failed to load kernel '{kernel}' from '{kernelFile}'.", ex);
+                        return false;
+                    }
+                }
+            }
+
+            string filePath = Path.Combine(this.KernelDirectory, kernel + ".cl");
             if (File.Exists(filePath))
             {
                 try
                 {
                     this.CompileFile(filePath);
-                    return this._kernels.ContainsKey(name);
+                    return this._kernels.ContainsKey(kernel);
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"OpenClCompiler: failed to load kernel '{name}' from '{filePath}'.", ex);
+                    StaticLogger.Log($"OpenClCompiler: failed to load kernel '{kernel}' from '{filePath}'.", ex);
                     return false;
                 }
             }
@@ -193,14 +253,14 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Returns the full paths of all <c>*.cl</c> files in the kernel directory.
         /// </summary>
-        public string[] GetClFiles()
+        public string[] GetClFiles(bool recursive = true)
         {
             if (!Directory.Exists(this.KernelDirectory))
             {
                 return [];
             }
 
-            return Directory.GetFiles(this.KernelDirectory, "*.cl");
+            return Directory.GetFiles(this.KernelDirectory, "*.cl", enumerationOptions: new EnumerationOptions { RecurseSubdirectories = recursive });
         }
 
 
@@ -487,18 +547,23 @@ namespace AsynCUDA13.OpenClBackend
 
         // Access
         /// <summary>
-        /// Gets a compiled kernel by name.
+        /// Gets a compiled kernel by name or file path, returning it as a <see cref="CLKernel"/>.
         /// </summary>
-        /// <param name="name">The kernel entry-point name.</param>
+        /// <param name="kernel">The kernel entry-point name or file path.</param>
         /// <returns>The compiled <see cref="CLKernel"/>, or <c>null</c> when no kernel with that name exists.</returns>
-        internal CLKernel? GetClKernel(string name)
+        internal CLKernel? GetClKernel(string kernel)
         {
-            if (this._kernels.TryGetValue(name, out CLKernel kernel))
+            if (File.Exists(kernel))
             {
-                return kernel;
+                kernel = Path.GetFileNameWithoutExtension(kernel);
             }
 
-            StaticLogger.LogError($"OpenClCompiler: kernel '{name}' not found.");
+            if (this._kernels.TryGetValue(kernel, out CLKernel k))
+            {
+                return k;
+            }
+
+            StaticLogger.LogError($"OpenClCompiler: kernel '{kernel}' not found.");
             return null;
         }
 
@@ -561,32 +626,35 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Gets the arguments of the kernel with the specified name, mapping OpenCL types to C# types.
         /// </summary>
-        /// <param name="kernelName">The name of the kernel.</param>
+        /// <param name="kernel">The name, file path, or source code of the kernel.</param>
         /// <returns>A dictionary mapping argument names to their corresponding C# types.</returns>
-        public Dictionary<string, Type> GetArguments(string? kernelName)
+        public Dictionary<string, Type> GetArguments(string? kernel)
         {
             var arguments = new Dictionary<string, Type>(StringComparer.Ordinal);
-            if (string.IsNullOrWhiteSpace(kernelName))
+            if (string.IsNullOrWhiteSpace(kernel))
             {
                 return arguments;
             }
-            CLKernel? kernel = this.GetClKernel(kernelName);
-            if (!kernel.HasValue)
+
+            CLKernel? clK = this.GetClKernel(kernel);
+            if (!clK.HasValue)
             {
                 return arguments;
             }
-            int argCount = CL.GetKernelInfo(kernel.Value, KernelInfo.NumberOfArguments, out byte[] count) == CLResultCode.Success ? BitConverter.ToInt32(count, 0) : 0;
+
+            int argCount = CL.GetKernelInfo(clK.Value, KernelInfo.NumberOfArguments, out byte[] count) == CLResultCode.Success ? BitConverter.ToInt32(count, 0) : 0;
             for (int i = 0; i < argCount; i++)
             {
-                string argName = CL.GetKernelArgInfo(kernel.Value, (uint)i, KernelArgInfo.Name, out byte[] nameBytes) == CLResultCode.Success
+                string argName = CL.GetKernelArgInfo(clK.Value, (uint)i, KernelArgInfo.Name, out byte[] nameBytes) == CLResultCode.Success
                     ? Encoding.ASCII.GetString(nameBytes).TrimEnd('\0')
                     : $"arg{i}";
-                string argTypeStr = CL.GetKernelArgInfo(kernel.Value, (uint)i, KernelArgInfo.TypeName, out byte[] typeBytes) == CLResultCode.Success
+                string argTypeStr = CL.GetKernelArgInfo(clK.Value, (uint)i, KernelArgInfo.TypeName, out byte[] typeBytes) == CLResultCode.Success
                     ? Encoding.ASCII.GetString(typeBytes).TrimEnd('\0')
                     : "unknown";
                 Type argType = MapOpenClTypeToCSharp(argTypeStr);
                 arguments[argName] = argType;
             }
+
             return arguments;
         }
 

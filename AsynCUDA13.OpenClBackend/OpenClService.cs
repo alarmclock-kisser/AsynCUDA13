@@ -32,6 +32,9 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         public static IReadOnlyList<OpenClDevice> TotalAvailableDevices { get; } = OpenClDevice.DiscoverAll();
 
+        /// <summary>
+        /// Gets a dictionary mapping each available device's flat index to its properties, as key-value pairs.
+        /// </summary>
         public Dictionary<int, Dictionary<string, string>> TotalAvailableDeviceProperties => OpenClDevice.DiscoverAll().ToDictionary(
             device => device.Index,
             device => this.GetDeviceProperties(device.Device, device.Index)

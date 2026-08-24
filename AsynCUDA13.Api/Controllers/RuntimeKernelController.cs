@@ -12,8 +12,8 @@ namespace AsynCUDA13.Api.Controllers
     public class RuntimeKernelController : ApiControllerBase
     {
 
-        public RuntimeKernelController(IRuntimeService cuda)
-            : base(cuda)
+        public RuntimeKernelController(IRuntimeService runtime)
+            : base(runtime)
         {
 
         }
@@ -23,7 +23,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                var infos = RuntimeInfosBuilder.BuildRuntimeKernelInfos(this.backend, filterCompiled: filterCompiled);
+                var infos = RuntimeInfosBuilder.BuildRuntimeKernelInfos(this.backend, filterCompiled);
                 if (infos?.Length <= 0)
                 {
                     var pd = new ProblemDetails

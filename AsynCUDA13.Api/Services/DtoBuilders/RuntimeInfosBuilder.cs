@@ -172,9 +172,9 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 SourcePath = service.Compiler.GetSourceFiles().FirstOrDefault(src => Path.GetFileNameWithoutExtension(src) == Path.GetFileNameWithoutExtension(kernel))?.ToString() ?? string.Empty,
                 PtxPath = service.Compiler.GetCompiledFiles().FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == Path.GetFileNameWithoutExtension(kernel))?.ToString(),
                 KernelCode = service.Compiler.GetKernelCode(kernel) ?? string.Empty,
-                FunctionName = Path.GetFileNameWithoutExtension(kernel),
-                ArgumentNames = service.Compiler.GetArguments(service.Compiler.GetKernelCode(kernel) ?? string.Empty).Keys.ToArray(),
-                ArgumentTypes = service.Compiler.GetArguments(service.Compiler.GetKernelCode(kernel) ?? string.Empty).Values.Select(type => type.Name).ToArray()
+                FunctionName = service.Compiler.GetFunctionName(kernel) ?? string.Empty,
+                ArgumentNames = service.Compiler.GetArguments(kernel).Keys.ToArray(),
+                ArgumentTypes = service.Compiler.GetArguments(kernel).Values.Select(type => type.Name).ToArray()
 
             }).ToArray() ?? [];
 

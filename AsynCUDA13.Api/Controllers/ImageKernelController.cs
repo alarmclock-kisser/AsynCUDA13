@@ -124,6 +124,7 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
+
         [HttpPost("execute-image-file")]
         public async Task<IActionResult> ExecuteImageFileAsync(IFormFile imageFile, [FromForm] string kernelName, [FromForm] IEnumerable<string> argumentValues, [FromForm] bool overwriteImage = true, [FromForm] bool unloadKernelAfterExecution = false)
         {
@@ -149,8 +150,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     var pd = new ProblemDetails
                     {
-                        Title = "{this.RuntimeType} service is offline",
-                        Detail = "The {this.RuntimeType} service is currently offline. Please ensure that the {this.RuntimeType} service is running and try again.",
+                        Title = $"{this.RuntimeType} service is offline",
+                        Detail = $"The {this.RuntimeType} service is currently offline. Please ensure that the {this.RuntimeType} service is running and try again.",
                         Status = 503
                     };
                     return this.StatusCode(503, pd);
@@ -171,18 +172,19 @@ namespace AsynCUDA13.Api.Controllers
                     }
 
                     this.backend.SetCurrent();
-                    this.backend.Compiler.LoadKernel(kernelName);
-                    if (string.IsNullOrEmpty(this.backend.Compiler.KernelName))
+                    bool loaded = this.backend.Compiler.LoadKernel(kernelName);
+                    if (string.IsNullOrEmpty(this.backend.Compiler.KernelName) && !loaded)
                     {
                         var pd = new ProblemDetails
                         {
                             Title = "Kernel not found",
-                            Detail = $"The kernel with name '{kernelName}' was not found.",
+                            Detail = $"The kernel with name '{kernelName}' was not found or not successfully loaded.",
                             Status = 404
                         };
                         return this.StatusCode(404, pd);
                     }
 
+                    // Push image data to Device memory => IRuntimeMemObj
                     var mem = await this.backend.Register.PushDataAsync(await imageObj.GetBytesAsync());
                     if (mem == null)
                     {
@@ -195,7 +197,8 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
 
-                    var outputMem = await this.backend.Register.AllocateSingleAsync<Byte>((IntPtr) mem.TotalLength);
+                    // Allocate output memory on Device => IRuntimeMemObj
+                    var outputMem = await this.backend.Register.AllocateSingleAsync<byte>((nint) mem.TotalLength);
                     if (outputMem == null)
                     {
                         var pd = new ProblemDetails
@@ -207,9 +210,11 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
 
+                    // Merge user-defined arguments with input/output pointers and image metadata for kernel execution
                     object[] arguments = this.backend.Compiler.MergeArgumentsImage(mem.IndexPointer, outputMem.IndexPointer, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
 
-                    var elapsedMs = await Task.Run(() => this.backend.Launcher.Execute(kernelName, arguments));
+                    // Execute the kernel asynchronously
+                    var elapsedMs = await this.backend.Launcher.ExecuteAsync(kernelName, arguments);
                     if (!elapsedMs.HasValue)
                     {
                         var pd = new ProblemDetails
@@ -221,15 +226,17 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
 
+                    // Pull the output data from the GPU with the output memory pointer and update / create the image object
                     if (overwriteImage)
                     {
-                        await imageObj.SetImageAsync(await this.backend.Register.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
+                        await imageObj.SetImageAsync(await this.backend.Register.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
                     }
                     else
                     {
-                        imageObj = new ImageObj(await this.backend.Register.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
+                        imageObj = new ImageObj(await this.backend.Register.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
                     }
 
+                    // Convert the image to PNG format and return it as a file result
                     var imageBytes = await imageObj.GetImageAsFileFormatAsync(new PngEncoder());
                     return this.File(imageBytes, "image/png");
                 }
@@ -241,7 +248,6 @@ namespace AsynCUDA13.Api.Controllers
                         Detail = StaticLogger.GetAllInnerExceptionsRecursively(ex),
                         Status = 500
                     };
-
                     return this.StatusCode(500, pd);
                 }
             }
