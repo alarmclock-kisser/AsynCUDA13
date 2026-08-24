@@ -11,24 +11,25 @@ namespace AsynCUDA13.OpenClBackend
     /// Exposes device selection, FFT/IFFT, image-kernel dispatch and memory transfer (push/pull/allocate/free)
     /// that operate directly on <see cref="float"/> and <see cref="Vector2"/> arrays, mirroring the CUDA service.
     /// </summary>
-    public interface IOpenClService : IRuntimeBackend
+    public interface IOpenClService : IRuntimeService
     {
         /// <summary>
         /// Gets all OpenCL devices available on the machine, each identified by a flat <see cref="OpenClDevice.Index"/>.
         /// </summary>
         IReadOnlyList<OpenClDevice> AvailableDevices { get; }
 
+
+        /// <summary>
+        /// Gets the properties of the specified OpenCL device.
+        /// </summary>
+        /// <param name="deviceIndex">The flat device index from <see cref="AvailableDevices"/>. If <c>null</c>, the currently selected device is used.</param>
+        /// <returns>A dictionary of property names and values.</returns>
+        Dictionary<string, string> GetDeviceProperties(int? deviceIndex = null);
+
         /// <summary>
         /// Gets the number of available OpenCL devices.
         /// </summary>
         int DeviceCount { get; }
-
-        /// <summary>
-        /// Initializes the context, command queue, compiler and launcher for the device at the given flat index.
-        /// </summary>
-        /// <param name="deviceIndex">The flat device index from <see cref="AvailableDevices"/>.</param>
-        /// <returns><c>true</c> if the device was initialized successfully; otherwise <c>false</c>.</returns>
-        bool Initialize(int deviceIndex);
 
         /// <summary>
         /// Initializes the first device whose name contains <paramref name="deviceName"/> (case-insensitive).
@@ -175,23 +176,9 @@ namespace AsynCUDA13.OpenClBackend
         Task<IRuntimeMem?> AllocateGroupAsync<T>(long[] lengths) where T : unmanaged;
 
         /// <summary>
-        /// Frees the buffer described by the given native handle.
-        /// </summary>
-        long FreeMemory(IntPtr indexPointer);
-
-        /// <summary>
-        /// Frees the buffer identified by the given id.
-        /// </summary>
-        long FreeMemory(Guid id);
-
-        /// <summary>
         /// Frees the buffer described by the given memory object.
         /// </summary>
         long FreeMemory(IRuntimeMem mem);
 
-        /// <summary>
-        /// Disposes the service and releases all owned resources.
-        /// </summary>
-        void Dispose();
     }
 }

@@ -6,6 +6,7 @@ using AsynCUDA13.Shared;
 using Microsoft.AspNetCore.SignalR;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Newtonsoft.Json;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Api
 {
@@ -33,23 +34,23 @@ namespace AsynCUDA13.Api
             StaticLogger.InnerExceptionSeparator = innerExSeparator;
             StaticLogger.InitializeLogFiles(logDirectory, createLogFile, maxLogFiles);
 
-            // Select the compute backend (CUDA or OpenCL). The chosen backend is registered as both its
-            // dedicated service interface (ICudaService / IOpenClService) and the interchangeable
-            // IRuntimeBackend, so the rest of the API can depend on IRuntimeBackend regardless of backend.
+            // Select the compute backend ({this.RuntimeType} or OpenCL). The chosen backend is registered as both its
+            // dedicated service interface (IRuntimeService / IOpenClService) and the interchangeable
+            // IRuntimeService, so the rest of the API can depend on IRuntimeService regardless of backend.
             string backend = builder.Configuration.GetValue<string>("Backend") ?? "CUDA";
             if (string.Equals(backend, "CUDA", StringComparison.OrdinalIgnoreCase))
             {
-                builder.Services.Addfloatton<ICudaService, CudaService>();
+                builder.Services.AddSingleton<IRuntimeService, CudaService>();
             }
             else
             {
-                builder.Services.Addfloatton<IOpenClService, OpenClService>();
+                builder.Services.AddSingleton<IRuntimeService, OpenClService>();
             }
 
             // Add services to the container.
-            builder.Services.Addfloatton<AudioCollection>();
-            builder.Services.Addfloatton<ImageCollection>();
-            builder.Services.Addfloatton<IAssetProvider, AssetProvider>();
+            builder.Services.AddSingleton<AudioCollection>();
+            builder.Services.AddSingleton<ImageCollection>();
+            builder.Services.AddSingleton<IAssetProvider, AssetProvider>();
 
             builder.Services.AddCors(options =>
             {

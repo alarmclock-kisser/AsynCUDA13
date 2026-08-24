@@ -6,8 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Api.Payloads;
-using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.RuntimeDtos;
 using ManagedCuda;
 
 namespace AsynCUDA13.Runtime
@@ -26,7 +26,7 @@ namespace AsynCUDA13.Runtime
         public static int DeviceCount => CudaContext.GetDeviceCount();
 
         /// <summary>Gets the properties of every available device keyed by device id.</summary>
-        public static Dictionary<int, CudaDeviceProperties> AvailableDevicesProps => GetAvailableDevicesProperties();
+        internal static Dictionary<int, CudaDeviceProperties> AvailableDevicesProps => GetAvailableDevicesProperties();
 
         /// <summary>Gets the installed CUDA driver version.</summary>
         public static Version CudaDriverVersion => CudaContext.GetDriverVersion();
@@ -38,8 +38,29 @@ namespace AsynCUDA13.Runtime
         /// <summary>Gets the id of the currently selected device, or -1 if the service is offline.</summary>
         public int SelectedDeviceId { get; private set; } = -1;
 
+        /// <summary>
+        /// Gets the name of the currently selected device, or <c>null</c> if none is selected.
+        /// </summary>
+        public string? SelectedDeviceName => this.SelectedCudaDeviceProperties?.DeviceName;
+
         /// <summary>Gets the properties of the currently selected device, or <c>null</c> if none is selected.</summary>
-        public CudaDeviceProperties? SelectedDeviceProperties => this[this.SelectedDeviceId];
+        internal CudaDeviceProperties? SelectedCudaDeviceProperties => this[this.SelectedDeviceId];
+
+        public Dictionary<string, string> SelectedDeviceProperties => this.SelectedCudaDeviceProperties?.GetType()
+            .GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
+            .ToDictionary(
+                prop => prop.Name,
+                prop => prop.GetValue(this.SelectedCudaDeviceProperties)?.ToString() ?? string.Empty) ?? [];
+
+        public Dictionary<int, Dictionary<string, string>> TotalAvailableDeviceProperties => AvailableDevicesProps
+            .ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value.GetType()
+                    .GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
+                    .ToDictionary(
+                        prop => prop.Name,
+                        prop => prop.GetValue(kv.Value)?.ToString() ?? string.Empty)
+            );
 
         /// <summary>Gets the CUDA primary context backing this service, or <c>null</c> when offline.</summary>
         private PrimaryContext? _context { get; set; } = null;
@@ -73,7 +94,7 @@ namespace AsynCUDA13.Runtime
         public long TotalAllocatedBytes => this._register?.TotalAllocatedBytes ?? 0;
 
         /// <summary>Gets the number of registered memory objects.</summary>
-        public int RegisteredMemoryobjects => this._register?.AllocationCount ?? 0;
+        public int TotalAllocations => this._register?.AllocationCount ?? 0;
 
         /// <summary>Gets the number of streams with at least one outstanding operation.</summary>
         public int ThreadsActive => this._register?.ThreadsActive ?? 0;
@@ -94,7 +115,7 @@ namespace AsynCUDA13.Runtime
         public BindingList<int> StreamThreadsList => this._register?.StreamThreadsList ?? EmptyStreamThreads;
 
         /// <summary>Gets a snapshot of the currently registered device memory allocations, or an empty list when offline.</summary>
-        public IReadOnlyList<IRuntimeMem> RegisteredMemory => this._register?.AllocationsBindingList.ToArray() ?? [];
+        public IReadOnlyCollection<IRuntimeMem> RegisteredMemory => this._register?.AllocationsBindingList.ToArray() ?? [];
 
 
         // Fields
@@ -258,7 +279,7 @@ namespace AsynCUDA13.Runtime
                 this._fourier = new CudaFourier(this._context, this._register);
                 this._compiler = new CudaCompiler(this._context);
                 this._launcher = new CudaLauncher(this._context, this._register, this._fourier, this._compiler);
-                StaticLogger.Log($"CudaService: Initialized on device ID {deviceId} ({this.SelectedDeviceProperties?.DeviceName})");
+                StaticLogger.Log($"CudaService: Initialized on device ID {deviceId} ({this.SelectedCudaDeviceProperties?.DeviceName})");
             }
             catch (Exception ex)
             {
@@ -396,16 +417,15 @@ namespace AsynCUDA13.Runtime
         /// This is required before any CUDA operations on the calling thread.
         /// </summary>
         /// <returns><c>true</c> if the context was set successfully; <c>false</c> if the service is offline.</returns>
-        public bool SetCurrent()
+        public void SetCurrent()
         {
             if (!this.Online || this._context == null)
             {
                 StaticLogger.Log("CudaService: Cannot set current context - service is offline");
-                return false;
+                return;
             }
 
             this._context.SetCurrent();
-            return true;
         }
 
         /// <summary>
@@ -773,14 +793,14 @@ namespace AsynCUDA13.Runtime
         /// Gets information about all available CUDA devices on the system.
         /// </summary>
         /// <returns>Array of device information, or empty array if CUDA is not available.</returns>
-        public CudaDeviceInfo[] GetAllDeviceInfos()
+        public RuntimeDeviceInfo[] GetAllDeviceInfos()
         {
             if (!CudaAvailabilityTester.IsCudaAvailable())
             {
                 return [];
             }
 
-            var infos = GetAvailableDevicesProperties().Select(props => new CudaDeviceInfo
+            var infos = GetAvailableDevicesProperties().Select(props => new RuntimeDeviceInfo
             {
                 DeviceId = props.Key,
                 DeviceName = props.Value.DeviceName,

@@ -223,7 +223,7 @@ namespace AsynCUDA13.Media
                         }
                         else if (bytesPerSample == 4)
                         {
-                            int s32 = BitConverter.Toint(e.Buffer, i);
+                            int s32 = BitConverter.ToInt16(e.Buffer, i);
                             sample = s32 / 2147483648f;
                         }
                         else

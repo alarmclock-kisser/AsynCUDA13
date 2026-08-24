@@ -6,7 +6,7 @@ using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Shouldly;
@@ -18,7 +18,7 @@ namespace AsynCUDA13.Tests.Api
     {
         private Mock<ICudaService> _mockCuda = null!;
         private Mock<IAssetProvider> _mockAssetProvider = null!;
-        private CudaMemoryController _controller = null!;
+        private RuntimeMemoryController _controller = null!;
 
         [TestInitialize]
         public void SetUp()
@@ -87,7 +87,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var memoryList = objectResult.Value.ShouldBeAssignableTo<CudaMemInfo[]>();
+            var memoryList = objectResult.Value.ShouldBeAssignableTo<RuntimeMemInfo[]>();
             memoryList.ShouldNotBeEmpty();
             var first = memoryList.First();
             first.Id.ShouldBe(cudaMem.Id.ToString());
@@ -110,7 +110,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var memoryList = objectResult.Value.ShouldBeAssignableTo<CudaMemInfo[]>();
+            var memoryList = objectResult.Value.ShouldBeAssignableTo<RuntimeMemInfo[]>();
             memoryList?.Length.ShouldBe(3);
         }
 
@@ -186,7 +186,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var memoryInfo = objectResult.Value.ShouldBeOfType<CudaMemInfo>();
+            var memoryInfo = objectResult.Value.ShouldBeOfType<RuntimeMemInfo>();
             memoryInfo.Id.ShouldBe(cudaMem.Id.ToString());
         }
 
@@ -206,7 +206,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var memoryInfo = objectResult.Value.ShouldBeOfType<CudaMemInfo>();
+            var memoryInfo = objectResult.Value.ShouldBeOfType<RuntimeMemInfo>();
             memoryInfo.Id.ShouldBe(cudaMem.Id.ToString());
         }
 
@@ -419,7 +419,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(false);
-            var request = CudaRequestsBuilder.BuildCudaPushRequest("1,2,3,4,5", "System.float");
+            var request = RuntimeRequestsBuilder.BuildCudaPushRequest("1,2,3,4,5", "System.float");
 
             // Act
             var result = await this._controller.PushAsync(request);
@@ -434,7 +434,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(true);
-            var request = new CudaPushRequest { Payload = new CudaPayload1D() };
+            var request = new RuntimePushRequest { Payload = new SimdPayload1D() };
 
             // Act
             var result = await this._controller.PushAsync(request);
@@ -486,7 +486,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(false);
-            var request = CudaRequestsBuilder.BuildCudaPullRequest("0x1234");
+            var request = RuntimeRequestsBuilder.BuildCudaPullRequest("0x1234");
 
             // Act
             var result = await this._controller.PullAsync(request);
@@ -501,7 +501,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(true);
-            var request = new CudaPullRequest { IndexPointerOrId = string.Empty, FreeAfterPull = true };
+            var request = new RuntimePullRequest { IndexPointerOrId = string.Empty, FreeAfterPull = true };
 
             // Act
             var result = await this._controller.PullAsync(request);
@@ -518,7 +518,7 @@ namespace AsynCUDA13.Tests.Api
             this._mockCuda.Setup(c => c.Online).Returns(true);
             this._mockCuda.Setup(c => c.RegisteredMemory).Returns(new List<CudaMem>());
 
-            var request = CudaRequestsBuilder.BuildCudaPullRequest("0x9999");
+            var request = RuntimeRequestsBuilder.BuildCudaPullRequest("0x9999");
 
             // Act
             var result = await this._controller.PullAsync(request);
@@ -554,7 +554,7 @@ namespace AsynCUDA13.Tests.Api
             this._mockCuda.Setup(c => c.PullDataAsync<float>(fakePtr, false))
                 .ThrowsAsync(new InvalidOperationException("Pull failed"));
 
-            var request = CudaRequestsBuilder.BuildCudaPullRequest(cudaMem.IndexPointer.ToString(), false);
+            var request = RuntimeRequestsBuilder.BuildCudaPullRequest(cudaMem.IndexPointer.ToString(), false);
 
             // Act
             var result = await this._controller.PullAsync(request);

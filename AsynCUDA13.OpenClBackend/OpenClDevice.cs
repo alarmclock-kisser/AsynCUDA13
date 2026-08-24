@@ -41,12 +41,12 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Gets the global memory size of the device in bytes.
         /// </summary>
-        public Ulong GlobalMemorySize { get; }
+        public ulong GlobalMemorySize { get; }
 
         /// <summary>
         /// Gets the maximum work-group size supported by the device.
         /// </summary>
-        public Ulong MaxWorkGroupSize { get; }
+        public ulong MaxWorkGroupSize { get; }
 
         /// <summary>
         /// Gets the number of parallel compute units on the device.
@@ -75,8 +75,8 @@ namespace AsynCUDA13.OpenClBackend
             string platformName,
             string deviceName,
             DeviceType deviceType,
-            Ulong globalMemorySize,
-            Ulong maxWorkGroupSize,
+            ulong globalMemorySize,
+            ulong maxWorkGroupSize,
             uint maxComputeUnits,
             CLPlatform platform,
             CLDevice device)
@@ -141,8 +141,8 @@ namespace AsynCUDA13.OpenClBackend
                 {
                     string deviceName = ReadstringInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.Name, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
                     DeviceType type = (DeviceType)ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.Type, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
-                    Ulong globalMem = ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.GlobalMemorySize, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
-                    Ulong maxWorkGroup = ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.MaximumWorkGroupSize, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
+                    ulong globalMem = ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.GlobalMemorySize, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
+                    ulong maxWorkGroup = ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.MaximumWorkGroupSize, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
                     uint computeUnits = (uint) ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.MaximumComputeUnits, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
 
                     result.Add(new OpenClDevice(
@@ -192,7 +192,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Reads an unsigned integer property of 4 or 8 bytes.
         /// </summary>
-        private static Ulong ReadUlongInfo(Func<Byte[]?> reader)
+        private static ulong ReadUlongInfo(Func<Byte[]?> reader)
         {
             try
             {
@@ -204,12 +204,12 @@ namespace AsynCUDA13.OpenClBackend
 
                 if (bytes.Length >= 8)
                 {
-                    return BitConverter.ToUlong(bytes, 0);
+                    return BitConverter.ToUInt64(bytes, 0);
                 }
 
                 if (bytes.Length >= 4)
                 {
-                    return BitConverter.Touint(bytes, 0);
+                    return BitConverter.ToUInt32(bytes, 0);
                 }
 
                 return 0;

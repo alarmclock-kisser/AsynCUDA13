@@ -56,6 +56,12 @@ namespace AsynCUDA13.Runtime
             return this.Kernel != null && string.Equals(this.KernelName, name, StringComparison.OrdinalIgnoreCase);
         }
 
+        public bool LoadKernel(string name)
+        {
+            var kernel = this.LoadKernel(name, false);
+            return kernel != null;
+        }
+
         /// <summary>The name of the currently loaded kernel, or <c>null</c> if none is loaded.</summary>
         public string? KernelName { get; private set; } = null;
 
@@ -75,8 +81,73 @@ namespace AsynCUDA13.Runtime
         /// <summary>Gets the list of compiled PTX (<c>.ptx</c>) files.</summary>
         public static List<string> CompiledFiles => GetPtxFiles();
 
+        /// <summary>
+        /// Gets the list of available CUDA source files as an array of strings.
+        /// </summary>
+        /// <returns>An array of file paths to available CUDA source files.</returns>
         public string[] GetSourceFiles() => SourceFiles.ToArray();
 
+        /// <summary>
+        /// Gets the list of compiled PTX files as an array of strings.
+        /// </summary>
+        /// <returns>An array of file paths to compiled PTX files.</returns>
+        public string[] GetCompiledFiles() => CompiledFiles.ToArray();
+
+
+        public string? GetKernelCode(string? kernelName)
+        {
+            kernelName ??= this.KernelName;
+            if (string.IsNullOrWhiteSpace(kernelName))
+            {
+                return null;
+            }
+            // If it's an existing file path, read it directly
+            if (File.Exists(kernelName))
+            {
+                return File.ReadAllText(kernelName);
+            }
+            // Extract the base name (without extension)
+            string fileName = Path.GetFileNameWithoutExtension(kernelName);
+            // Try in KernelPath/CU (most reliable location for .cu files)
+            string cuPath = Path.Combine(KernelPath, "CU", fileName + ".cu");
+            if (File.Exists(cuPath))
+            {
+                return File.ReadAllText(cuPath);
+            }
+            // Try to find .cu file by name or full path
+            if (!Path.HasExtension(kernelName))
+            {
+                // Already tried KernelPath/CU above
+                // Try in the project's Kernels/CU directory (relative to this assembly)
+                string assemblyDir = AppContext.BaseDirectory;
+                string projectCuPath = Path.Combine(assemblyDir, "..", "..", "..", "Kernels", "CU", kernelName + ".cu");
+                if (File.Exists(projectCuPath))
+                {
+                    return File.ReadAllText(projectCuPath);
+                }
+            }
+            else
+            {
+                // Try with the full path (handle both .cu and .ptx extensions)
+                string dir = Path.GetDirectoryName(kernelName) ?? "";
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    // Try co-located .cu file in the same directory as the .ptx/.cu file
+                    string coLocatedCu = Path.Combine(dir, fileName + ".cu");
+                    if (File.Exists(coLocatedCu))
+                    {
+                        return File.ReadAllText(coLocatedCu);
+                    }
+                    // Also try in KernelPath/CU for PTX files
+                    string kernelPathCu = Path.Combine(KernelPath, "CU", fileName + ".cu");
+                    if (File.Exists(kernelPathCu))
+                    {
+                        return File.ReadAllText(kernelPathCu);
+                    }
+                }
+            }
+            return null;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CudaCompiler"/> class.
@@ -249,70 +320,6 @@ namespace AsynCUDA13.Runtime
         }
 
 
-        public static string? GetKernelCode(string kernelFileOrName)
-        {
-            try
-            {
-                // If it's an existing file path, read it directly
-                if (File.Exists(kernelFileOrName))
-                {
-                    return File.ReadAllText(kernelFileOrName);
-                }
-
-                // Extract the base name (without extension)
-                string fileName = Path.GetFileNameWithoutExtension(kernelFileOrName);
-
-                // Try in KernelPath/CU (most reliable location for .cu files)
-                string cuPath = Path.Combine(KernelPath, "CU", fileName + ".cu");
-                if (File.Exists(cuPath))
-                {
-                    return File.ReadAllText(cuPath);
-                }
-
-                // Try to find .cu file by name or full path
-                if (!Path.HasExtension(kernelFileOrName))
-                {
-                    // Already tried KernelPath/CU above
-                    // Try in the project's Kernels/CU directory (relative to this assembly)
-                    string assemblyDir = AppContext.BaseDirectory;
-                    string projectCuPath = Path.Combine(assemblyDir, "..", "..", "..", "Kernels", "CU", kernelFileOrName + ".cu");
-                    if (File.Exists(projectCuPath))
-                    {
-                        return File.ReadAllText(projectCuPath);
-                    }
-                }
-                else
-                {
-                    // Try with the full path (handle both .cu and .ptx extensions)
-                    string dir = Path.GetDirectoryName(kernelFileOrName) ?? "";
-                    if (!string.IsNullOrEmpty(dir))
-                    {
-                        // Try co-located .cu file in the same directory as the .ptx/.cu file
-                        string coLocatedCu = Path.Combine(dir, fileName + ".cu");
-                        if (File.Exists(coLocatedCu))
-                        {
-                            return File.ReadAllText(coLocatedCu);
-                        }
-
-                        // Also try in KernelPath/CU for PTX files
-                        string kernelPathCu = Path.Combine(KernelPath, "CU", fileName + ".cu");
-                        if (File.Exists(kernelPathCu))
-                        {
-                            return File.ReadAllText(kernelPathCu);
-                        }
-                    }
-                }
-
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-
-
         /// <summary>
         /// Unloads the currently loaded CUDA kernel and clears the kernel state.
         /// </summary>
@@ -346,7 +353,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="kernelName">The name of the kernel to load. Can be a filename or a kernel name.</param>
         /// <param name="silent">If true, suppresses logging during the loading process.</param>
         /// <returns>The loaded <see cref="CudaKernel"/>, or null if loading failed.</returns>
-        public CudaKernel? LoadKernel(string kernelName, bool silent = false)
+        internal CudaKernel? LoadKernel(string kernelName, bool silent = false)
         {
             if (this.Context == null)
             {
@@ -391,7 +398,7 @@ namespace AsynCUDA13.Runtime
 
             if (File.Exists(cuPath) && (!File.Exists(ptxPath) || File.GetLastWriteTimeUtc(cuPath) > File.GetLastWriteTimeUtc(ptxPath)))
             {
-                if (this.CompileKernel(cuPath, silent) == null)
+                if (this.CompileKernel(cuPath) == null)
                 {
                     if (!silent)
                     {
@@ -449,7 +456,7 @@ namespace AsynCUDA13.Runtime
             // Compile all source files
             foreach (string sourceFile in sourceFiles)
             {
-                string? ptx = this.CompileKernel(sourceFile, silent);
+                string? ptx = this.CompileKernel(sourceFile);
                 if (string.IsNullOrEmpty(ptx) && logErrors)
                 {
                     StaticLogger.Log($"Compilation failed: {Path.GetFileNameWithoutExtension(sourceFile)}");
@@ -463,15 +470,16 @@ namespace AsynCUDA13.Runtime
         /// <param name="filepath">The path to the .cu file, or a raw kernel string if the extension is not .cu.</param>
         /// <param name="silent">If true, suppresses logging during compilation.</param>
         /// <returns>The path to the generated PTX file, or build log (which is not a File that exists) if compilation failed. Returns null if CUDA was not initialized or not available.</returns>
-        public string? CompileKernel(string filepath, bool silent = false)
+        public string CompileKernel(string filepath)
         {
+            bool silent = false;
             if (this.Context == null)
             {
                 if (!silent)
                 {
                     StaticLogger.Log("No CUDA initialized");
                 }
-                return null;
+                return "";
             }
 
             // Set context for thread-affine CUDA operations
@@ -480,7 +488,7 @@ namespace AsynCUDA13.Runtime
             // If file is not a .cu file, but raw kernel string, compile that
             if (Path.GetExtension(filepath) != ".cu")
             {
-                return this.Compilestring(filepath, silent);
+                return this.CompileString(filepath, silent) ?? "CUDA not initialized!";
             }
 
             string kernelName = Path.GetFileNameWithoutExtension(filepath);
@@ -554,7 +562,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="kernelstring">The raw CUDA kernel source code.</param>
         /// <param name="silent">If true, suppresses logging during compilation.</param>
         /// <returns>The path to the generated PTX file, or the build log if compilation failed. Returns null if CUDA was not available or initialized.</returns>
-        public string? Compilestring(string kernelstring, bool silent = false)
+        public string? CompileString(string kernelstring, bool silent = false)
         {
             if (this.Context == null)
             {
@@ -784,7 +792,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="kernelCodeOrFile">The source code of the kernel, or a path/name to resolve it.</param>
         /// <param name="silent">If true, suppresses logging during parsing.</param>
         /// <returns>A dictionary mapping argument names to their .NET <see cref="Type"/>.</returns>
-        public Dictionary<string, Type> GetArguments(string? kernelCodeOrFile = null, bool silent = false)
+        public Dictionary<string, Type> GetArguments(string? kernelCodeOrFile = null)
         {
             string? sourceCode = null;
 
@@ -822,10 +830,6 @@ namespace AsynCUDA13.Runtime
 
             if (string.IsNullOrEmpty(sourceCode))
             {
-                if (!silent)
-                {
-                    StaticLogger.Log($"Kernel code is empty '{this.KernelName ?? "N/A"}'");
-                }
                 return [];
             }
 
@@ -841,10 +845,6 @@ namespace AsynCUDA13.Runtime
             var match = pattern.Match(sourceCode);
             if (!match.Success)
             {
-                if (!silent)
-                {
-                    StaticLogger.Log($"'__global__ void' pattern not found '{this.KernelName ?? "N/A"}'");
-                }
                 return [];
             }
 
@@ -902,7 +902,7 @@ namespace AsynCUDA13.Runtime
                 return 0;
             }
 
-            Dictionary<string, Type> args = this.GetArguments(kernelCode, silent);
+            Dictionary<string, Type> args = this.GetArguments(kernelCode);
 
             return args.Values.Count(t => t == typeof(IntPtr));
         }
@@ -917,7 +917,7 @@ namespace AsynCUDA13.Runtime
         public object[] MergeArgumentsRaw(object[] arguments)
         {
             // Get kernel argument definitions
-            Dictionary<string, Type> args = this.GetArguments(null, false);
+            Dictionary<string, Type> args = this.GetArguments(null);
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
             // Integrate invariables if name fits (contains)
@@ -955,7 +955,7 @@ namespace AsynCUDA13.Runtime
         public object[] MergeArgumentsAudio(IntPtr inputPointer, IntPtr outputPointer, int sampleRate = 44100, int channels = 2, int bitdepth = 32, Dictionary<string, object>? namedArguments = null)
         {
             // Get kernel argument definitions
-            Dictionary<string, Type> args = this.GetArguments(null, false);
+            Dictionary<string, Type> args = this.GetArguments(null);
 
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
@@ -1042,7 +1042,7 @@ namespace AsynCUDA13.Runtime
         public object[] MergeArgumentsImage(IntPtr inputPointer, IntPtr outputPointer, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
         {
             // Get kernel argument definitions
-            Dictionary<string, Type> args = this.GetArguments(null, silent);
+            Dictionary<string, Type> args = this.GetArguments(null);
 
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
@@ -1158,7 +1158,7 @@ namespace AsynCUDA13.Runtime
 
         public object[] ParseArgumentValues(IEnumerable<string> argumentValues)
         {
-            var argDefinitions = this.GetArguments(null, false);
+            var argDefinitions = this.GetArguments(null);
             if (argDefinitions.Count != argumentValues.Count())
             {
                 throw new ArgumentException($"Argument count mismatch: expected {argDefinitions.Count}, got {argumentValues.Count()}");

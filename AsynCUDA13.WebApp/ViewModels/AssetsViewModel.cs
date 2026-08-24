@@ -1,7 +1,7 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared;
-using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.MediaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.WebApp.Components;
 using AsynCUDA13.WebApp.Components.Dialogs;
 using Microsoft.AspNetCore.Components.Forms;
@@ -18,7 +18,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
         }
 
-        public CudaContextInfo? ContextInfo => this._contextInfo;
+        public RuntimeContextInfo? ContextInfo => this._contextInfo;
 
         public ImageInfo[] ImageInfos { get; set; } = [];
         public AudioInfo[] AudiosInfos { get; set; } = [];

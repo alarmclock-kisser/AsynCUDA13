@@ -381,7 +381,7 @@ namespace AsynCUDA13.Media
                 throw new ArgumentException("Step size must be greater than zero. Adjust chunk size or overlap.", nameof(overlap));
             }
 
-            List<float[]> chunks = new List<float[]>();
+            List<float[]> chunks = [];
             for (int start = 0; start < this.Data.Length; start += stepSize)
             {
                 int end = Math.Min(start + chunkSize, this.Data.Length);
@@ -430,7 +430,7 @@ namespace AsynCUDA13.Media
 
             await Task.Run(() =>
             {
-                List<float> aggregatedData = new List<float>();
+                List<float> aggregatedData = [];
                 int stepSize = (int) (chunkSize.Value * (1 - overlap.Value));
                 foreach (var chunk in chunks)
                 {
@@ -614,7 +614,7 @@ namespace AsynCUDA13.Media
                             writer.Flush();
                         }
                         // Konvertiere den MemoryStream in ein Base64-string
-                        string base64string = Convert.ToBase64string(ms.ToArray());
+                        string base64string = Convert.ToBase64String(ms.ToArray());
                         return base64string;
                     }
                 }

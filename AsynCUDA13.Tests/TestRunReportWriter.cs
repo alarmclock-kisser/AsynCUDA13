@@ -19,7 +19,7 @@ namespace AsynCUDA13.Tests
         private const int MaxReportFiles = 10;
 
         // Statischer Puffer für gesammelte Testergebnisse
-        private static readonly List<TestResultEntry> _collectedResults = new();
+        private static readonly List<TestResultEntry> _collectedResults = [];
         private static readonly object _lockObj = new();
         private static bool _reportWritten = false;
         private static volatile bool _initialized = false;

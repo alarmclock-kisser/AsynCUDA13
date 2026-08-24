@@ -1,7 +1,7 @@
 using AsynCUDA13.Api.Controllers;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Shouldly;
@@ -12,7 +12,7 @@ namespace AsynCUDA13.Tests.Api
     public class CudaDeviceControllerTests : TestBase
     {
         private Mock<ICudaService> _mockCuda = null!;
-        private CudaDeviceController _controller = null!;
+        private RuntimeDeviceController _controller = null!;
 
         [TestInitialize]
         public void SetUp()
@@ -53,9 +53,9 @@ namespace AsynCUDA13.Tests.Api
             // Arrange — mock CUDA as available
             this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
-            var mockDeviceInfos = new CudaDeviceInfo[]
+            var mockDeviceInfos = new RuntimeDeviceInfo[]
             {
-                new CudaDeviceInfo
+                new RuntimeDeviceInfo
                 {
                     DeviceId = 0,
                     DeviceName = "Mock CUDA Device 0",
@@ -77,7 +77,7 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
+            var deviceInfos = objectResult.Value.ShouldBeOfType<RuntimeDeviceInfo[]>();
             deviceInfos.Length.ShouldBe(1);
 
             foreach (var info in deviceInfos)
@@ -113,9 +113,9 @@ namespace AsynCUDA13.Tests.Api
             // Arrange — mock CUDA as available
             this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
-            var mockDeviceInfos = new CudaDeviceInfo[]
+            var mockDeviceInfos = new RuntimeDeviceInfo[]
             {
-                new CudaDeviceInfo
+                new RuntimeDeviceInfo
                 {
                     DeviceId = 0,
                     DeviceName = "Test Device",
@@ -136,7 +136,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
+            var deviceInfos = objectResult.Value.ShouldBeOfType<RuntimeDeviceInfo[]>();
 
             // Verify the DTO structure is properly populated
             var firstDevice = deviceInfos.First();
@@ -155,10 +155,10 @@ namespace AsynCUDA13.Tests.Api
             // Arrange — mock CUDA as available
             this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
-            var mockDeviceInfos = new CudaDeviceInfo[]
+            var mockDeviceInfos = new RuntimeDeviceInfo[]
             {
-                new CudaDeviceInfo { DeviceId = 0, DeviceName = "Device 0", Properties = new Dictionary<string, string>() },
-                new CudaDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = new Dictionary<string, string>() }
+                new RuntimeDeviceInfo { DeviceId = 0, DeviceName = "Device 0", Properties = [] },
+                new RuntimeDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = [] }
             };
 
             this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
@@ -170,7 +170,7 @@ namespace AsynCUDA13.Tests.Api
             var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             objectResult?.StatusCode.ShouldBe(200);
 
-            var deviceInfos = objectResult?.Value.ShouldBeOfType<CudaDeviceInfo[]>();
+            var deviceInfos = objectResult?.Value.ShouldBeOfType<RuntimeDeviceInfo[]>();
             deviceInfos?.Length.ShouldBe(2);
         }
 
@@ -180,11 +180,11 @@ namespace AsynCUDA13.Tests.Api
             // Arrange — mock CUDA as available
             this._mockCuda.Setup(c => c.IsCudaAvailable()).Returns(true);
 
-            var mockDeviceInfos = new CudaDeviceInfo[]
+            var mockDeviceInfos = new RuntimeDeviceInfo[]
             {
-                new CudaDeviceInfo { DeviceId = 0, DeviceName = "Device 0", Properties = new Dictionary<string, string>() },
-                new CudaDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = new Dictionary<string, string>() },
-                new CudaDeviceInfo { DeviceId = 2, DeviceName = "Device 2", Properties = new Dictionary<string, string>() }
+                new RuntimeDeviceInfo { DeviceId = 0, DeviceName = "Device 0", Properties = [] },
+                new RuntimeDeviceInfo { DeviceId = 1, DeviceName = "Device 1", Properties = [] },
+                new RuntimeDeviceInfo { DeviceId = 2, DeviceName = "Device 2", Properties = [] }
             };
 
             this._mockCuda.Setup(c => c.GetAllDeviceInfos()).Returns(mockDeviceInfos);
@@ -194,7 +194,7 @@ namespace AsynCUDA13.Tests.Api
 
             // Assert
             var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
-            var deviceInfos = objectResult?.Value.ShouldBeOfType<CudaDeviceInfo[]>();
+            var deviceInfos = objectResult?.Value.ShouldBeOfType<RuntimeDeviceInfo[]>();
 
             var deviceIds = deviceInfos?.Select(d => d.DeviceId).ToList();
             Assert.IsTrue(deviceIds?.Distinct().Count() == deviceIds?.Count, "Device IDs should be unique.");

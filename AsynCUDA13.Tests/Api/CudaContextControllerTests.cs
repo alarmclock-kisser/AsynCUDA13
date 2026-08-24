@@ -11,7 +11,7 @@ namespace AsynCUDA13.Tests.Api
     [TestClass]
     public class CudaContextControllerTests : TestBase
     {
-        private CudaContextController _controller = null!;
+        private RuntimeContextController _controller = null!;
         private Mock<ICudaService> _mockCuda = null!;
 
         [TestInitialize]

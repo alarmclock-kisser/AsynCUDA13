@@ -14,8 +14,8 @@ namespace AsynCUDA13.Shared.MediaDtos
         public Single[] AudioDataFloats { get; set; } = [];
         public Single[][] AudioDataFloatChunks { get; set; } = [];
 
-        public Int32 ChunkSize => this.AudioDataFloatChunks.Any() ? this.AudioDataFloatChunks.FirstOrDefault()?.Length ?? 0 : 0;
-        public Single DataSizeMb => this.AudioDataFloats.Any() ? this.AudioDataFloats.LongCount() * sizeof(Single) / 1024f / 1024f : this.AudioDataFloatChunks.Any() ? this.AudioDataFloatChunks.Sum(chunk => chunk.Length) * sizeof(Single) / 1024f / 1024f : 0f;
+        public Int32 ChunkSize => this.AudioDataFloatChunks.Length != 0 ? this.AudioDataFloatChunks.FirstOrDefault()?.Length ?? 0 : 0;
+        public Single DataSizeMb => this.AudioDataFloats.Length != 0 ? this.AudioDataFloats.LongCount() * sizeof(Single) / 1024f / 1024f : this.AudioDataFloatChunks.Length != 0 ? this.AudioDataFloatChunks.Sum(chunk => chunk.Length) * sizeof(Single) / 1024f / 1024f : 0f;
 
 
         public Boolean IdMatch(string id, Boolean requireOnGpu = false)

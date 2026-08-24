@@ -85,7 +85,7 @@ namespace AsynCUDA13.OpenClBackend
 
                 foreach (var mem in this._allocations.Values)
                 {
-                    foreach (var pointer in mem.Pointers)
+                    foreach (var pointer in mem.PointerIds)
                     {
                         if (pointer == indexPointer)
                         {
@@ -130,16 +130,16 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             int elementSize = Marshal.SizeOf<T>();
-            IntPtr size = new((Ulong) (length * elementSize));
+            IntPtr size = new((int) (length * elementSize));
 
-            CLBuffer buffer = CL.CreateBuffer(this.Context, flags, size, IntPtr.Zero, out CLResultCode result);
+            CLBuffer buffer = CL.CreateBuffer(this.Context, flags, (nuint)size, IntPtr.Zero, out CLResultCode result);
             if (result != CLResultCode.Success)
             {
                 StaticLogger.LogError($"AllocateSingle: CreateBuffer failed ({result}).");
                 return null;
             }
 
-            IRuntimeMem mem = new(buffer, length, typeof(T));
+            IRuntimeMem mem = new OpenClMem(buffer, length, typeof(T));
             this._allocations[mem.Id] = mem;
             return mem;
         }
@@ -169,7 +169,7 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, mem.IndexBuffer, true, IntPtr.Zero, data, null, out _);
+            CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, ((OpenClMem)mem).IndexBuffer, true, 0, data, null, out _);
             if (result != CLResultCode.Success)
             {
                 StaticLogger.LogError($"PushData: EnqueueWriteBuffer failed ({result}).");
@@ -200,7 +200,7 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             T[] result = new T[mem.IndexLength];
-            CLResultCode code = CL.EnqueueReadBuffer(this.Queue, mem.IndexBuffer, true, IntPtr.Zero, result, null, out _);
+            CLResultCode code = CL.EnqueueReadBuffer(this.Queue, ((OpenClMem)mem).IndexBuffer, true, 0, result, null, out _);
             if (code != CLResultCode.Success)
             {
                 StaticLogger.LogError($"PullData: EnqueueReadBuffer failed ({code}).");
@@ -279,7 +279,7 @@ namespace AsynCUDA13.OpenClBackend
                 return false;
             }
 
-            CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, mem.IndexBuffer, true, IntPtr.Zero, data, null, out _);
+            CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, ((OpenClMem)mem).IndexBuffer, true, 0, data, null, out _);
             if (result != CLResultCode.Success)
             {
                 StaticLogger.LogError($"WriteData: EnqueueWriteBuffer failed ({result}).");
@@ -319,8 +319,8 @@ namespace AsynCUDA13.OpenClBackend
                     return null;
                 }
 
-                IntPtr size = new((Ulong) (lengths[i] * elementSize));
-                buffers[i] = CL.CreateBuffer(this.Context, flags, size, IntPtr.Zero, out CLResultCode result);
+                IntPtr size = new((int) (lengths[i] * elementSize));
+                buffers[i] = CL.CreateBuffer(this.Context, flags, (nuint)size, IntPtr.Zero, out CLResultCode result);
                 if (result != CLResultCode.Success)
                 {
                     StaticLogger.LogError($"AllocateGroup: CreateBuffer failed at index {i} ({result}).");
@@ -329,7 +329,7 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            IRuntimeMem mem = new(buffers, lengths, typeof(T));
+            IRuntimeMem mem = new OpenClMem(buffers, lengths, typeof(T));
             this._allocations[mem.Id] = mem;
             return mem;
         }
@@ -380,7 +380,7 @@ namespace AsynCUDA13.OpenClBackend
 
             for (int i = 0; i < chunks.Length; i++)
             {
-                CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, mem.Buffers[i], true, IntPtr.Zero, chunks[i], null, out _);
+                CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, ((OpenClMem)mem).Buffers[i], true, 0, chunks[i], null, out _);
                 if (result != CLResultCode.Success)
                 {
                     StaticLogger.LogError($"PushChunks: EnqueueWriteBuffer failed at index {i} ({result}).");
@@ -414,8 +414,8 @@ namespace AsynCUDA13.OpenClBackend
             var chunks = new T[mem.Count][];
             for (int i = 0; i < mem.Count; i++)
             {
-                T[] result = new T[mem.Lengths[i]];
-                CLResultCode code = CL.EnqueueReadBuffer(this.Queue, mem.Buffers[i], true, IntPtr.Zero, result, null, out _);
+                T[] result = new T[mem.PointerLengths[i]];
+                CLResultCode code = CL.EnqueueReadBuffer(this.Queue, ((OpenClMem)mem).Buffers[i], true, 0, result, null, out _);
                 if (code != CLResultCode.Success)
                 {
                     StaticLogger.LogError($"PullChunks: EnqueueReadBuffer failed at index {i} ({code}).");

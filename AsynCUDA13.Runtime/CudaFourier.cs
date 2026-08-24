@@ -497,7 +497,7 @@ namespace AsynCUDA13.Runtime
 
                 int rank = 1;
                 cufftType fftType = cufftType.R2C;
-                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.Tolong()).ToArray(), mem.Count, fftType, stream.Stream);
+                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.ToInt64()).ToArray(), mem.Count, fftType, stream.Stream);
 
                 for (int i = 0; i < mem.Count; i++)
                 {
@@ -574,7 +574,7 @@ namespace AsynCUDA13.Runtime
 
                 int rank = 1;
                 cufftType fftType = cufftType.C2R;
-                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.Tolong()).ToArray(), mem.Count, fftType, stream.Stream);
+                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.ToInt64()).ToArray(), mem.Count, fftType, stream.Stream);
 
                 for (int i = 0; i < mem.Count; i++)
                 {

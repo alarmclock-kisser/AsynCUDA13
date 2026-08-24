@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared.Api.Payloads;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 
 namespace AsynCUDA13.Shared.Serialization
 {
@@ -13,7 +13,7 @@ namespace AsynCUDA13.Shared.Serialization
     {
         public static int ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
-        public static async Task<object[]?> ParseAsync(CudaPayload1D payload, string elementType)
+        public static async Task<object[]?> ParseAsync(SimdPayload1D payload, string elementType)
         {
             Type? t = Type.GetType(elementType, throwOnError: false, ignoreCase: true);
             if (t == null)
@@ -23,7 +23,7 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
-            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(CudaPayload1D) });
+            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(SimdPayload1D) });
 
             if (method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) is not Task task)
             {
@@ -40,7 +40,7 @@ namespace AsynCUDA13.Shared.Serialization
             return result as object[];
         }
 
-        public static async Task<object[][]?> ParseAsync(CudaPayload2D payload, string elementType)
+        public static async Task<object[][]?> ParseAsync(SimdPayload2D payload, string elementType)
         {
             Type? t = Type.GetType(elementType, throwOnError: false, ignoreCase: true);
             if (t == null)
@@ -50,7 +50,7 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
-            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(CudaPayload2D) });
+            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(SimdPayload2D) });
 
             if (method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) is not Task task)
             {
@@ -68,7 +68,7 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         // 1D Deserialization (Zero-Allocation & Paralleles Base64-Slicing)
         // --------------------------------------------------------------------------------
-        public static async Task<T[]?> ParseAsync<T>(CudaPayload1D payload) where T : unmanaged
+        public static async Task<T[]?> ParseAsync<T>(SimdPayload1D payload) where T : unmanaged
         {
             if (payload == null || string.IsNullOrEmpty(payload.Data))
             {
@@ -97,7 +97,7 @@ namespace AsynCUDA13.Shared.Serialization
             if (base64Data.Length < 100_000 || degreeOfParallelism == 1)
             {
                 Span<Byte> targetBytes = MemoryMarshal.AsBytes(result.AsSpan());
-                Convert.TryFromBase64string(base64Data, targetBytes, out _);
+                Convert.TryFromBase64String(base64Data, targetBytes, out _);
                 return result;
             }
 
@@ -135,7 +135,7 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         // 2D Deserialization (Parallel.ForAsync Workerpool)
         // --------------------------------------------------------------------------------
-        public static async Task<T[][]?> ParseAsync<T>(CudaPayload2D payload) where T : unmanaged
+        public static async Task<T[][]?> ParseAsync<T>(SimdPayload2D payload) where T : unmanaged
         {
             if (payload == null || payload.DataChunks == null)
             {
@@ -180,7 +180,7 @@ namespace AsynCUDA13.Shared.Serialization
 
                 // Direkt ins Chunk-Array dekodieren ohne Zwischen-Byte-Array
                 Span<Byte> targetBytes = MemoryMarshal.AsBytes(items.AsSpan());
-                Convert.TryFromBase64string(chunkStr, targetBytes, out _);
+                Convert.TryFromBase64String(chunkStr, targetBytes, out _);
 
                 results[i] = items;
                 return ValueTask.CompletedTask;
@@ -189,7 +189,7 @@ namespace AsynCUDA13.Shared.Serialization
             return results;
         }
 
-        public static object[] ParseArgumentValues(IEnumerable<string> args, CudaKernelInfo? kernelInfo)
+        public static object[] ParseArgumentValues(IEnumerable<string> args, RuntimeKernelInfo? kernelInfo)
         {
             if (kernelInfo == null)
             {

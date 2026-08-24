@@ -1,5 +1,5 @@
-﻿using AsynCUDA13.Shared.CudaDtos;
-using AsynCUDA13.Shared.Interfaces;
+﻿using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.RuntimeDtos;
 using ManagedCuda;
 using System;
 using System.Collections.Generic;
@@ -10,35 +10,22 @@ namespace AsynCUDA13.Runtime
     /// <summary>
     /// Interface for the CUDA service — used by controllers and tests for mocking.
     /// </summary>
-    public interface ICudaService : IRuntimeBackend
+    public interface ICudaService : IRuntimeService
     {
-        CudaDeviceProperties? SelectedDeviceProperties { get; }
-        IReadOnlyList<IRuntimeMem> RegisteredMemory { get; }
-        IRuntimeMem? this[IntPtr indexPointer] { get; }
-        IRuntimeMem? this[Guid id] { get; }
-        IRuntimeMem? this[string indexPointerOrId] { get; }
-        int RegisteredMemoryobjects { get; }
         int ThreadsActive { get; }
         int ThreadsIdle { get; }
 
-        bool Initialize(int deviceId = -1);
         bool Initialize(string name, bool exactMatch = false);
 
-        /// <summary>
-        /// Sets the CUDA primary context as the current context for the calling thread.
-        /// This is required before any CUDA operations on the calling thread.
-        /// </summary>
-        /// <returns>True if the context was set successfully; false if the service is offline.</returns>
-        bool SetCurrent();
+
 
         bool Synchronize();
 
-        void Dispose();
 
-        long FreeMemory(IntPtr indexPointer);
+
         Task<long> FreeMemoryAsync(IntPtr indexPointer);
 
-        void FreeAllMemory();
+
         Task FreeAllMemoryAsync();
 
         Task<IRuntimeMem?> AllocateSingleAsync<T>(IntPtr elementCount) where T : unmanaged;
@@ -58,6 +45,6 @@ namespace AsynCUDA13.Runtime
         /// Gets information about all available CUDA devices on the system.
         /// </summary>
         /// <returns>Array of device information, or empty array if CUDA is not available.</returns>
-        CudaDeviceInfo[] GetAllDeviceInfos();
+        RuntimeDeviceInfo[] GetAllDeviceInfos();
     }
 }

@@ -187,7 +187,7 @@ namespace AsynCUDA13.Runtime
 
         /// <summary>Gets the stream with the given CUDA stream id, or <c>null</c> if it does not exist.</summary>
         /// <param name="id">The CUDA stream id.</param>
-        internal CudaStream? this[Ulong id] => this.GetStream(id);
+        internal CudaStream? this[ulong id] => this.GetStream(id);
 
 
         // Ctor
@@ -362,7 +362,7 @@ namespace AsynCUDA13.Runtime
         /// Creates, synchronizes and registers a new CUDA stream.
         /// </summary>
         /// <returns>The id of the newly created stream, or <c>null</c> if creation failed.</returns>
-        internal Ulong? CreateStream()
+        internal ulong? CreateStream()
         {
             Guid id = Guid.Empty;
 
@@ -398,13 +398,13 @@ namespace AsynCUDA13.Runtime
         /// </summary>
         /// <param name="id">The optional id of a specific stream to retrieve.</param>
         /// <returns>An available <see cref="CudaStream"/>, or <c>null</c> if none could be found or created.</returns>
-        internal CudaStream? GetStream(Ulong? id = null)
+        internal CudaStream? GetStream(ulong? id = null)
         {
             this.EnsureContext();
             int engines = this.Context.GetDeviceInfo().AsyncEngineCount;
             int streams = this.Streams.Count;
 
-            Ulong? streamId = null;
+            ulong? streamId = null;
             CudaStream? stream = null;
 
             // Finds the stream by ID if provided, or returns stream with lowest value, or creates a new stream if no ID is provided
@@ -443,7 +443,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="maxCount">The number of streams to acquire; when 0 or less, fills up to the remaining thread capacity.</param>
         /// <param name="ids">Optional specific stream ids to retrieve instead of creating new streams.</param>
         /// <returns>The acquired streams, or <c>null</c> if any stream could not be created or retrieved.</returns>
-        internal IEnumerable<CudaStream>? GetManyStreams(int maxCount = 0, IEnumerable<Ulong>? ids = null)
+        internal IEnumerable<CudaStream>? GetManyStreams(int maxCount = 0, IEnumerable<ulong>? ids = null)
         {
             this.EnsureContext();
             if (maxCount <= 0)
@@ -499,7 +499,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="maxCount">The number of streams to acquire; when 0 or less, fills up to the remaining thread capacity.</param>
         /// <param name="ids">Optional specific stream ids to retrieve instead of creating new streams.</param>
         /// <returns>A task producing the acquired streams, or <c>null</c> if none could be created or retrieved.</returns>
-        internal async Task<IEnumerable<CudaStream>?> GetManyStreamsAsync(int maxCount = 0, IEnumerable<Ulong>? ids = null)
+        internal async Task<IEnumerable<CudaStream>?> GetManyStreamsAsync(int maxCount = 0, IEnumerable<ulong>? ids = null)
         {
             this.EnsureContext();
             if (maxCount <= 0)
@@ -951,7 +951,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="data">The host data to upload.</param>
         /// <param name="id">The optional id of a specific stream to use for the transfer.</param>
         /// <returns>A task producing the registered <see cref="CudaMem"/>, or <c>null</c> on failure.</returns>
-        internal async Task<IRuntimeMem?> PushDataAsync<T>(IEnumerable<T> data, Ulong? id = null) where T : unmanaged
+        internal async Task<IRuntimeMem?> PushDataAsync<T>(IEnumerable<T> data, ulong? id = null) where T : unmanaged
         {
             CudaMem? mem = null;
 
@@ -1019,7 +1019,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="chunks">The collection of host data chunks to upload, one buffer per chunk.</param>
         /// <param name="id">The optional id of a specific stream to use for the transfer.</param>
         /// <returns>A task producing the registered <see cref="CudaMem"/>, or <c>null</c> on failure.</returns>
-        internal async Task<IRuntimeMem?> PushChunksAsync<T>(IEnumerable<IEnumerable<T>> chunks, Ulong? id = null) where T : unmanaged
+        internal async Task<IRuntimeMem?> PushChunksAsync<T>(IEnumerable<IEnumerable<T>> chunks, ulong? id = null) where T : unmanaged
         {
             CudaMem? mem = null;
             this.EnsureContext();
@@ -1145,7 +1145,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>A list with one host array per buffer, or an empty list if the allocation was not found or the copy failed.</returns>
         public List<T[]> PullChunks<T>(IntPtr indexPointer, bool keep = false) where T : unmanaged
         {
-            if (this[indexPointer] is not CudaMem mem || mem.Pointers.Length == 0 || mem.PointerLengths.Length == 0)
+            if (this[indexPointer] is not CudaMem mem || mem.PointerIds.Length == 0 || mem.PointerLengths.Length == 0)
             {
                 return [];
             }
@@ -1153,7 +1153,7 @@ namespace AsynCUDA13.Runtime
             try
             {
                 List<T[]> chunks = [];
-                CUdeviceptr[] devicePointers = mem.Pointers.Select(p => new CUdeviceptr(p)).ToArray();
+                CUdeviceptr[] devicePointers = mem.PointerIds.Select(p => new CUdeviceptr(p)).ToArray();
                 // See PullData: the (CUdeviceptr, SizeT) constructor expects a byte size, so scale each
                 // buffer's element count by the element size before wrapping the existing device pointer.
                 CudaDeviceVariable<T>[] devVariables = devicePointers.Select((ptr, i) => new CudaDeviceVariable<T>(ptr, (SizeT) ((long) mem.PointerLengths[i] * mem.ElementSize))).ToArray();
@@ -1190,7 +1190,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="keep">If <c>false</c>, the device memory is freed after the copy completes.</param>
         /// <param name="id">The optional id of a specific stream to use for the transfer.</param>
         /// <returns>A task producing the downloaded host array, or an empty array on failure.</returns>
-        internal async Task<T[]> PullDataAsync<T>(IntPtr indexPointer, bool keep = false, Ulong? id = null) where T : unmanaged
+        internal async Task<T[]> PullDataAsync<T>(IntPtr indexPointer, bool keep = false, ulong? id = null) where T : unmanaged
         {
             if (this[indexPointer] is not CudaMem mem || mem.Count <= 0)
             {
@@ -1277,7 +1277,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="keep">If <c>false</c>, the device memory is freed after the copy completes.</param>
         /// <param name="id">The optional id of a specific stream to use for the transfer.</param>
         /// <returns>A task producing a list with one host array per buffer, or an empty list on failure.</returns>
-        internal async Task<List<T[]>> PullChunksAsync<T>(IntPtr indexPointer, bool keep = false, Ulong? id = null) where T : unmanaged
+        internal async Task<List<T[]>> PullChunksAsync<T>(IntPtr indexPointer, bool keep = false, ulong? id = null) where T : unmanaged
         {
             if (this[indexPointer] is not CudaMem mem || mem.Count <= 0)
             {
@@ -1299,7 +1299,7 @@ namespace AsynCUDA13.Runtime
 
                 // this.Context.SetCurrent();
 
-                CUdeviceptr[] devicePointers = mem.Pointers.Select(p => new CUdeviceptr(p)).ToArray();
+                CUdeviceptr[] devicePointers = mem.PointerIds.Select(p => new CUdeviceptr(p)).ToArray();
                 for (int i = 0; i < devicePointers.Length; i++)
                 {
                     T[] data = new T[mem.PointerLengths[i]];

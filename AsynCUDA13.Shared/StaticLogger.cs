@@ -408,7 +408,7 @@ namespace AsynCUDA13.Shared
 
             IReadOnlyList<string> snapshot = GetLogLines();
 
-            var sb = new stringBuilder();
+            var sb = new StringBuilder();
             sb.AppendLine("==============================================================");
             sb.AppendLine("Aggregated Log Export");
             sb.Append("Timestamp : ").AppendLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
@@ -545,7 +545,7 @@ namespace AsynCUDA13.Shared
                 return string.Empty;
             }
 
-            stringBuilder sb = new stringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Exception: {ex.GetType().FullName}");
             string message = $"Message: {ex.Message}";
 

@@ -1,8 +1,8 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
-using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.MediaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.WebApp.Components.Dialogs;
 using Microsoft.JSInterop;
 using System.Collections.Concurrent;
@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class MemoryViewModel : ViewModelBase<CudaPushRequest, CudaPushResponse>
+    public class MemoryViewModel : ViewModelBase<RuntimePushRequest, RuntimePushResponse>
     {
         public MemoryViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
@@ -20,7 +20,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public record AssetItem(Guid Id, string Name, DateTime CreatedAt, bool IsAudio);
 
-        public CudaMemInfo[] MemoryInfos { get; private set; } = [];
+        public RuntimeMemInfo[] MemoryInfos { get; private set; } = [];
 
         public ImageInfo[] ImageInfos { get; private set; } = [];
         public AudioInfo[] AudioInfos { get; private set; } = [];

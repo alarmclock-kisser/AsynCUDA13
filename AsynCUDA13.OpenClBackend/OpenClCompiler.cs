@@ -41,9 +41,73 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         public IRuntimeCompiler Compiler => this;
 
-
+        /// <summary>
+        /// Gets the list of available kernel source files.
+        /// </summary>
+        /// <returns>An array of file paths to available kernel source files.</returns>
         public string[] GetSourceFiles() => this.GetClFiles();
+
+        /// <summary>
+        /// Gets the list of compiled kernel files.
+        /// </summary>
+        /// <returns>An array of file paths to compiled kernel files.</returns>
+        public string[] GetCompiledFiles() => this.GetClFiles().Select(s => this._kernels.ContainsKey(Path.GetFileNameWithoutExtension(s)) ? s : null).Where(s => s != null).Cast<string>().ToArray();
+
+        /// <summary>
+        /// Gets the source code of the kernel with the specified name.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel.</param>
+        /// <returns>The source code of the kernel, or <c>null</c> if not found.</returns>
+        public string? GetKernelCode(string? kernelName)
+        {
+            if (string.IsNullOrWhiteSpace(kernelName))
+            {
+                return null;
+            }
+            string filePath = Path.Combine(this.KernelDirectory, kernelName + ".cl");
+            if (File.Exists(filePath))
+            {
+                return File.ReadAllText(filePath);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the name of the currently loaded kernel, always null, since OpenCL does not have CLKernels loaded, they persist, once compiled, in memory.
+        /// </summary>
         public string? KernelName => null;
+
+        /// <summary>
+        /// Attempts to load and compile a kernel by name from the kernel directory. Returns true if successful, false otherwise.
+        /// </summary>
+        /// <param name="name">The name of the kernel to load.</param>
+        /// <returns>True if the kernel was successfully loaded and compiled; otherwise, false.</returns>
+        public bool LoadKernel(string name)
+        {
+            if (this._kernels.ContainsKey(name))
+            {
+                return true;
+            }
+            string filePath = Path.Combine(this.KernelDirectory, name + ".cl");
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    this.CompileFile(filePath);
+                    return this._kernels.ContainsKey(name);
+                }
+                catch (Exception ex)
+                {
+                    StaticLogger.Log($"OpenClCompiler: failed to load kernel '{name}' from '{filePath}'.", ex);
+                    return false;
+                }
+            }
+            else
+            {
+                StaticLogger.LogWarning($"OpenClCompiler: kernel source file '{filePath}' not found.");
+                return false;
+            }
+        }
 
         // Ctor
         /// <summary>
@@ -192,6 +256,38 @@ namespace AsynCUDA13.OpenClBackend
             }
         }
 
+        public string CompileKernel(string kernelCode)
+        {
+            if (string.IsNullOrWhiteSpace(kernelCode))
+            {
+                throw new ArgumentException("Kernel code cannot be null or whitespace.", nameof(kernelCode));
+            }
+            CLProgram program = CL.CreateProgramWithSource(this._context, kernelCode, out CLResultCode createCode);
+            if (createCode != CLResultCode.Success)
+            {
+                throw new InvalidOperationException($"CreateProgramWithSource failed ({createCode}).");
+            }
+            CLResultCode buildCode = CL.BuildProgram(program, 1, [this._device], string.Empty, IntPtr.Zero, IntPtr.Zero);
+            if (buildCode != CLResultCode.Success)
+            {
+                string log = this.GetBuildLog(program);
+                CL.ReleaseProgram(program);
+                throw new InvalidOperationException($"BuildProgram failed ({buildCode}). Build log: {log}");
+            }
+            this._programs.Add(program);
+            foreach (string kernelName in ExtractKernelNames(kernelCode))
+            {
+                CLKernel kernel = CL.CreateKernel(program, kernelName, out CLResultCode resultCode);
+                if (resultCode != CLResultCode.Success)
+                {
+                    throw new InvalidOperationException($"CreateKernel '{kernelName}' failed ({kernelCode}).");
+                }
+                this._kernels[kernelName] = kernel;
+            }
+            return string.Join(", ", ExtractKernelNames(kernelCode));
+        }
+
+
         /// <summary>
         /// Reads the program build log for diagnostics.
         /// </summary>
@@ -272,6 +368,12 @@ namespace AsynCUDA13.OpenClBackend
             return null;
         }
 
+        /// <summary>
+        /// Gets the compiled program that contains the specified kernel name, optionally filtering by a specific kernel instance.
+        /// </summary>
+        /// <param name="name">The name of the kernel.</param>
+        /// <param name="kernel">The specific kernel instance to filter by.</param>
+        /// <returns>The compiled <see cref="CLProgram"/>, or <c>null</c> when no program with that kernel name exists.</returns>
         internal CLProgram? GetClProgram(string? name, CLKernel? kernel = null)
         {
             if (kernel.HasValue)
@@ -307,6 +409,11 @@ namespace AsynCUDA13.OpenClBackend
             return null;
         }
 
+        /// <summary>
+        /// Gets a compiled kernel by name, returning it as an object to satisfy the IRuntimeCompiler interface.
+        /// </summary>
+        /// <param name="name">The name of the kernel.</param>
+        /// <returns>The compiled kernel as an object, or <c>null</c> if not found.</returns>
         public object? GetKernel(string name) => this.GetClKernel(name);
 
         /// <summary>
@@ -317,7 +424,42 @@ namespace AsynCUDA13.OpenClBackend
             return this._kernels.ContainsKey(name);
         }
 
+        /// <summary>
+        /// Gets the arguments of the kernel with the specified name, mapping OpenCL types to C# types.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel.</param>
+        /// <returns>A dictionary mapping argument names to their corresponding C# types.</returns>
+        public Dictionary<string, Type> GetArguments(string? kernelName)
+        {
+            var arguments = new Dictionary<string, Type>(StringComparer.Ordinal);
+            if (string.IsNullOrWhiteSpace(kernelName))
+            {
+                return arguments;
+            }
+            CLKernel? kernel = this.GetClKernel(kernelName);
+            if (!kernel.HasValue)
+            {
+                return arguments;
+            }
+            int argCount = CL.GetKernelInfo(kernel.Value, KernelInfo.NumberOfArguments, out byte[] count) == CLResultCode.Success ? BitConverter.ToInt32(count, 0) : 0;
+            for (int i = 0; i < argCount; i++)
+            {
+                string argName = CL.GetKernelArgInfo(kernel.Value, (uint)i, KernelArgInfo.Name, out byte[] nameBytes) == CLResultCode.Success
+                    ? Encoding.ASCII.GetString(nameBytes).TrimEnd('\0')
+                    : $"arg{i}";
+                string argTypeStr = CL.GetKernelArgInfo(kernel.Value, (uint)i, KernelArgInfo.TypeName, out byte[] typeBytes) == CLResultCode.Success
+                    ? Encoding.ASCII.GetString(typeBytes).TrimEnd('\0')
+                    : "unknown";
+                Type argType = MapOpenClTypeToCSharp(argTypeStr);
+                arguments[argName] = argType;
+            }
+            return arguments;
+        }
 
+        /// <summary>
+        /// Unloads the specified kernel, releasing its resources.
+        /// </summary>
+        /// <param name="name">The name of the kernel to unload.</param>
         public void UnloadKernel(string? name)
         {
             if (this._disposed)
@@ -389,6 +531,242 @@ namespace AsynCUDA13.OpenClBackend
 
             this._programs.Clear();
             this._disposed = true;
+        }
+
+
+        /// <summary>
+        /// Merges the provided input and output pointers, image dimensions, channels, bit depth, and user-supplied arguments into a single array of kernel arguments for OpenCL execution.
+        /// </summary>
+        /// <param name="inputPointer">The pointer to the input image data.</param>
+        /// <param name="outputPointer">The pointer to the output image data.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="channels">The number of channels in the image.</param>
+        /// <param name="bitdepth">The bit depth of the image.</param>
+        /// <param name="arguments">The user-supplied arguments for the kernel.</param>
+        /// <param name="silent">If set to <c>true</c>, suppresses logging of argument values.</param>
+        /// <returns>An array of merged kernel arguments.</returns>
+        /// <exception cref="ArgumentException">Thrown if an argument type does not match the expected type.</exception>
+        public object[] MergeArgumentsImage(IntPtr inputPointer, IntPtr outputPointer, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
+        {
+            // Get kernel argument definitions
+            Dictionary<string, Type> args = this.GetArguments(null);
+
+            // Create array for kernel arguments
+            object[] kernelArgs = new object[args.Count];
+
+            int pointersCount = 0;
+            int userArgIndex = 0;
+            // Integrate invariables if name fits (contains)
+            for (int i = 0; i < kernelArgs.Length; i++)
+            {
+                string name = args.ElementAt(i).Key;
+                Type type = args.ElementAt(i).Value;
+
+                if (pointersCount == 0 && type == typeof(IntPtr))
+                {
+                    kernelArgs[i] = inputPointer;
+                    pointersCount++;
+
+                    if (!silent)
+                    {
+                        StaticLogger.Log($"In-pointer: <{inputPointer}>");
+                    }
+                }
+                else if (pointersCount == 1 && type == typeof(IntPtr))
+                {
+                    kernelArgs[i] = outputPointer;
+                    pointersCount++;
+
+                    if (!silent)
+                    {
+                        StaticLogger.Log($"Out-pointer: <{outputPointer}>");
+                    }
+                }
+                else if (name.Contains("width") && type == typeof(int))
+                {
+                    kernelArgs[i] = width;
+
+                    if (!silent)
+                    {
+                        StaticLogger.Log($"Width: [{width}]");
+                    }
+                }
+                else if (name.Contains("height") && type == typeof(int))
+                {
+                    kernelArgs[i] = height;
+
+                    if (!silent)
+                    {
+                        StaticLogger.Log($"Height: [{height}]");
+                    }
+                }
+                else if (name.Contains("chan") && type == typeof(int))
+                {
+                    kernelArgs[i] = channels;
+
+                    if (!silent)
+                    {
+                        StaticLogger.Log($"Channels: [{channels}]");
+                    }
+                }
+                else if (name.Contains("bit") && type == typeof(int))
+                {
+                    kernelArgs[i] = bitdepth;
+
+                    if (!silent)
+                    {
+                        StaticLogger.Log($"Bits: [{bitdepth}]");
+                    }
+                }
+                else
+                {
+                    // Every remaining slot is a user-supplied scalar. The caller passes these in the exact same
+                    // order the kernel declares them (pointers and width/height/chan/bit excluded), so consume
+                    // them sequentially instead of matching by name/index which mixed up the two lists before.
+                    if (userArgIndex < arguments.Length)
+                    {
+                        // If the argument is a string, try to parse it to the correct type
+                        if (arguments[userArgIndex] is string stringValue && type != typeof(IntPtr))
+                        {
+                            try
+                            {
+                                kernelArgs[i] = Convert.ChangeType(stringValue, type);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new ArgumentException($"Failed to parse argument '{name}' of type '{type.Name}' with value '{stringValue}': {ex.Message}", ex);
+                            }
+                        }
+                        else
+                        {
+                            kernelArgs[i] = arguments[userArgIndex];
+                        }
+                        userArgIndex++;
+                    }
+                    else
+                    {
+                        kernelArgs[i] = 0;
+                    }
+                }
+            }
+
+            // DEBUG LOG
+            //StaticLogger.Log("Kernel arguments: " + string.Join(", ", kernelArgs.Select(x => x.ToString())), "", 1);
+
+            // Return kernel arguments
+            return kernelArgs;
+        }
+
+        /// <summary>
+        /// Merges audio-specific parameters into a kernel argument array.
+        /// </summary>
+        /// <param name="inputPointer">The input data pointer.</param>
+        /// <param name="outputPointer">The output data pointer.</param>
+        /// <param name="sampleRate">The audio sample rate.</param>
+        /// <param name="channels">The number of audio channels.</param>
+        /// <param name="bitdepth">The audio bit depth.</param>
+        /// <param name="namedArguments">Optional dictionary of additional named arguments.</param>
+        /// <returns>An array of objects ordered for kernel execution.</returns>
+        public object[] MergeArgumentsAudio(IntPtr inputPointer, IntPtr outputPointer, int sampleRate = 44100, int channels = 2, int bitdepth = 32, Dictionary<string, object>? namedArguments = null)
+        {
+            // Get kernel argument definitions
+            Dictionary<string, Type> args = this.GetArguments(null);
+
+            // Create array for kernel arguments
+            object[] kernelArgs = new object[args.Count];
+            int pointersCount = 0;
+
+            // Integrate invariables if name fits (contains)
+            for (int i = 0; i < kernelArgs.Length; i++)
+            {
+                string name = args.ElementAt(i).Key;
+                Type type = args.ElementAt(i).Value;
+                if (pointersCount == 0 && type == typeof(IntPtr))
+                {
+                    kernelArgs[i] = inputPointer;
+                    pointersCount++;
+                    StaticLogger.Log($"In-pointer: <{inputPointer}>");
+                }
+                else if (pointersCount == 1 && type == typeof(IntPtr))
+                {
+                    kernelArgs[i] = outputPointer;
+                    pointersCount++;
+                    StaticLogger.Log($"Out-pointer: <{outputPointer}>");
+                }
+                else if (name.Contains("sample") && type == typeof(int))
+                {
+                    StaticLogger.Log($"SampleRate: [{sampleRate}]");
+                }
+                else if (name.Contains("chan") && type == typeof(int))
+                {
+                    kernelArgs[i] = channels;
+                    StaticLogger.Log($"Channels: [{channels}]");
+                }
+                else if (name.Contains("bit") && type == typeof(int))
+                {
+                    kernelArgs[i] = bitdepth;
+                    StaticLogger.Log($"Bits: [{bitdepth}]");
+                }
+                else
+                {
+                    // Check if argument is in arguments array
+                    if (namedArguments != null && namedArguments.Count > 0)
+                    {
+                        for (int j = 0; j < namedArguments.Count; j++)
+                        {
+                            if (name.Equals(args.ElementAt(j).Key, StringComparison.CurrentCultureIgnoreCase))
+                            {
+                                if (namedArguments.TryGetValue(name, out object? value))
+                                {
+                                    kernelArgs[i] = value;
+                                    StaticLogger.Log($"Named argument: {name} = {value}");
+                                    break;
+                                }
+                                else
+                                {
+                                    StaticLogger.Log($"Named argument '{name}' not found in provided arguments");
+                                    kernelArgs[i] = 0;
+                                }
+                            }
+                        }
+                    }
+
+                    // If not found, set to 0
+                    if (kernelArgs[i] == null)
+                    {
+                        kernelArgs[i] = 0;
+                    }
+                }
+            }
+
+            return kernelArgs;
+        }
+
+
+
+        // Static helpers
+        public static Type MapOpenClTypeToCSharp(string openClType)
+        {
+            bool isPointer = openClType.EndsWith("*");
+            openClType = openClType.Replace('*', ' ').Trim().ToLowerInvariant();
+
+            Type baseType = openClType switch
+            {
+                "char" => typeof(sbyte),
+                "uchar" => typeof(byte),
+                "short" => typeof(short),
+                "ushort" => typeof(ushort),
+                "int" => typeof(int),
+                "uint" => typeof(uint),
+                "long" => typeof(long),
+                "ulong" => typeof(ulong),
+                "float" => typeof(float),
+                "double" => typeof(double),
+                _ => typeof(object),
+            };
+
+            return isPointer ? baseType.MakePointerType() : baseType;
         }
     }
 }

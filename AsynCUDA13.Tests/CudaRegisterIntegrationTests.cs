@@ -64,13 +64,13 @@ namespace AsynCUDA13.Tests
             var asyncfloat = await this.service.AllocateSingleAsync<float>(16);
             var asyncGroup = await this.service.AllocateGroupAsync<float>(new IntPtr[] { 8, 8 });
             float.ShouldNotBeNull(); group.ShouldNotBeNull(); asyncfloat.ShouldNotBeNull(); asyncGroup.ShouldNotBeNull();
-            this.service.RegisteredMemoryobjects.ShouldBe(4);
+            this.service.TotalAllocations.ShouldBe(4);
             this.service.TotalAllocatedBytes.ShouldBe(this.service.MemorySizesList.Sum());
             this.service.FreeMemory(float!).ShouldBe(float.TotalSize);
             this.service.FreeMemory(group!.Id).ShouldBe(group.TotalSize);
             (await this.service.FreeMemoryAsync(asyncfloat!.Id)).ShouldBe(asyncfloat.TotalSize);
             (await this.service.FreeMemoryAsync(asyncGroup!.IndexPointer)).ShouldBe(asyncGroup.TotalSize);
-            this.service.RegisteredMemoryobjects.ShouldBe(0);
+            this.service.TotalAllocations.ShouldBe(0);
             this.service.TotalAllocatedBytes.ShouldBe(0);
         }
     }

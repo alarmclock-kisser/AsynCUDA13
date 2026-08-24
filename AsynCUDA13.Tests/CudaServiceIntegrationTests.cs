@@ -48,7 +48,7 @@ namespace AsynCUDA13.Tests
         {
             this.service!.Initialize(0).ShouldBeTrue();
             this.service.Online.ShouldBeTrue();
-            this.service.SelectedDeviceProperties.ShouldNotBeNull();
+            this.service.SelectedCudaDeviceProperties.ShouldNotBeNull();
         }
 
         [TestMethod]
@@ -57,7 +57,7 @@ namespace AsynCUDA13.Tests
             this.service!.Dispose();
             this.service.Online.ShouldBeFalse();
             this.service.SelectedDeviceId.ShouldBe(-1);
-            this.service.RegisteredMemoryobjects.ShouldBe(0);
+            this.service.TotalAllocations.ShouldBe(0);
         }
     }
 }

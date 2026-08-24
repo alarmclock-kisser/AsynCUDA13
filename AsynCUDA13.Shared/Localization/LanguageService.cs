@@ -8,10 +8,10 @@ namespace AsynCUDA13.Shared.Localization
 {
     public class LanguageService
     {
-        private readonly IstringLocalizer<SharedResources> _localizer;
+        private readonly StringLocalizer<SharedResources> _localizer;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public LanguageService(IstringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
+        public LanguageService(StringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
         {
             this._localizer = localizer;
             this._httpContextAccessor = httpContextAccessor;
@@ -21,12 +21,12 @@ namespace AsynCUDA13.Shared.Localization
         {
             get
             {
-                var localizedstring = this._localizer[key];
-                return localizedstring.Value;
+                var LocalizedString = this._localizer[key];
+                return LocalizedString.Value;
             }
         }
 
-        public Localizedstring GetLocalizedstring(string key)
+        public LocalizedString GetLocalizedString(string key)
         {
             return this._localizer[key];
         }

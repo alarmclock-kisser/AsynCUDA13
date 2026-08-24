@@ -283,7 +283,7 @@ namespace AsynCUDA13.OpenClBackend
             float scale = 1.0f / n;
             for (int i = 0; i < data.Length; i++)
             {
-                result[i] = Convert.Tofloat(data[i]) * scale;
+                result[i] = Convert.ToSingle(data[i]) * scale;
             }
 
             return result.Cast<T>().ToArray();

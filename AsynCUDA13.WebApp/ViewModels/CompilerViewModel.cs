@@ -1,20 +1,20 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using Microsoft.JSInterop;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class CompilerViewModel : ViewModelBase<CudaCompileRequest, CudaCompileResponse>
+    public class CompilerViewModel : ViewModelBase<RuntimeCompileRequest, RuntimeCompileResponse>
     {
         public CompilerViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
         {
         }
 
-        public CudaKernelInfo[]? Kernels { get; set; }
-        public CudaCompileResponse? LastCompileResponse { get; set; }
+        public RuntimeKernelInfo[]? Kernels { get; set; }
+        public RuntimeCompileResponse? LastCompileResponse { get; set; }
         public string? KernelCode { get; set; } = string.Empty;
 
         public async Task LoadKernelsAsync(bool filterCompiled = true)
@@ -35,7 +35,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
 
 
-        public async Task<CudaCompileResponse?> CompileKernelAsync(string? kernelCode)
+        public async Task<RuntimeCompileResponse?> CompileKernelAsync(string? kernelCode)
         {
             if (string.IsNullOrEmpty(kernelCode))
             {
@@ -47,6 +47,6 @@ namespace AsynCUDA13.WebApp.ViewModels
             return this.LastCompileResponse;
         }
 
-        public bool IsKernelCompiled(CudaKernelInfo kernel) => !string.IsNullOrEmpty(kernel.PtxPath);
+        public bool IsKernelCompiled(RuntimeKernelInfo kernel) => !string.IsNullOrEmpty(kernel.PtxPath);
     }
 }

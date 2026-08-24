@@ -130,7 +130,7 @@ namespace AsynCUDA13.Media
                 };
 
                 await imgClone.SaveAsync(ms, encoder);
-                return Convert.ToBase64string(ms.ToArray());
+                return Convert.ToBase64String(ms.ToArray());
             }
             catch (Exception ex)
             {
@@ -403,7 +403,7 @@ namespace AsynCUDA13.Media
                 _ => new SixLabors.ImageSharp.Formats.Png.PngEncoder()
             };
             previewImage.Save(ms, encoder);
-            return Convert.ToBase64string(ms.ToArray());
+            return Convert.ToBase64String(ms.ToArray());
         }
     }
 }

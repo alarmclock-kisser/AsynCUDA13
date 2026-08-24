@@ -1,6 +1,7 @@
 ﻿using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.MediaDtos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,13 +11,12 @@ namespace AsynCUDA13.Api.Controllers
     [Route("api/[controller]")]
     public class MediaController : ApiControllerBase
     {
-        private readonly ICudaService cuda;
         private readonly ImageCollection images;
         private readonly AudioCollection audios;
 
-        public MediaController(ICudaService cudaService, ImageCollection images, AudioCollection audios)
+        public MediaController(IRuntimeService cudaService, ImageCollection images, AudioCollection audios)
+            : base(cudaService)
         {
-            this.cuda = cudaService;
             this.images = images;
             this.audios = audios;
         }
@@ -167,7 +167,7 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     if (pullIfRequired && image.Pointer != 0 && image.Pointer != IntPtr.Zero)
                     {
-                        await image.SetImageAsync(await this.cuda.PullDataAsync<Byte>((IntPtr) image.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull image data from CUDA."));
+                        await image.SetImageAsync(await this.backend.Register.PullDataAsync<Byte>((IntPtr) image.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull image data from CUDA."));
                     }
 
                     // Export image with format to temp path
@@ -188,14 +188,14 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     if (pullIfRequired && audio.Pointer != 0 && audio.Pointer != IntPtr.Zero)
                     {
-                        CudaMem audioMem = this.cuda[(IntPtr) audio.Pointer] ?? throw new InvalidOperationException("Failed to retrieve audio data from CUDA.");
+                        IRuntimeMem audioMem = this.backend[(IntPtr) audio.Pointer] ?? throw new InvalidOperationException("Failed to retrieve audio data from CUDA.");
                         if (audioMem.Count > 1)
                         {
-                            await audio.AggregateChunksAsync(await this.cuda.PullChunksAsync<float>((IntPtr) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int) audioMem.IndexLength);
+                            await audio.AggregateChunksAsync(await this.backend.Register.PullChunksAsync<float>((IntPtr) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int) audioMem.IndexLength);
                         }
                         else
                         {
-                            audio.Data = await this.cuda.PullDataAsync<float>((IntPtr) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA.");
+                            audio.Data = await this.backend.Register.PullDataAsync<float>((IntPtr) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA.");
                         }
                     }
 

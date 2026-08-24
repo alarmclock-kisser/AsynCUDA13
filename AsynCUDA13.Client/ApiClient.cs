@@ -2,8 +2,8 @@
 using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
-using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.MediaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.Shared.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
@@ -218,7 +218,7 @@ namespace AsynCUDA13.Client
 
 
         // CudaDeviceController
-        public async Task<CudaDeviceInfo[]> GetCudaDevicesAsync()
+        public async Task<RuntimeDeviceInfo[]> GetCudaDevicesAsync()
         {
             DateTime started = DateTime.Now;
             int count = 0;
@@ -242,7 +242,7 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaDeviceInfo?> GetCudaDeviceAsync(int deviceId)
+        public async Task<RuntimeDeviceInfo?> GetCudaDeviceAsync(int deviceId)
         {
             DateTime started = DateTime.Now;
             bool hasValue = false;
@@ -268,7 +268,7 @@ namespace AsynCUDA13.Client
 
 
         // CudaContextController
-        public async Task<CudaContextInfo?> GetCudaContextInfoAsync()
+        public async Task<RuntimeContextInfo?> GetCudaContextInfoAsync()
         {
             DateTime started = DateTime.Now;
             bool hasValue = false;
@@ -292,9 +292,9 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaInitializeResponse?> InitializeCudaAsync(int deviceId = 0, string deviceName = "")
+        public async Task<RuntimeInitializeResponse?> InitializeCudaAsync(int deviceId = 0, string deviceName = "")
         {
-            var request = new CudaInitializeRequest()
+            var request = new RuntimeInitializeRequest()
             {
                 DeviceId = deviceId,
                 DeviceName = deviceName,
@@ -323,9 +323,9 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaDisposeResponse?> DisposeCudaAsync(bool freeBuffers = false)
+        public async Task<RuntimeDisposeResponse?> DisposeCudaAsync(bool freeBuffers = false)
         {
-            var request = new CudaDisposeRequest()
+            var request = new RuntimeDisposeRequest()
             {
                 FreeAllBuffersBeforeDispose = freeBuffers
             };
@@ -354,7 +354,7 @@ namespace AsynCUDA13.Client
 
 
         // CudaMemoryController
-        public async Task<CudaMemInfo[]> GetMemoryListAsync()
+        public async Task<RuntimeMemInfo[]> GetMemoryListAsync()
         {
             DateTime started = DateTime.Now;
             int count = 0;
@@ -378,7 +378,7 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaMemInfo?> GetMemoryInfoAsync(string indexPointerOrId)
+        public async Task<RuntimeMemInfo?> GetMemoryInfoAsync(string indexPointerOrId)
         {
             DateTime started = DateTime.Now;
             bool hasValue = false;
@@ -450,10 +450,10 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaPushResponse?> PushAsync(string assetIdOrName, bool serverSided = true, int chunkSize = 0, float overlap = 0.5f, string format = "png", bool keepData = false)
+        public async Task<RuntimePushResponse?> PushAsync(string assetIdOrName, bool serverSided = true, int chunkSize = 0, float overlap = 0.5f, string format = "png", bool keepData = false)
         {
             DateTime started = DateTime.Now;
-            CudaPushResponse? response = null;
+            RuntimePushResponse? response = null;
             try
             {
                 Guid? verifiedAssetId = await this.VerifyAssetIdExistsAsync(assetIdOrName);
@@ -474,7 +474,7 @@ namespace AsynCUDA13.Client
 
                 else
                 {
-                    ICudaPayload? payload = null;
+                    ISimdPayload? payload = null;
 
                     if (isAudioAsset == false)
                     {
@@ -500,7 +500,7 @@ namespace AsynCUDA13.Client
                         return null;
                     }
 
-                    var request = new CudaPushRequest()
+                    var request = new RuntimePushRequest()
                     {
                         Payload = payload,
                         AsyncCall = true,
@@ -533,10 +533,10 @@ namespace AsynCUDA13.Client
             return response;
         }
 
-        public async Task<CudaPullResponse?> PullAsync(string indexPointerOrId, bool serverSided = true, bool freeBuffer = true)
+        public async Task<RuntimePullResponse?> PullAsync(string indexPointerOrId, bool serverSided = true, bool freeBuffer = true)
         {
             DateTime started = DateTime.Now;
-            CudaPullResponse? response = null;
+            RuntimePullResponse? response = null;
             try
             {
 
@@ -547,7 +547,7 @@ namespace AsynCUDA13.Client
                 }
                 else
                 {
-                    var request = new CudaPullRequest()
+                    var request = new RuntimePullRequest()
                     {
                         IndexPointerOrId = indexPointerOrId,
                         AsyncCall = true,
@@ -574,7 +574,7 @@ namespace AsynCUDA13.Client
 
 
         // Cuda Fourier Controller
-        public async Task<CudaFourierResponse?> PerformFourierTransformAsync(string indexPointerOrId, bool? inverse = null, bool keepBuffer = false)
+        public async Task<RuntimeFourierResponse?> PerformFourierTransformAsync(string indexPointerOrId, bool? inverse = null, bool keepBuffer = false)
         {
             var memInfo = await this.GetMemoryInfoAsync(indexPointerOrId);
             if (memInfo == null)
@@ -583,7 +583,7 @@ namespace AsynCUDA13.Client
                 return null;
             }
 
-            var request = new CudaFourierRequest()
+            var request = new RuntimeFourierRequest()
             {
                 MemoryInfo = memInfo,
                 Inverse = inverse,
@@ -613,7 +613,7 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaFourierResponse?> PerformFourierOnAudioAsync(string audioNameOrId, int chunkSize = 8192, float overlap = 0.5f, bool autoPull = false, bool keepDataOrBuffer = false)
+        public async Task<RuntimeFourierResponse?> PerformFourierOnAudioAsync(string audioNameOrId, int chunkSize = 8192, float overlap = 0.5f, bool autoPull = false, bool keepDataOrBuffer = false)
         {
             DateTime started = DateTime.Now;
             bool hasValue = false;
@@ -639,7 +639,7 @@ namespace AsynCUDA13.Client
 
 
         // CudaKernelController
-        public async Task<CudaKernelInfo[]> GetKernelsAsync(bool filterCompiled = true)
+        public async Task<RuntimeKernelInfo[]> GetKernelsAsync(bool filterCompiled = true)
         {
             DateTime started = DateTime.Now;
             int count = 0;
@@ -663,7 +663,7 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaCompileResponse?> CompileKernelAsync(string kernelCode, bool silent = false)
+        public async Task<RuntimeCompileResponse?> CompileKernelAsync(string kernelCode, bool silent = false)
         {
             string? kernelName = DataParser.ExtractKernelName(kernelCode);
             if (string.IsNullOrEmpty(kernelName))
@@ -672,7 +672,7 @@ namespace AsynCUDA13.Client
                 return null;
             }
 
-            var request = new CudaCompileRequest()
+            var request = new RuntimeCompileRequest()
             {
                 KernelName = kernelName,
                 KernelSource = kernelCode,
@@ -702,16 +702,16 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaExecuteResponse?> ExecuteGenericKernelAsync(string kernelName, string[]? args = null, bool unloadAfterExecute = false)
+        public async Task<RuntimeExecuteResponse?> ExecuteGenericKernelAsync(string kernelName, string[]? args = null, bool unloadAfterExecute = false)
         {
-            CudaKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
+            RuntimeKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
             if (kernelInfo == null)
             {
                 await StaticLogger.LogAsync($"Kernel '{kernelName}' not found or not compiled.");
                 return null;
             }
 
-            var request = new CudaExecuteRequest()
+            var request = new RuntimeExecuteRequest()
             {
                 KernelInfo = kernelInfo,
                 ArgumentValues = args ?? [],
@@ -741,16 +741,16 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaExecuteResponse?> ExecuteLinearKernelAsync(string kernelName, string[]? args = null, bool unloadAfterExecute = false)
+        public async Task<RuntimeExecuteResponse?> ExecuteLinearKernelAsync(string kernelName, string[]? args = null, bool unloadAfterExecute = false)
         {
-            CudaKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
+            RuntimeKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
             if (kernelInfo == null)
             {
                 await StaticLogger.LogAsync($"Kernel '{kernelName}' not found or not compiled.");
                 return null;
             }
 
-            var request = new CudaExecuteRequest()
+            var request = new RuntimeExecuteRequest()
             {
                 KernelInfo = kernelInfo,
                 ArgumentValues = args ?? [],
@@ -1192,7 +1192,7 @@ namespace AsynCUDA13.Client
 
             try
             {
-                CudaMemInfo? mem = await this.GetMemoryInfoAsync(indexPointer);
+                RuntimeMemInfo? mem = await this.GetMemoryInfoAsync(indexPointer);
                 if (mem == null || mem.Id.Equals(Guid.Empty))
                 {
                     if ((int) this.LogLevel >= 4)

@@ -2,13 +2,13 @@
 using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using Microsoft.JSInterop;
 using System.Linq;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class HomeViewModel : ViewModelBase<CudaInitializeRequest, CudaInitializeResponse>
+    public class HomeViewModel : ViewModelBase<RuntimeInitializeRequest, RuntimeInitializeResponse>
     {
         public HomeViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
@@ -18,7 +18,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public readonly bool IsCudaAvailable;
 
-        public CudaContextInfo? ContextInfo
+        public RuntimeContextInfo? ContextInfo
         {
             get
             {
@@ -32,9 +32,9 @@ namespace AsynCUDA13.WebApp.ViewModels
                 this._contextInfo = value;
             }
         }
-        public CudaDeviceInfo[]? Devices { get; set; }
+        public RuntimeDeviceInfo[]? Devices { get; set; }
 
-        public CudaDeviceInfo? SelectedDevice { get; set; }
+        public RuntimeDeviceInfo? SelectedDevice { get; set; }
         public bool FreeBuffersAtDispose { get; set; } = false;
 
 
@@ -113,7 +113,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             await this.NotifyStateChangedAsync();
         }
 
-        public string GetMemInfoSizeKb(CudaMemInfo memInfo, int decimals = 2)
+        public string GetMemInfoSizeKb(RuntimeMemInfo memInfo, int decimals = 2)
         {
             return (long.Parse(memInfo.TotalSize) / 1024.0).ToString($"F{decimals}");
         }

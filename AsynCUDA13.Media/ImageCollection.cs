@@ -474,9 +474,9 @@ namespace AsynCUDA13.Media
                 if (hexColor.Length == 6)
                 {
                     // RRGGBB format
-                    int r = Convert.Toint(hexColor.Substring(0, 2), 16);
-                    int g = Convert.Toint(hexColor.Substring(2, 2), 16);
-                    int b = Convert.Toint(hexColor.Substring(4, 2), 16);
+                    int r = Convert.ToInt16(hexColor.Substring(0, 2), 16);
+                    int g = Convert.ToInt16(hexColor.Substring(2, 2), 16);
+                    int b = Convert.ToInt16(hexColor.Substring(4, 2), 16);
 
                     Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
                     return [r, g, b];
@@ -484,10 +484,10 @@ namespace AsynCUDA13.Media
                 else if (hexColor.Length == 8)
                 {
                     // AARRGGBB format - extract RGB and ignore alpha
-                    int r = Convert.Toint(hexColor.Substring(2, 2), 16);
-                    int g = Convert.Toint(hexColor.Substring(4, 2), 16);
-                    int b = Convert.Toint(hexColor.Substring(6, 2), 16);
-                    int a = Convert.Toint(hexColor.Substring(0, 2), 16);
+                    int r = Convert.ToInt16(hexColor.Substring(2, 2), 16);
+                    int g = Convert.ToInt16(hexColor.Substring(4, 2), 16);
+                    int b = Convert.ToInt16(hexColor.Substring(6, 2), 16);
+                    int a = Convert.ToInt16(hexColor.Substring(0, 2), 16);
 
                     Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b} A: {a}");
                     return [r, g, b, a];
@@ -495,9 +495,9 @@ namespace AsynCUDA13.Media
                 else if (hexColor.Length == 3)
                 {
                     // RGB shorthand format
-                    int r = Convert.Toint(hexColor[0].ToString() + hexColor[0].ToString(), 16);
-                    int g = Convert.Toint(hexColor[1].ToString() + hexColor[1].ToString(), 16);
-                    int b = Convert.Toint(hexColor[2].ToString() + hexColor[2].ToString(), 16);
+                    int r = Convert.ToInt16(hexColor[0].ToString() + hexColor[0].ToString(), 16);
+                    int g = Convert.ToInt16(hexColor[1].ToString() + hexColor[1].ToString(), 16);
+                    int b = Convert.ToInt16(hexColor[2].ToString() + hexColor[2].ToString(), 16);
 
                     Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
                     return [r, g, b];

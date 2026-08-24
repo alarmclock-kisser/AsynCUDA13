@@ -15,13 +15,13 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         // 1D Serialization (Sektor-Aufteilung über Threads)
         // --------------------------------------------------------------------------------
-        public static async Task<ICudaPayload?> SerializeAsync<T>(IEnumerable<T> data, Boolean asyncCall = true) where T : unmanaged
+        public static async Task<ISimdPayload?> SerializeAsync<T>(IEnumerable<T> data, Boolean asyncCall = true) where T : unmanaged
         {
             T[] items = data as T[] ?? data.ToArray();
 
             if (items.Length == 0)
             {
-                return new CudaPayload1D
+                return new SimdPayload1D
                 {
                     AsyncCall = asyncCall,
                     ElementType = typeof(T).Name,
@@ -66,11 +66,11 @@ namespace AsynCUDA13.Shared.Serialization
                     ReadOnlySpan<Byte> byteSlice = MemoryMarshal.AsBytes(slice);
 
                     // Sektor-Array ist thread-safe, da jeder Index eindeutig zugewiesen ist
-                    sectorResults[sectorIdx] = Convert.ToBase64string(byteSlice);
+                    sectorResults[sectorIdx] = Convert.ToBase64String(byteSlice);
                 });
             });
 
-            return new CudaPayload1D
+            return new SimdPayload1D
             {
                 AsyncCall = asyncCall,
                 ElementType = typeof(T).Name,
@@ -81,14 +81,14 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         // 2D Serialization (Chunk-Workerpool mit Parallel.ForAsync)
         // --------------------------------------------------------------------------------
-        public static async Task<ICudaPayload?> SerializeAsync<T>(IEnumerable<IEnumerable<T>> data, Boolean asyncCall = true) where T : unmanaged
+        public static async Task<ISimdPayload?> SerializeAsync<T>(IEnumerable<IEnumerable<T>> data, Boolean asyncCall = true) where T : unmanaged
         {
             // Materialisieren der äußeren Chunks als Arrays für schnellen Span-Zugriff
             List<T[]> chunkList = data.Select(c => c as T[] ?? c.ToArray()).ToList();
 
             if (chunkList.Count == 0)
             {
-                return new CudaPayload2D
+                return new SimdPayload2D
                 {
                     AsyncCall = asyncCall,
                     ElementType = typeof(T).Name,
@@ -109,11 +109,11 @@ namespace AsynCUDA13.Shared.Serialization
                 ReadOnlySpan<T> span = chunkList[i].AsSpan();
                 ReadOnlySpan<Byte> byteSpan = MemoryMarshal.AsBytes(span);
 
-                results[i] = Convert.ToBase64string(byteSpan);
+                results[i] = Convert.ToBase64String(byteSpan);
                 return ValueTask.CompletedTask;
             });
 
-            return new CudaPayload2D
+            return new SimdPayload2D
             {
                 AsyncCall = asyncCall,
                 ElementType = typeof(T).Name,

@@ -5,1047 +5,6 @@
     "version": "v1"
   },
   "paths": {
-    "/api/CudaContext/status": {
-      "get": {
-        "tags": [
-          "CudaContext"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaContextInfo"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaContextInfo"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaContextInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaContext/initialize": {
-      "post": {
-        "tags": [
-          "CudaContext"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaInitializeRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaInitializeRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaInitializeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaInitializeResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaInitializeResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaInitializeResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaContext/initialize/{deviceId}": {
-      "post": {
-        "tags": [
-          "CudaContext"
-        ],
-        "parameters": [
-          {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int",
-              "default": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaContextInfo"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaContextInfo"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaContextInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaContext/dispose-context": {
-      "delete": {
-        "tags": [
-          "CudaContext"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaDisposeRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaDisposeRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaDisposeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaDisposeResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaDisposeResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaDisposeResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaContext/dispose": {
-      "delete": {
-        "tags": [
-          "CudaContext"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/CudaDevice/devices": {
-      "get": {
-        "tags": [
-          "CudaDevice"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaDeviceInfo"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaDeviceInfo"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaDeviceInfo"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaDevice/device/{deviceId}": {
-      "get": {
-        "tags": [
-          "CudaDevice"
-        ],
-        "parameters": [
-          {
-            "name": "deviceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaDeviceInfo"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaDeviceInfo"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaDeviceInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaFourier/CuFFT": {
-      "post": {
-        "tags": [
-          "CudaFourier"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaFourierRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaFourierRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaFourierRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaFourierResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaFourierResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaFourierResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaFourier/CuFFT/audio": {
-      "post": {
-        "tags": [
-          "CudaFourier"
-        ],
-        "parameters": [
-          {
-            "name": "chunkSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int",
-              "default": 0
-            }
-          },
-          {
-            "name": "overlap",
-            "in": "query",
-            "schema": {
-              "type": "number",
-              "format": "float",
-              "default": 0.5
-            }
-          },
-          {
-            "name": "autoPullResult",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": false
-            }
-          },
-          {
-            "name": "keepDataOrBuffer",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": false
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "string"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "type": "string"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaFourierResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaFourierResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaFourierResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/kernels": {
-      "get": {
-        "tags": [
-          "CudaKernel"
-        ],
-        "parameters": [
-          {
-            "name": "filterCompiled",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": true
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaKernelInfo"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaKernelInfo"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaKernelInfo"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/compile": {
-      "post": {
-        "tags": [
-          "CudaKernel"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaCompileRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaCompileRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaCompileRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaCompileResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaCompileResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaCompileResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/execute-generic": {
-      "post": {
-        "tags": [
-          "CudaKernel"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaExecuteRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaExecuteRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaExecuteRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaExecuteResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaExecuteResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaExecuteResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/execute-linear": {
-      "post": {
-        "tags": [
-          "CudaKernel"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaExecuteRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaExecuteRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaExecuteRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaExecuteResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaExecuteResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaExecuteResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/memory-list": {
-      "get": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaMemInfo"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaMemInfo"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CudaMemInfo"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/memory-info/{indexPointerOrId}": {
-      "get": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "parameters": [
-          {
-            "name": "indexPointerOrId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaMemInfo"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaMemInfo"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaMemInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/memory-free/{indexPointerOrId}": {
-      "delete": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "parameters": [
-          {
-            "name": "indexPointerOrId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/free-all-memory": {
-      "delete": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/push": {
-      "post": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaPushRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaPushRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaPushRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/pull": {
-      "post": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaPullRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaPullRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CudaPullRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/push-asset": {
-      "get": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "parameters": [
-          {
-            "name": "assetIdOrName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "chunkSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int",
-              "default": 0
-            }
-          },
-          {
-            "name": "overlap",
-            "in": "query",
-            "schema": {
-              "type": "number",
-              "format": "float",
-              "default": 0.5
-            }
-          },
-          {
-            "name": "keepData",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/pull-asset": {
-      "get": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "parameters": [
-          {
-            "name": "assetIdOrName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "keepBuffer",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/client-push-asset": {
-      "get": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "parameters": [
-          {
-            "name": "assetIdOrName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "chunkSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int",
-              "default": 0
-            }
-          },
-          {
-            "name": "overlap",
-            "in": "query",
-            "schema": {
-              "type": "number",
-              "format": "float",
-              "default": 0.5
-            }
-          },
-          {
-            "name": "keepData",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPushResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/CudaMemory/client-pull-asset": {
-      "get": {
-        "tags": [
-          "CudaMemory"
-        ],
-        "parameters": [
-          {
-            "name": "assetIdOrName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "keepBuffer",
-            "in": "query",
-            "schema": {
-              "type": "bool",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CudaPullResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/execute-image/{kernelName}/{imageIdOrNameOrPath}": {
       "post": {
         "tags": [
@@ -1082,7 +41,7 @@
             "name": "overwriteImage",
             "in": "query",
             "schema": {
-              "type": "bool",
+              "type": "boolean",
               "default": true
             }
           },
@@ -1090,7 +49,7 @@
             "name": "unloadKernelAfterExecution",
             "in": "query",
             "schema": {
-              "type": "bool",
+              "type": "boolean",
               "default": false
             }
           }
@@ -1144,11 +103,11 @@
                     }
                   },
                   "overwriteImage": {
-                    "type": "bool",
+                    "type": "boolean",
                     "default": true
                   },
                   "unloadKernelAfterExecution": {
-                    "type": "bool",
+                    "type": "boolean",
                     "default": false
                   }
                 }
@@ -1197,7 +156,7 @@
                   },
                   "thickness": {
                     "type": "integer",
-                    "format": "int",
+                    "format": "int32",
                     "default": 1
                   },
                   "threshold": {
@@ -1207,22 +166,22 @@
                   },
                   "edgeR": {
                     "type": "integer",
-                    "format": "int",
+                    "format": "int32",
                     "default": 255
                   },
                   "edgeG": {
                     "type": "integer",
-                    "format": "int",
+                    "format": "int32",
                     "default": 0
                   },
                   "edgeB": {
                     "type": "integer",
-                    "format": "int",
+                    "format": "int32",
                     "default": 0
                   },
                   "deviceId": {
                     "type": "integer",
-                    "format": "int",
+                    "format": "int32",
                     "default": 0
                   },
                   "kernelVersion": {
@@ -1278,7 +237,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int"
+              "format": "int32"
             }
           }
         ],
@@ -1529,7 +488,7 @@
             "name": "pullIfRequired",
             "in": "query",
             "schema": {
-              "type": "bool",
+              "type": "boolean",
               "default": true
             }
           },
@@ -1537,7 +496,7 @@
             "name": "keepBufferWhenPulled",
             "in": "query",
             "schema": {
-              "type": "bool",
+              "type": "boolean",
               "default": false
             }
           }
@@ -1635,7 +594,7 @@
             "name": "keepData",
             "in": "query",
             "schema": {
-              "type": "bool",
+              "type": "boolean",
               "default": true
             }
           }
@@ -1683,7 +642,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int",
+              "format": "int32",
               "default": 256
             }
           }
@@ -1731,7 +690,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int",
+              "format": "int32",
               "default": 0
             }
           },
@@ -1748,7 +707,7 @@
             "name": "keepData",
             "in": "query",
             "schema": {
-              "type": "bool",
+              "type": "boolean",
               "default": true
             }
           }
@@ -1796,7 +755,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int",
+              "format": "int32",
               "default": 512
             }
           },
@@ -1805,7 +764,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int",
+              "format": "int32",
               "default": 128
             }
           }
@@ -1867,6 +826,1047 @@
           }
         }
       }
+    },
+    "/api/RuntimeContext/status": {
+      "get": {
+        "tags": [
+          "RuntimeContext"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeContextInfo"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeContextInfo"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeContextInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeContext/initialize": {
+      "post": {
+        "tags": [
+          "RuntimeContext"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeInitializeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeInitializeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeInitializeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeInitializeResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeInitializeResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeInitializeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeContext/initialize/{deviceId}": {
+      "post": {
+        "tags": [
+          "RuntimeContext"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeContextInfo"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeContextInfo"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeContextInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeContext/dispose-context": {
+      "delete": {
+        "tags": [
+          "RuntimeContext"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeDisposeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeDisposeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeDisposeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDisposeResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDisposeResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDisposeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeContext/dispose": {
+      "delete": {
+        "tags": [
+          "RuntimeContext"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/RuntimeDevice/devices": {
+      "get": {
+        "tags": [
+          "RuntimeDevice"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeDeviceInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeDeviceInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeDeviceInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeDevice/device/{deviceId}": {
+      "get": {
+        "tags": [
+          "RuntimeDevice"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDeviceInfo"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDeviceInfo"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDeviceInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeFourier/CuFFT": {
+      "post": {
+        "tags": [
+          "RuntimeFourier"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeFourierRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeFourierRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeFourierRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFourierResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFourierResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFourierResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeFourier/CuFFT/audio": {
+      "post": {
+        "tags": [
+          "RuntimeFourier"
+        ],
+        "parameters": [
+          {
+            "name": "chunkSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "overlap",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "default": 0.5
+            }
+          },
+          {
+            "name": "autoPullResult",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "keepDataOrBuffer",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "string"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFourierResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFourierResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeFourierResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/kernels": {
+      "get": {
+        "tags": [
+          "RuntimeKernel"
+        ],
+        "parameters": [
+          {
+            "name": "filterCompiled",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeKernelInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeKernelInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeKernelInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/compile": {
+      "post": {
+        "tags": [
+          "RuntimeKernel"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeCompileRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeCompileRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeCompileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeCompileResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeCompileResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeCompileResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/execute-generic": {
+      "post": {
+        "tags": [
+          "RuntimeKernel"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeExecuteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeExecuteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeExecuteResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeExecuteResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeExecuteResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/execute-linear": {
+      "post": {
+        "tags": [
+          "RuntimeKernel"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeExecuteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeExecuteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeExecuteResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeExecuteResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeExecuteResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/memory-list": {
+      "get": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeMemInfo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeMemInfo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuntimeMemInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/memory-info/{indexPointerOrId}": {
+      "get": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "parameters": [
+          {
+            "name": "indexPointerOrId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeMemInfo"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeMemInfo"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeMemInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/memory-free/{indexPointerOrId}": {
+      "delete": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "parameters": [
+          {
+            "name": "indexPointerOrId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/free-all-memory": {
+      "delete": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/push": {
+      "post": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePushRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePushRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePushRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/pull": {
+      "post": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePullRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePullRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePullRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/push-asset": {
+      "get": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "parameters": [
+          {
+            "name": "assetIdOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chunkSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "overlap",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "default": 0.5
+            }
+          },
+          {
+            "name": "keepData",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/pull-asset": {
+      "get": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "parameters": [
+          {
+            "name": "assetIdOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keepBuffer",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/client-push-asset": {
+      "get": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "parameters": [
+          {
+            "name": "assetIdOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chunkSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "overlap",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "default": 0.5
+            }
+          },
+          {
+            "name": "keepData",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePushResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/RuntimeMemory/client-pull-asset": {
+      "get": {
+        "tags": [
+          "RuntimeMemory"
+        ],
+        "parameters": [
+          {
+            "name": "assetIdOrName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keepBuffer",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePullResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1906,7 +1906,7 @@
           },
           "chunkSize": {
             "type": "integer",
-            "format": "int",
+            "format": "int32",
             "readOnly": true
           },
           "dataSizeMb": {
@@ -1924,6 +1924,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "name": {
             "type": "string",
             "nullable": true
@@ -1934,15 +1938,15 @@
           },
           "sampleRate": {
             "type": "integer",
-            "format": "int"
+            "format": "int32"
           },
           "channels": {
             "type": "integer",
-            "format": "int"
+            "format": "int32"
           },
           "bitDepth": {
             "type": "integer",
-            "format": "int"
+            "format": "int32"
           },
           "length": {
             "type": "string",
@@ -1962,465 +1966,13 @@
             "nullable": true
           },
           "onGpu": {
-            "type": "bool",
+            "type": "boolean",
             "readOnly": true
           }
         },
         "additionalProperties": false
       },
-      "CudaCompileRequest": {
-        "required": [
-          "kernelName",
-          "kernelSource"
-        ],
-        "type": "object",
-        "properties": {
-          "kernelName": {
-            "type": "string",
-            "nullable": true
-          },
-          "kernelSource": {
-            "type": "string",
-            "nullable": true
-          },
-          "silent": {
-            "type": "bool"
-          },
-          "asyncCall": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaCompileResponse": {
-        "type": "object",
-        "properties": {
-          "kernelInfo": {
-            "$ref": "#/components/schemas/CudaKernelInfo"
-          },
-          "buildLog": {
-            "type": "string",
-            "nullable": true
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaContextInfo": {
-        "type": "object",
-        "properties": {
-          "deviceInfo": {
-            "$ref": "#/components/schemas/CudaDeviceInfo"
-          },
-          "usageInfo": {
-            "$ref": "#/components/schemas/CudaUsageInfo"
-          },
-          "memoryInfos": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CudaMemInfo"
-            },
-            "nullable": true
-          },
-          "kernelInfos": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CudaKernelInfo"
-            },
-            "nullable": true
-          },
-          "online": {
-            "type": "bool",
-            "readOnly": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaDeviceInfo": {
-        "type": "object",
-        "properties": {
-          "deviceId": {
-            "type": "integer",
-            "format": "int",
-            "nullable": true
-          },
-          "deviceName": {
-            "type": "string",
-            "nullable": true
-          },
-          "properties": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaDisposeRequest": {
-        "type": "object",
-        "properties": {
-          "freeAllBuffersBeforeDispose": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaDisposeResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "bool"
-          },
-          "freedMemoryBytes": {
-            "type": "string",
-            "nullable": true
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaExecuteRequest": {
-        "required": [
-          "kernelInfo"
-        ],
-        "type": "object",
-        "properties": {
-          "kernelInfo": {
-            "$ref": "#/components/schemas/CudaKernelInfo"
-          },
-          "argumentValues": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "asyncCall": {
-            "type": "bool"
-          },
-          "unloadAfterExecution": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaExecuteResponse": {
-        "required": [
-          "kernelInfo"
-        ],
-        "type": "object",
-        "properties": {
-          "resultPointer": {
-            "$ref": "#/components/schemas/IntPtr"
-          },
-          "success": {
-            "type": "bool"
-          },
-          "kernelInfo": {
-            "$ref": "#/components/schemas/CudaKernelInfo"
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaFourierRequest": {
-        "required": [
-          "memoryInfo"
-        ],
-        "type": "object",
-        "properties": {
-          "memoryInfo": {
-            "$ref": "#/components/schemas/CudaMemInfo"
-          },
-          "inverse": {
-            "type": "bool",
-            "nullable": true
-          },
-          "asyncCall": {
-            "type": "bool"
-          },
-          "keepInputBuffer": {
-            "type": "bool"
-          },
-          "autoPullResult": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaFourierResponse": {
-        "required": [
-          "inputMemoryInfoReference"
-        ],
-        "type": "object",
-        "properties": {
-          "inputMemoryInfoReference": {
-            "$ref": "#/components/schemas/CudaMemInfo"
-          },
-          "outputMemoryInfoReference": {
-            "$ref": "#/components/schemas/CudaMemInfo"
-          },
-          "indexPointer": {
-            "type": "string",
-            "nullable": true
-          },
-          "outputPayload": {
-            "$ref": "#/components/schemas/ICudaPayload"
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaInitializeRequest": {
-        "type": "object",
-        "properties": {
-          "deviceId": {
-            "type": "integer",
-            "format": "int",
-            "nullable": true
-          },
-          "deviceName": {
-            "type": "string",
-            "nullable": true
-          },
-          "forceReinitialize": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaInitializeResponse": {
-        "type": "object",
-        "properties": {
-          "contextInfo": {
-            "$ref": "#/components/schemas/CudaContextInfo"
-          },
-          "success": {
-            "type": "bool",
-            "readOnly": true
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaKernelInfo": {
-        "type": "object",
-        "properties": {
-          "functionName": {
-            "type": "string",
-            "nullable": true
-          },
-          "sourcePath": {
-            "type": "string",
-            "nullable": true
-          },
-          "ptxPath": {
-            "type": "string",
-            "nullable": true
-          },
-          "kernelCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "argumentNames": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "argumentTypes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaMemInfo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "nullable": true
-          },
-          "indexPointer": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "elementType": {
-            "type": "string",
-            "nullable": true
-          },
-          "indexLength": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "elementSize": {
-            "type": "integer",
-            "format": "int",
-            "readOnly": true
-          },
-          "count": {
-            "type": "integer",
-            "format": "int",
-            "nullable": true,
-            "readOnly": true
-          },
-          "longCount": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "totalLength": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "totalSize": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "lengths": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "pointers": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaPullRequest": {
-        "type": "object",
-        "properties": {
-          "indexPointerOrId": {
-            "type": "string",
-            "nullable": true
-          },
-          "asyncCall": {
-            "type": "bool"
-          },
-          "freeAfterPull": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaPullResponse": {
-        "required": [
-          "memoryInfoReference"
-        ],
-        "type": "object",
-        "properties": {
-          "memoryInfoReference": {
-            "$ref": "#/components/schemas/CudaMemInfo"
-          },
-          "payload": {
-            "$ref": "#/components/schemas/ICudaPayload"
-          },
-          "success": {
-            "type": "bool"
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaPushRequest": {
-        "required": [
-          "payload"
-        ],
-        "type": "object",
-        "properties": {
-          "elementType": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "payload": {
-            "$ref": "#/components/schemas/ICudaPayload"
-          },
-          "asyncCall": {
-            "type": "bool"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaPushResponse": {
-        "type": "object",
-        "properties": {
-          "memoryInfo": {
-            "$ref": "#/components/schemas/CudaMemInfo"
-          },
-          "success": {
-            "type": "bool"
-          },
-          "elapsedMs": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CudaUsageInfo": {
-        "type": "object",
-        "properties": {
-          "activeThreads": {
-            "type": "integer",
-            "format": "int"
-          },
-          "idleThreads": {
-            "type": "integer",
-            "format": "int"
-          },
-          "totalAllocatedBytes": {
-            "type": "string",
-            "nullable": true
-          },
-          "registeredMemoryCount": {
-            "type": "integer",
-            "format": "int"
-          }
-        },
-        "additionalProperties": false
-      },
-      "ICudaPayload": {
+      "ISimdPayload": {
         "type": "object",
         "properties": {
           "elementType": {
@@ -2428,7 +1980,7 @@
             "nullable": true
           },
           "asyncCall": {
-            "type": "bool"
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -2475,6 +2027,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "name": {
             "type": "string",
             "nullable": true
@@ -2485,15 +2041,15 @@
           },
           "width": {
             "type": "integer",
-            "format": "int"
+            "format": "int32"
           },
           "height": {
             "type": "integer",
-            "format": "int"
+            "format": "int32"
           },
           "channels": {
             "type": "integer",
-            "format": "int"
+            "format": "int32"
           },
           "originalSizeMb": {
             "type": "number",
@@ -2504,7 +2060,7 @@
             "nullable": true
           },
           "onGpu": {
-            "type": "bool",
+            "type": "boolean",
             "readOnly": true
           }
         },
@@ -2527,7 +2083,7 @@
           },
           "status": {
             "type": "integer",
-            "format": "int",
+            "format": "int32",
             "nullable": true
           },
           "detail": {
@@ -2540,25 +2096,470 @@
           }
         },
         "additionalProperties": { }
+      },
+      "RuntimeCompileRequest": {
+        "required": [
+          "kernelName",
+          "kernelSource"
+        ],
+        "type": "object",
+        "properties": {
+          "kernelName": {
+            "type": "string",
+            "nullable": true
+          },
+          "kernelSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "silent": {
+            "type": "boolean"
+          },
+          "asyncCall": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeCompileResponse": {
+        "type": "object",
+        "properties": {
+          "kernelInfo": {
+            "$ref": "#/components/schemas/RuntimeKernelInfo"
+          },
+          "buildLog": {
+            "type": "string",
+            "nullable": true
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeContextInfo": {
+        "type": "object",
+        "properties": {
+          "runtimeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceInfo": {
+            "$ref": "#/components/schemas/RuntimeDeviceInfo"
+          },
+          "usageInfo": {
+            "$ref": "#/components/schemas/RuntimeUsageInfo"
+          },
+          "memoryInfos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuntimeMemInfo"
+            },
+            "nullable": true
+          },
+          "kernelInfos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuntimeKernelInfo"
+            },
+            "nullable": true
+          },
+          "online": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeDeviceInfo": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "deviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeDisposeRequest": {
+        "type": "object",
+        "properties": {
+          "freeAllBuffersBeforeDispose": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeDisposeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "freedMemoryBytes": {
+            "type": "string",
+            "nullable": true
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeExecuteRequest": {
+        "required": [
+          "kernelInfo"
+        ],
+        "type": "object",
+        "properties": {
+          "kernelInfo": {
+            "$ref": "#/components/schemas/RuntimeKernelInfo"
+          },
+          "argumentValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "asyncCall": {
+            "type": "boolean"
+          },
+          "unloadAfterExecution": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeExecuteResponse": {
+        "required": [
+          "kernelInfo"
+        ],
+        "type": "object",
+        "properties": {
+          "resultPointer": {
+            "$ref": "#/components/schemas/IntPtr"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "kernelInfo": {
+            "$ref": "#/components/schemas/RuntimeKernelInfo"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeFourierRequest": {
+        "required": [
+          "memoryInfo"
+        ],
+        "type": "object",
+        "properties": {
+          "memoryInfo": {
+            "$ref": "#/components/schemas/RuntimeMemInfo"
+          },
+          "inverse": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "asyncCall": {
+            "type": "boolean"
+          },
+          "keepInputBuffer": {
+            "type": "boolean"
+          },
+          "autoPullResult": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeFourierResponse": {
+        "required": [
+          "inputMemoryInfoReference"
+        ],
+        "type": "object",
+        "properties": {
+          "inputMemoryInfoReference": {
+            "$ref": "#/components/schemas/RuntimeMemInfo"
+          },
+          "outputMemoryInfoReference": {
+            "$ref": "#/components/schemas/RuntimeMemInfo"
+          },
+          "indexPointer": {
+            "type": "string",
+            "nullable": true
+          },
+          "outputPayload": {
+            "$ref": "#/components/schemas/ISimdPayload"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeInitializeRequest": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "deviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "forceReinitialize": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeInitializeResponse": {
+        "type": "object",
+        "properties": {
+          "contextInfo": {
+            "$ref": "#/components/schemas/RuntimeContextInfo"
+          },
+          "success": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeKernelInfo": {
+        "type": "object",
+        "properties": {
+          "functionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "ptxPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "kernelCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "argumentNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "argumentTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeMemInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "indexPointer": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "elementType": {
+            "type": "string",
+            "nullable": true
+          },
+          "indexLength": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "elementSize": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "longCount": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "totalLength": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "totalSize": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "lengths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "pointers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "isValid": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimePullRequest": {
+        "type": "object",
+        "properties": {
+          "indexPointerOrId": {
+            "type": "string",
+            "nullable": true
+          },
+          "asyncCall": {
+            "type": "boolean"
+          },
+          "freeAfterPull": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimePullResponse": {
+        "required": [
+          "memoryInfoReference"
+        ],
+        "type": "object",
+        "properties": {
+          "memoryInfoReference": {
+            "$ref": "#/components/schemas/RuntimeMemInfo"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ISimdPayload"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimePushRequest": {
+        "required": [
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "elementType": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ISimdPayload"
+          },
+          "asyncCall": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimePushResponse": {
+        "type": "object",
+        "properties": {
+          "memoryInfo": {
+            "$ref": "#/components/schemas/RuntimeMemInfo"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RuntimeUsageInfo": {
+        "type": "object",
+        "properties": {
+          "activeThreads": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "idleThreads": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAllocatedBytes": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalAllocations": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
       }
     }
   },
   "tags": [
-    {
-      "name": "CudaContext"
-    },
-    {
-      "name": "CudaDevice"
-    },
-    {
-      "name": "CudaFourier"
-    },
-    {
-      "name": "CudaKernel"
-    },
-    {
-      "name": "CudaMemory"
-    },
     {
       "name": "ImageKernel"
     },
@@ -2567,6 +2568,21 @@
     },
     {
       "name": "Media"
+    },
+    {
+      "name": "RuntimeContext"
+    },
+    {
+      "name": "RuntimeDevice"
+    },
+    {
+      "name": "RuntimeFourier"
+    },
+    {
+      "name": "RuntimeKernel"
+    },
+    {
+      "name": "RuntimeMemory"
     }
   ]
 }

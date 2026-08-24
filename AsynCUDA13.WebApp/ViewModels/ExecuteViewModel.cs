@@ -1,12 +1,12 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using Microsoft.JSInterop;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class ExecuteViewModel : ViewModelBase<CudaExecuteRequest, CudaExecuteResponse>
+    public class ExecuteViewModel : ViewModelBase<RuntimeExecuteRequest, RuntimeExecuteResponse>
     {
         public ExecuteViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
@@ -18,8 +18,8 @@ namespace AsynCUDA13.WebApp.ViewModels
             return (uint) index < (uint) this.ArgumentValues.Length ? this.ArgumentValues[index] : string.Empty;
         }
 
-        public CudaKernelInfo[]? CompiledKernels { get; set; }
-        public CudaMemInfo[]? MemoryInfos { get; set; }
+        public RuntimeKernelInfo[]? CompiledKernels { get; set; }
+        public RuntimeMemInfo[]? MemoryInfos { get; set; }
 
         public string? SelectedKernelName { get; set; }
         public string? SelectedIndexPointer { get; set; }
@@ -32,7 +32,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             this.NotifyStateChanged();
         }
 
-        public void PrepareArguments(CudaKernelInfo? kernel)
+        public void PrepareArguments(RuntimeKernelInfo? kernel)
         {
             this.ArgumentValues = kernel?.ArgumentNames.Select((_, index) =>
                 index < this.ArgumentValues.Length ? this.ArgumentValues[index] : string.Empty).ToArray() ?? [];
@@ -52,7 +52,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             this.NotifyStateChanged();
         }
 
-        public CudaKernelInfo? GetSelectedKernel()
+        public RuntimeKernelInfo? GetSelectedKernel()
         {
             if (string.IsNullOrEmpty(this.SelectedKernelName))
             {
@@ -62,7 +62,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             return this.CompiledKernels?.FirstOrDefault(k => k.FunctionName.Equals(this.SelectedKernelName, StringComparison.OrdinalIgnoreCase));
         }
 
-        public CudaMemInfo[] GetAvailablePointersForKernel(CudaKernelInfo kernel)
+        public RuntimeMemInfo[] GetAvailablePointersForKernel(RuntimeKernelInfo kernel)
         {
             if (this.MemoryInfos == null || kernel.ArgumentTypes == null || kernel.ArgumentTypes.Length == 0)
             {

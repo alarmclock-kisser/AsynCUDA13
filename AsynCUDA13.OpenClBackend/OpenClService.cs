@@ -29,12 +29,19 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Gets all OpenCL devices available on the machine, each identified by a flat <see cref="OpenClDevice.Index"/>.
         /// </summary>
-        public IReadOnlyList<OpenClDevice> AvailableDevices { get; }
+        public static IReadOnlyList<OpenClDevice> TotalAvailableDevices { get; } = OpenClDevice.DiscoverAll();
+
+        public Dictionary<int, Dictionary<string, string>> TotalAvailableDeviceProperties => OpenClDevice.DiscoverAll().ToDictionary(
+            device => device.Index,
+            device => this.GetDeviceProperties(device.Device, device.Index)
+        );
+
+        public IReadOnlyList<OpenClDevice> AvailableDevices => TotalAvailableDevices;
 
         /// <summary>
         /// Gets the number of available OpenCL devices.
         /// </summary>
-        public int DeviceCount => this.AvailableDevices.Count;
+        public int DeviceCount => TotalAvailableDevices.Count;
 
         /// <summary>
         /// Gets the flat index of the currently selected device, or <c>-1</c> when the service is offline.
@@ -44,7 +51,17 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Gets the currently selected device info, or <c>null</c> when the service is offline.
         /// </summary>
-        public OpenClDevice? SelectedDevice { get; private set; }
+        internal OpenClDevice? SelectedDevice { get; private set; }
+
+        /// <summary>
+        /// Gets the name of the currently selected device, or <c>null</c> when the service is offline.
+        /// </summary>
+        public string? SelectedDeviceName => this.SelectedDevice?.DeviceName;
+
+        /// <summary>
+        /// Gets the properties of the currently selected device, or an empty dictionary when the service is offline.
+        /// </summary>
+        public Dictionary<string, string> SelectedDeviceProperties => this.GetDeviceProperties(this.SelectedDevice?.Device, (this.SelectedDevice?.Index ?? -1));
 
         /// <summary>
         /// Gets a value indicating whether the service has an initialized device context.
@@ -56,8 +73,36 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         public long TotalAllocatedBytes => this._register?.TotalAllocatedBytes ?? 0;
 
+        /// <summary>
+        /// Gets the total number of memory-object allocations made on the device since initialization.
+        /// </summary>
+        public int TotalAllocations => this._register?.AllocationCount ?? 0;
 
+        /// <summary>
+        /// Gets a read-only collection of all registered memory objects on the device, or an empty collection when the service is offline.
+        /// </summary>
+        public IReadOnlyCollection<IRuntimeMem> RegisteredMemory => this._register?.Allocations ?? [];
 
+        /// <summary>
+        /// Gets the registered memory object corresponding to the given native handle, or <c>null</c> if not found or the service is offline.
+        /// </summary>
+        /// <param name="indexPointer">The native handle of the memory object.</param>
+        /// <returns>The registered memory object corresponding to the given native handle, or <c>null</c> if not found or the service is offline.</returns>
+        public IRuntimeMem? this[IntPtr indexPointer] => this._register?[indexPointer];
+
+        /// <summary>
+        /// Gets the registered memory object corresponding to the given GUID, or <c>null</c> if not found or the service is offline.
+        /// </summary>
+        /// <param name="id">The GUID of the memory object.</param>
+        /// <returns>The registered memory object corresponding to the given GUID, or <c>null</c> if not found or the service is offline.</returns>
+        public IRuntimeMem? this[Guid id] => this._register?[id];
+
+        /// <summary>
+        /// Gets the registered memory object corresponding to the given index pointer or GUID, or <c>null</c> if not found or the service is offline.
+        /// </summary>
+        /// <param name="indexPointerOrId">The index pointer or GUID of the memory object.</param>
+        /// <returns>The registered memory object corresponding to the given index pointer or GUID, or <c>null</c> if not found or the service is offline.</returns>
+        public IRuntimeMem? this[string indexPointerOrId] => Guid.TryParse(indexPointerOrId, out Guid guid) ? this[guid] : (IntPtr.TryParse(indexPointerOrId, out IntPtr ptr) ? this[ptr] : null);
 
         // Ctor
         /// <summary>
@@ -70,8 +115,6 @@ namespace AsynCUDA13.OpenClBackend
         /// </param>
         public OpenClService(int preferredDeviceIndex = -1)
         {
-            this.AvailableDevices = OpenClDevice.DiscoverAll();
-
             if (this.AvailableDevices.Count == 0)
             {
                 StaticLogger.LogWarning("OpenClService: no OpenCL devices found on this machine.");
@@ -94,7 +137,6 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="preferredDeviceName">A case-insensitive substring of the desired device name.</param>
         public OpenClService(string preferredDeviceName)
         {
-            this.AvailableDevices = OpenClDevice.DiscoverAll();
             this.Initialize(preferredDeviceName);
         }
 
@@ -195,6 +237,152 @@ namespace AsynCUDA13.OpenClBackend
             this.SelectedDevice = null;
         }
 
+        /// <summary>
+        /// Sets the current OpenCL context and command queue for the calling thread, so that subsequent OpenCL calls
+        /// </summary>
+        public void SetCurrent()
+        {
+            if (!this.Online)
+            {
+                StaticLogger.LogError("SetCurrent: service is offline. Call Initialize(...) first.");
+                return;
+            }
+            
+            var syncCtx = SynchronizationContext.Current;
+            if (syncCtx == null)
+            {
+                StaticLogger.LogWarning("SetCurrent: no SynchronizationContext is set. The OpenCL context will be set for the current thread only.");
+            }
+        }
+
+
+        // CL-Properties
+        public Dictionary<string, string> GetDeviceProperties(int? deviceIndex = null)
+        {
+            return this.GetDeviceProperties(deviceIndex.HasValue ? null : this.SelectedDevice?.Device, deviceIndex ?? (this.SelectedDevice?.Index ?? -1));
+        }
+
+        internal Dictionary<string, string> GetDeviceProperties(CLDevice? clDevice, int clDeviceIndex = 0)
+        {
+            var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            clDevice ??= this.SelectedDevice?.Device ?? this.AvailableDevices.FirstOrDefault(d => d.Index == clDeviceIndex)?.Device;
+            if (clDevice == null)
+            {
+                return properties;
+            }
+
+            try
+            {
+                DeviceInfo[] infoTypes = Enum.GetValues<DeviceInfo>();
+
+                foreach (DeviceInfo infoType in infoTypes)
+                {
+                    CLResultCode result = CL.GetDeviceInfo(clDevice.Value, infoType, out byte[] outBytes);
+                    if (result != CLResultCode.Success)
+                    {
+                        StaticLogger.LogWarning($"GetDeviceProperties: failed to retrieve property '{infoType}' for device {clDevice.Value.Handle} ({result}).");
+                        continue;
+                    }
+
+                    // Hier feuert jetzt die elegante Auto-Formatierung
+                    properties[infoType.ToString()] = FormatCLDeviceInfo(infoType, outBytes);
+                }
+            }
+            catch (Exception ex)
+            {
+                StaticLogger.LogError($"GetDeviceProperties: failed to retrieve properties for device {clDevice.Value.Handle} - {ex.Message}");
+            }
+
+            return properties;
+        }
+
+        private static string FormatCLDeviceInfo(DeviceInfo infoType, byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // 1. Strings erkennen (Null-terminiert & druckbare ASCII/UTF-8 Zeichen)
+            if (IsNullTerminatedString(bytes))
+            {
+                return System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0', ' ', '\r', '\n', '\t');
+            }
+
+            // 2. Primitiv-Typen & Arrays anhand der Byte-Länge auflösen
+            return bytes.Length switch
+            {
+                1 => (bytes[0] != 0).ToString(), // cl_bool (8-Bit Variant)
+
+                4 => Format4Bytes(BitConverter.ToUInt32(bytes, 0)),
+
+                8 => Format8Bytes(BitConverter.ToUInt64(bytes, 0)),
+
+                // Size-T Arrays (z. B. MAX_WORK_ITEM_SIZES -> 3x size_t)
+                _ when bytes.Length % IntPtr.Size == 0 => FormatSizeTArray(bytes),
+
+                // Fallback für Rohdaten/Bitmasken
+                _ => BitConverter.ToString(bytes)
+            };
+        }
+
+        private static bool IsNullTerminatedString(byte[] bytes)
+        {
+            int len = bytes.Length;
+            if (len < 2 || bytes[len - 1] != 0)
+            {
+                return false;
+            }
+
+            // Prüfen, ob alle Zeichen vor dem \0 gültige druckbare Textzeichen sind
+            for (int i = 0; i < len - 1; i++)
+            {
+                byte b = bytes[i];
+                if (b == 0) break; // Frühes String-Ende ist okay
+                if (b < 32 && b != '\t' && b != '\r' && b != '\n') return false; // Nicht-druckbares Steuerzeichen
+            }
+            return true;
+        }
+
+        private static string Format4Bytes(uint val)
+        {
+            // Bools in OpenCL sind meist 4-Byte uints (CL_TRUE = 1, CL_FALSE = 0)
+            if (val == 1) return "True (1)";
+            if (val == 0) return "False (0)";
+            return val.ToString();
+        }
+
+        private static string Format8Bytes(ulong val)
+        {
+            // Speichergrößen (z. B. GLOBAL_MEM_SIZE) direkt lesbar in MB/GB mit anzeigen
+            if (val >= 1024 * 1024 * 1024)
+            {
+                return $"{val} ({val / (1024.0 * 1024.0 * 1024.0):F2} GB)";
+            }
+            if (val >= 1024 * 1024)
+            {
+                return $"{val} ({val / (1024.0 * 1024.0):F2} MB)";
+            }
+            return val.ToString();
+        }
+
+        private static string FormatSizeTArray(byte[] bytes)
+        {
+            int size = IntPtr.Size;
+            int count = bytes.Length / size;
+            var values = new List<string>(count);
+
+            for (int i = 0; i < count; i++)
+            {
+                ulong val = size == 8
+                    ? BitConverter.ToUInt64(bytes, i * size)
+                    : BitConverter.ToUInt32(bytes, i * size);
+                values.Add(val.ToString());
+            }
+
+            return $"[{string.Join(", ", values)}]";
+        }
 
 
         // Fourier convenience (delegates to OpenClFourier)
@@ -634,6 +822,19 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             return this._register.FreeMemory(mem);
+        }
+
+        /// <summary>
+        /// Frees all device memory allocations, leaving the service online but with no registered buffers.
+        /// </summary>
+        public void FreeAllMemory()
+        {
+            if (!this.Online || this._register == null)
+            {
+                StaticLogger.LogError("OpenClService: cannot free memory - service is offline.");
+                return;
+            }
+            this._register.FreeAll();
         }
 
 

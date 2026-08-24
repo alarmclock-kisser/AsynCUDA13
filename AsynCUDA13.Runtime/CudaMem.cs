@@ -16,7 +16,7 @@ namespace AsynCUDA13.Runtime
     /// A float instance can describe either one buffer (float allocation) or multiple buffers of the
     /// same element type (a group / chunked allocation).
     /// </summary>
-    public class CudaMem : IRuntimeMem, IDisposable
+    public class CudaMem : IRuntimeMem
     {
         /// <summary>
         /// Gets the unique identifier that the owning registry uses to track this memory object.
@@ -52,7 +52,7 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Gets the element count of the first buffer (the length associated with <see cref="IndexPointer"/>).
         /// </summary>
-        public IntPtr IndexLength { get; private set; } = IntPtr.Zero;
+        public long IndexLength { get; private set; } = IntPtr.Zero;
 
         /// <summary>
         /// Gets the .NET element <see cref="Type"/> stored in the buffer(s) (for example <see cref="float"/>).
@@ -154,8 +154,9 @@ namespace AsynCUDA13.Runtime
         /// Note: this clears the tracked metadata only; releasing the underlying device memory is the
         /// responsibility of the owning registry (see <c>CudaRegister.FreeMemory</c>).
         /// </summary>
-        public void Dispose()
+        public long Dispose()
         {
+            long len = this.TotalLength;
             this.Pointers = [];
             this.PointerLengths = [];
             this.ElementType = typeof(void);
@@ -165,6 +166,7 @@ namespace AsynCUDA13.Runtime
             this.Message = string.Empty;
 
             GC.SuppressFinalize(this);
+            return len;
         }
 
         /// <summary>

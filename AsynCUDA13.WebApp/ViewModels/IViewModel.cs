@@ -1,5 +1,5 @@
 ﻿using AsynCUDA13.Client;
-using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.WebApp.Components.Dialogs;
 using Microsoft.JSInterop;
 using Radzen;
@@ -33,7 +33,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <summary>
         /// Gets the current CUDA context information. This property is updated when the state of the view model changes with optional context refresh. It may be null if the context information has not been retrieved yet or if CUDA is not available.
         /// </summary>
-        protected CudaContextInfo? _contextInfo = null;
+        protected RuntimeContextInfo? _contextInfo = null;
 
         /// <summary>
         /// Gets a value indicating whether CUDA is initialized and available for use. This property checks the Online status of the current CUDA context information. It returns true if CUDA is initialized and online, and false otherwise.
