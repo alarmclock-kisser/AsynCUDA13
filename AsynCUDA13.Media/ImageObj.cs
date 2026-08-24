@@ -33,8 +33,8 @@ namespace AsynCUDA13.Media
         public bool OnHost => this.Pointer == nint.Zero && this.Img != null;
         public bool OnDevice => this.Pointer != nint.Zero && this.Img == null;
 
-        public double ElapsedProcessingTime { get; set; } = 0.0;
-        public Single ScalingFactor { get; set; }
+        public Double ElapsedProcessingTime { get; set; } = 0.0;
+        public float ScalingFactor { get; set; }
 
         private readonly object lockObj = new();
 
@@ -88,7 +88,7 @@ namespace AsynCUDA13.Media
             }
         }
 
-        public ImageObj(IEnumerable<byte> rawPixelData, int width, int height, string name = "UnbenanntesBild")
+        public ImageObj(IEnumerable<Byte> rawPixelData, int width, int height, string name = "UnbenanntesBild")
         {
             this.Id = Guid.NewGuid();
             this.Name = name;
@@ -130,7 +130,7 @@ namespace AsynCUDA13.Media
                 };
 
                 await imgClone.SaveAsync(ms, encoder);
-                return Convert.ToBase64String(ms.ToArray());
+                return Convert.ToBase64string(ms.ToArray());
             }
             catch (Exception ex)
             {
@@ -147,7 +147,7 @@ namespace AsynCUDA13.Media
             }
         }
 
-        public async Task<IEnumerable<byte>> GetBytesAsync(bool keepImage = false)
+        public async Task<IEnumerable<Byte>> GetBytesAsync(bool keepImage = false)
         {
             if (this.Img == null)
             {
@@ -164,7 +164,7 @@ namespace AsynCUDA13.Media
             int bytesPerPixel = this.Img.PixelType.BitsPerPixel / 8;
             long totalBytes = this.Width * this.Height * bytesPerPixel;
 
-            byte[] bytes = new byte[totalBytes];
+            Byte[] bytes = new Byte[totalBytes];
 
             await Task.Run(() =>
             {
@@ -180,7 +180,7 @@ namespace AsynCUDA13.Media
             return bytes.AsEnumerable();
         }
 
-        public async Task<Image<Rgba32>?> SetImageAsync(IEnumerable<byte> bytes, bool keepPointer = false)
+        public async Task<Image<Rgba32>?> SetImageAsync(IEnumerable<Byte> bytes, bool keepPointer = false)
         {
             if (this.Img != null)
             {
@@ -325,7 +325,7 @@ namespace AsynCUDA13.Media
             }
         }
 
-        public async Task<byte[]> GetImageAsFileFormatAsync(IImageEncoder? encoder = null)
+        public async Task<Byte[]> GetImageAsFileFormatAsync(IImageEncoder? encoder = null)
         {
             if (this.Img == null)
             {
@@ -403,7 +403,7 @@ namespace AsynCUDA13.Media
                 _ => new SixLabors.ImageSharp.Formats.Png.PngEncoder()
             };
             previewImage.Save(ms, encoder);
-            return Convert.ToBase64String(ms.ToArray());
+            return Convert.ToBase64string(ms.ToArray());
         }
     }
 }

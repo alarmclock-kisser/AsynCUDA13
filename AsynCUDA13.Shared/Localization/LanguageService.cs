@@ -8,10 +8,10 @@ namespace AsynCUDA13.Shared.Localization
 {
     public class LanguageService
     {
-        private readonly IStringLocalizer<SharedResources> _localizer;
+        private readonly IstringLocalizer<SharedResources> _localizer;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public LanguageService(IStringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
+        public LanguageService(IstringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
         {
             this._localizer = localizer;
             this._httpContextAccessor = httpContextAccessor;
@@ -21,12 +21,12 @@ namespace AsynCUDA13.Shared.Localization
         {
             get
             {
-                var localizedString = this._localizer[key];
-                return localizedString.Value;
+                var localizedstring = this._localizer[key];
+                return localizedstring.Value;
             }
         }
 
-        public LocalizedString GetLocalizedString(string key)
+        public Localizedstring GetLocalizedstring(string key)
         {
             return this._localizer[key];
         }
@@ -65,7 +65,7 @@ namespace AsynCUDA13.Shared.Localization
             }
         }
 
-        public bool IsGerman()
+        public Boolean IsGerman()
         {
             var culture = this.GetCurrentCulture();
             return culture.TwoLetterISOLanguageName == "de";

@@ -4,6 +4,7 @@ using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.CudaDtos;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace AsynCUDA13.Api.Services.DtoBuilders
@@ -24,16 +25,18 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new CudaDisposeResponse
             {
                 Success = !service.Online,
-                FreedMemoryBytes = service.TotalAllocated.ToString(),
+                FreedMemoryBytes = service.TotalAllocatedBytes.ToString(),
                 ElapsedMs = elapsedMs
             };
         }
 
         public static CudaPushResponse BuildPushResponse(ICudaService service, string indexPointerOrId, int elapsedMs = -1)
         {
+            var memInfo = CudaInfosBuilder.BuildCudaMemoryInfo(service, indexPointerOrId);
             return new CudaPushResponse
             {
-                MemoryInfo = CudaInfosBuilder.BuildCudaMemoryInfos(service, indexPointerOrId).FirstOrDefault(),
+                MemoryInfo = memInfo,
+                Success = memInfo != null,
                 ElapsedMs = elapsedMs
             };
         }
@@ -68,7 +71,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static CudaExecuteResponse BuildCudaExecuteResponse(CudaKernelInfo kernelInfo, bool success, nint? resultPtr = null, int elapsedMs = -1)
+        public static CudaExecuteResponse BuildCudaExecuteResponse(CudaKernelInfo kernelInfo, bool success, IntPtr? resultPtr = null, int elapsedMs = -1)
         {
             return new CudaExecuteResponse
             {

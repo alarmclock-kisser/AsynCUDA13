@@ -252,7 +252,7 @@ namespace AsynCUDA13.Media
                 ImageObj? obj = await Task.Run(() =>
                 {
                     using Image<Rgba32> image = SixLabors.ImageSharp.Image.Load<Rgba32>(stream);
-                    byte[] pixelData = new byte[image.Width * image.Height * 4];
+                    Byte[] pixelData = new Byte[image.Width * image.Height * 4];
                     image.CopyPixelDataTo(pixelData);
                     return new ImageObj(pixelData, image.Width, image.Height, resourceName);
                 });
@@ -330,7 +330,7 @@ namespace AsynCUDA13.Media
                 {
                     lock (this.lockObj)
                     {
-                        return new ImageObj(new byte[size.Value.Width * size.Value.Height * 4], size.Value.Width, size.Value.Height, $"EmptyImage_{number.ToString().PadLeft(digits, '0')}");
+                        return new ImageObj(new Byte[size.Value.Width * size.Value.Height * 4], size.Value.Width, size.Value.Height, $"EmptyImage_{number.ToString().PadLeft(digits, '0')}");
                     }
                 });
             }
@@ -474,9 +474,9 @@ namespace AsynCUDA13.Media
                 if (hexColor.Length == 6)
                 {
                     // RRGGBB format
-                    int r = Convert.ToInt32(hexColor.Substring(0, 2), 16);
-                    int g = Convert.ToInt32(hexColor.Substring(2, 2), 16);
-                    int b = Convert.ToInt32(hexColor.Substring(4, 2), 16);
+                    int r = Convert.Toint(hexColor.Substring(0, 2), 16);
+                    int g = Convert.Toint(hexColor.Substring(2, 2), 16);
+                    int b = Convert.Toint(hexColor.Substring(4, 2), 16);
 
                     Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
                     return [r, g, b];
@@ -484,10 +484,10 @@ namespace AsynCUDA13.Media
                 else if (hexColor.Length == 8)
                 {
                     // AARRGGBB format - extract RGB and ignore alpha
-                    int r = Convert.ToInt32(hexColor.Substring(2, 2), 16);
-                    int g = Convert.ToInt32(hexColor.Substring(4, 2), 16);
-                    int b = Convert.ToInt32(hexColor.Substring(6, 2), 16);
-                    int a = Convert.ToInt32(hexColor.Substring(0, 2), 16);
+                    int r = Convert.Toint(hexColor.Substring(2, 2), 16);
+                    int g = Convert.Toint(hexColor.Substring(4, 2), 16);
+                    int b = Convert.Toint(hexColor.Substring(6, 2), 16);
+                    int a = Convert.Toint(hexColor.Substring(0, 2), 16);
 
                     Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b} A: {a}");
                     return [r, g, b, a];
@@ -495,9 +495,9 @@ namespace AsynCUDA13.Media
                 else if (hexColor.Length == 3)
                 {
                     // RGB shorthand format
-                    int r = Convert.ToInt32(hexColor[0].ToString() + hexColor[0].ToString(), 16);
-                    int g = Convert.ToInt32(hexColor[1].ToString() + hexColor[1].ToString(), 16);
-                    int b = Convert.ToInt32(hexColor[2].ToString() + hexColor[2].ToString(), 16);
+                    int r = Convert.Toint(hexColor[0].ToString() + hexColor[0].ToString(), 16);
+                    int g = Convert.Toint(hexColor[1].ToString() + hexColor[1].ToString(), 16);
+                    int b = Convert.Toint(hexColor[2].ToString() + hexColor[2].ToString(), 16);
 
                     Console.WriteLine($"Resolved hex-Color: #{hexColor} to R: {r} G: {g} B: {b}");
                     return [r, g, b];

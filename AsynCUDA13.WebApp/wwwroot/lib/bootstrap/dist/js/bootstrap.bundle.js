@@ -86,7 +86,7 @@
     if (object === null || object === undefined) {
       return `${object}`;
     }
-    return Object.prototype.toString.call(object).match(/\s([a-z]+)/i)[1].toLowerCase();
+    return object.prototype.ToString.call(object).match(/\s([a-z]+)/i)[1].toLowerCase();
   };
 
   /**
@@ -372,7 +372,7 @@
     };
   }
   function findHandler(events, callable, delegationSelector = null) {
-    return Object.values(events).find(event => event.callable === callable && event.delegationSelector === delegationSelector);
+    return object.values(events).find(event => event.callable === callable && event.delegationSelector === delegationSelector);
   }
   function normalizeParameters(originalTypeEvent, handler, delegationFunction) {
     const isDelegated = typeof handler === 'string';
@@ -423,12 +423,12 @@
     if (!fn) {
       return;
     }
-    element.removeEventListener(typeEvent, fn, Boolean(delegationSelector));
+    element.removeEventListener(typeEvent, fn, bool(delegationSelector));
     delete events[typeEvent][fn.uidEvent];
   }
   function removeNamespacedHandlers(element, events, typeEvent, namespace) {
     const storeElementEvent = events[typeEvent] || {};
-    for (const [handlerKey, event] of Object.entries(storeElementEvent)) {
+    for (const [handlerKey, event] of object.entries(storeElementEvent)) {
       if (handlerKey.includes(namespace)) {
         removeHandler(element, events, typeEvent, event.callable, event.delegationSelector);
       }
@@ -457,18 +457,18 @@
       const isNamespace = originalTypeEvent.startsWith('.');
       if (typeof callable !== 'undefined') {
         // Simplest case: handler is passed, remove that listener ONLY.
-        if (!Object.keys(storeElementEvent).length) {
+        if (!object.keys(storeElementEvent).length) {
           return;
         }
         removeHandler(element, events, typeEvent, callable, isDelegated ? handler : null);
         return;
       }
       if (isNamespace) {
-        for (const elementEvent of Object.keys(events)) {
+        for (const elementEvent of object.keys(events)) {
           removeNamespacedHandlers(element, events, elementEvent, originalTypeEvent.slice(1));
         }
       }
-      for (const [keyHandlers, event] of Object.entries(storeElementEvent)) {
+      for (const [keyHandlers, event] of object.entries(storeElementEvent)) {
         const handlerKey = keyHandlers.replace(stripUidRegex, '');
         if (!inNamespace || originalTypeEvent.includes(handlerKey)) {
           removeHandler(element, events, typeEvent, event.callable, event.delegationSelector);
@@ -510,11 +510,11 @@
     }
   };
   function hydrateObj(obj, meta = {}) {
-    for (const [key, value] of Object.entries(meta)) {
+    for (const [key, value] of object.entries(meta)) {
       try {
         obj[key] = value;
       } catch (_unused) {
-        Object.defineProperty(obj, key, {
+        object.defineProperty(obj, key, {
           configurable: true,
           get() {
             return value;
@@ -539,7 +539,7 @@
     if (value === 'false') {
       return false;
     }
-    if (value === Number(value).toString()) {
+    if (value === Number(value).ToString()) {
       return Number(value);
     }
     if (value === '' || value === 'null') {
@@ -569,7 +569,7 @@
         return {};
       }
       const attributes = {};
-      const bsKeys = Object.keys(element.dataset).filter(key => key.startsWith('bs') && !key.startsWith('bsConfig'));
+      const bsKeys = object.keys(element.dataset).filter(key => key.startsWith('bs') && !key.startsWith('bsConfig'));
       for (const key of bsKeys) {
         let pureKey = key.replace(/^bs/, '');
         pureKey = pureKey.charAt(0).toLowerCase() + pureKey.slice(1, pureKey.length);
@@ -625,7 +625,7 @@
       };
     }
     _typeCheckConfig(config, configTypes = this.constructor.DefaultType) {
-      for (const [property, expectedTypes] of Object.entries(configTypes)) {
+      for (const [property, expectedTypes] of object.entries(configTypes)) {
         const value = config[property];
         const valueType = isElement$1(value) ? 'element' : toType(value);
         if (!new RegExp(expectedTypes).test(valueType)) {
@@ -669,7 +669,7 @@
     dispose() {
       Data.remove(this._element, this.constructor.DATA_KEY);
       EventHandler.off(this._element, this.constructor.EVENT_KEY);
-      for (const propertyName of Object.getOwnPropertyNames(this)) {
+      for (const propertyName of object.getOwnPropertyNames(this)) {
         this[propertyName] = null;
       }
     }
@@ -1004,7 +1004,7 @@
       }
       this._config = this._getConfig(config);
       this._deltaX = 0;
-      this._supportPointerEvents = Boolean(window.PointerEvent);
+      this._supportPointerEvents = bool(window.PointerEvent);
       this._initEvents();
     }
 
@@ -1136,13 +1136,13 @@
     wrap: true
   };
   const DefaultType$b = {
-    interval: '(number|boolean)',
-    // TODO:v6 remove boolean support
-    keyboard: 'boolean',
-    pause: '(string|boolean)',
-    ride: '(boolean|string)',
-    touch: 'boolean',
-    wrap: 'boolean'
+    interval: '(number|bool)',
+    // TODO:v6 remove bool support
+    keyboard: 'bool',
+    pause: '(string|bool)',
+    ride: '(bool|string)',
+    touch: 'bool',
+    wrap: 'bool'
   };
 
   /**
@@ -1343,7 +1343,7 @@
         // TODO: change tests that use empty divs to avoid this check
         return;
       }
-      const isCycling = Boolean(this._interval);
+      const isCycling = bool(this._interval);
       this.pause();
       this._isSliding = true;
       this._setActiveIndicatorElement(nextElementIndex);
@@ -1487,7 +1487,7 @@
   };
   const DefaultType$a = {
     parent: '(null|element)',
-    toggle: 'boolean'
+    toggle: 'bool'
   };
 
   /**
@@ -1610,7 +1610,7 @@
 
     // Private
     _configAfterMerge(config) {
-      config.toggle = Boolean(config.toggle); // Coerce string values
+      config.toggle = bool(config.toggle); // Coerce string values
       config.parent = getElement(config.parent);
       return config;
     }
@@ -1725,7 +1725,7 @@
       return window;
     }
 
-    if (node.toString() !== '[object Window]') {
+    if (node.ToString() !== '[object Window]') {
       var ownerDocument = node.ownerDocument;
       return ownerDocument ? ownerDocument.defaultView || window : window;
     }
@@ -1757,7 +1757,7 @@
 
   function applyStyles(_ref) {
     var state = _ref.state;
-    Object.keys(state.elements).forEach(function (name) {
+    object.keys(state.elements).forEach(function (name) {
       var style = state.styles[name] || {};
       var attributes = state.attributes[name] || {};
       var element = state.elements[name]; // arrow is optional + virtual elements
@@ -1769,8 +1769,8 @@
       // $FlowFixMe[cannot-write]
 
 
-      Object.assign(element.style, style);
-      Object.keys(attributes).forEach(function (name) {
+      object.assign(element.style, style);
+      object.keys(attributes).forEach(function (name) {
         var value = attributes[name];
 
         if (value === false) {
@@ -1796,18 +1796,18 @@
       },
       reference: {}
     };
-    Object.assign(state.elements.popper.style, initialStyles.popper);
+    object.assign(state.elements.popper.style, initialStyles.popper);
     state.styles = initialStyles;
 
     if (state.elements.arrow) {
-      Object.assign(state.elements.arrow.style, initialStyles.arrow);
+      object.assign(state.elements.arrow.style, initialStyles.arrow);
     }
 
     return function () {
-      Object.keys(state.elements).forEach(function (name) {
+      object.keys(state.elements).forEach(function (name) {
         var element = state.elements[name];
         var attributes = state.attributes[name] || {};
-        var styleProperties = Object.keys(state.styles.hasOwnProperty(name) ? state.styles[name] : initialStyles[name]); // Set all values to an empty string to unset them
+        var styleProperties = object.keys(state.styles.hasOwnProperty(name) ? state.styles[name] : initialStyles[name]); // Set all values to an empty string to unset them
 
         var style = styleProperties.reduce(function (style, property) {
           style[property] = '';
@@ -1818,8 +1818,8 @@
           return;
         }
 
-        Object.assign(element.style, style);
-        Object.keys(attributes).forEach(function (attribute) {
+        object.assign(element.style, style);
+        object.keys(attributes).forEach(function (attribute) {
           element.removeAttribute(attribute);
         });
       });
@@ -1844,7 +1844,7 @@
   var min = Math.min;
   var round = Math.round;
 
-  function getUAString() {
+  function getUAstring() {
     var uaData = navigator.userAgentData;
 
     if (uaData != null && uaData.brands && Array.isArray(uaData.brands)) {
@@ -1857,7 +1857,7 @@
   }
 
   function isLayoutViewport() {
-    return !/^((?!chrome|android).)*safari/i.test(getUAString());
+    return !/^((?!chrome|android).)*safari/i.test(getUAstring());
   }
 
   function getBoundingClientRect(element, includeScale, isFixedStrategy) {
@@ -1989,8 +1989,8 @@
 
 
   function getContainingBlock(element) {
-    var isFirefox = /firefox/i.test(getUAString());
-    var isIE = /Trident/i.test(getUAString());
+    var isFirefox = /firefox/i.test(getUAstring());
+    var isIE = /Trident/i.test(getUAstring());
 
     if (isIE && isHTMLElement(element)) {
       // In IE 9, 10 and 11 fixed elements containing block is always established by the viewport
@@ -2051,7 +2051,7 @@
     return v > max ? max : v;
   }
 
-  function getFreshSideObject() {
+  function getFreshSideobject() {
     return {
       top: 0,
       right: 0,
@@ -2060,8 +2060,8 @@
     };
   }
 
-  function mergePaddingObject(paddingObject) {
-    return Object.assign({}, getFreshSideObject(), paddingObject);
+  function mergePaddingobject(paddingobject) {
+    return object.assign({}, getFreshSideobject(), paddingobject);
   }
 
   function expandToHashMap(value, keys) {
@@ -2071,11 +2071,11 @@
     }, {});
   }
 
-  var toPaddingObject = function toPaddingObject(padding, state) {
-    padding = typeof padding === 'function' ? padding(Object.assign({}, state.rects, {
+  var toPaddingobject = function toPaddingobject(padding, state) {
+    padding = typeof padding === 'function' ? padding(object.assign({}, state.rects, {
       placement: state.placement
     })) : padding;
-    return mergePaddingObject(typeof padding !== 'number' ? padding : expandToHashMap(padding, basePlacements));
+    return mergePaddingobject(typeof padding !== 'number' ? padding : expandToHashMap(padding, basePlacements));
   };
 
   function arrow(_ref) {
@@ -2095,7 +2095,7 @@
       return;
     }
 
-    var paddingObject = toPaddingObject(options.padding, state);
+    var paddingobject = toPaddingobject(options.padding, state);
     var arrowRect = getLayoutRect(arrowElement);
     var minProp = axis === 'y' ? top : left;
     var maxProp = axis === 'y' ? bottom : right;
@@ -2106,8 +2106,8 @@
     var centerToReference = endDiff / 2 - startDiff / 2; // Make sure the arrow doesn't overflow the popper if the center point is
     // outside of the popper bounds
 
-    var min = paddingObject[minProp];
-    var max = clientSize - arrowRect[len] - paddingObject[maxProp];
+    var min = paddingobject[minProp];
+    var max = clientSize - arrowRect[len] - paddingobject[maxProp];
     var center = clientSize / 2 - arrowRect[len] / 2 + centerToReference;
     var offset = within(min, center, max); // Prevents breaking syntax highlighting...
 
@@ -2176,7 +2176,7 @@
   }
 
   function mapToStyles(_ref2) {
-    var _Object$assign2;
+    var _object$assign2;
 
     var popper = _ref2.popper,
         popperRect = _ref2.popperRect,
@@ -2243,7 +2243,7 @@
       }
     }
 
-    var commonStyles = Object.assign({
+    var commonStyles = object.assign({
       position: position
     }, adaptive && unsetSides);
 
@@ -2259,12 +2259,12 @@
     y = _ref4.y;
 
     if (gpuAcceleration) {
-      var _Object$assign;
+      var _object$assign;
 
-      return Object.assign({}, commonStyles, (_Object$assign = {}, _Object$assign[sideY] = hasY ? '0' : '', _Object$assign[sideX] = hasX ? '0' : '', _Object$assign.transform = (win.devicePixelRatio || 1) <= 1 ? "translate(" + x + "px, " + y + "px)" : "translate3d(" + x + "px, " + y + "px, 0)", _Object$assign));
+      return object.assign({}, commonStyles, (_object$assign = {}, _object$assign[sideY] = hasY ? '0' : '', _object$assign[sideX] = hasX ? '0' : '', _object$assign.transform = (win.devicePixelRatio || 1) <= 1 ? "translate(" + x + "px, " + y + "px)" : "translate3d(" + x + "px, " + y + "px, 0)", _object$assign));
     }
 
-    return Object.assign({}, commonStyles, (_Object$assign2 = {}, _Object$assign2[sideY] = hasY ? y + "px" : '', _Object$assign2[sideX] = hasX ? x + "px" : '', _Object$assign2.transform = '', _Object$assign2));
+    return object.assign({}, commonStyles, (_object$assign2 = {}, _object$assign2[sideY] = hasY ? y + "px" : '', _object$assign2[sideX] = hasX ? x + "px" : '', _object$assign2.transform = '', _object$assign2));
   }
 
   function computeStyles(_ref5) {
@@ -2286,7 +2286,7 @@
     };
 
     if (state.modifiersData.popperOffsets != null) {
-      state.styles.popper = Object.assign({}, state.styles.popper, mapToStyles(Object.assign({}, commonStyles, {
+      state.styles.popper = object.assign({}, state.styles.popper, mapToStyles(object.assign({}, commonStyles, {
         offsets: state.modifiersData.popperOffsets,
         position: state.options.strategy,
         adaptive: adaptive,
@@ -2295,7 +2295,7 @@
     }
 
     if (state.modifiersData.arrow != null) {
-      state.styles.arrow = Object.assign({}, state.styles.arrow, mapToStyles(Object.assign({}, commonStyles, {
+      state.styles.arrow = object.assign({}, state.styles.arrow, mapToStyles(object.assign({}, commonStyles, {
         offsets: state.modifiersData.arrow,
         position: 'absolute',
         adaptive: false,
@@ -2303,7 +2303,7 @@
       })));
     }
 
-    state.attributes.popper = Object.assign({}, state.attributes.popper, {
+    state.attributes.popper = object.assign({}, state.attributes.popper, {
       'data-popper-placement': state.placement
     });
   } // eslint-disable-next-line import/no-unused-modules
@@ -2508,7 +2508,7 @@
   }
 
   function rectToClientRect(rect) {
-    return Object.assign({}, rect, {
+    return object.assign({}, rect, {
       left: rect.x,
       top: rect.y,
       right: rect.x + rect.width,
@@ -2657,7 +2657,7 @@
         altBoundary = _options$altBoundary === void 0 ? false : _options$altBoundary,
         _options$padding = _options.padding,
         padding = _options$padding === void 0 ? 0 : _options$padding;
-    var paddingObject = mergePaddingObject(typeof padding !== 'number' ? padding : expandToHashMap(padding, basePlacements));
+    var paddingobject = mergePaddingobject(typeof padding !== 'number' ? padding : expandToHashMap(padding, basePlacements));
     var altContext = elementContext === popper ? reference : popper;
     var popperRect = state.rects.popper;
     var element = state.elements[altBoundary ? altContext : elementContext];
@@ -2669,21 +2669,21 @@
       strategy: 'absolute',
       placement: placement
     });
-    var popperClientRect = rectToClientRect(Object.assign({}, popperRect, popperOffsets));
+    var popperClientRect = rectToClientRect(object.assign({}, popperRect, popperOffsets));
     var elementClientRect = elementContext === popper ? popperClientRect : referenceClientRect; // positive = overflowing the clipping rect
     // 0 or negative = within the clipping rect
 
     var overflowOffsets = {
-      top: clippingClientRect.top - elementClientRect.top + paddingObject.top,
-      bottom: elementClientRect.bottom - clippingClientRect.bottom + paddingObject.bottom,
-      left: clippingClientRect.left - elementClientRect.left + paddingObject.left,
-      right: elementClientRect.right - clippingClientRect.right + paddingObject.right
+      top: clippingClientRect.top - elementClientRect.top + paddingobject.top,
+      bottom: elementClientRect.bottom - clippingClientRect.bottom + paddingobject.bottom,
+      left: clippingClientRect.left - elementClientRect.left + paddingobject.left,
+      right: elementClientRect.right - clippingClientRect.right + paddingobject.right
     };
     var offsetData = state.modifiersData.offset; // Offsets can be applied only to the popper element
 
     if (elementContext === popper && offsetData) {
       var offset = offsetData[placement];
-      Object.keys(overflowOffsets).forEach(function (key) {
+      object.keys(overflowOffsets).forEach(function (key) {
         var multiply = [right, bottom].indexOf(key) >= 0 ? 1 : -1;
         var axis = [top, bottom].indexOf(key) >= 0 ? 'y' : 'x';
         overflowOffsets[key] += offset[axis] * multiply;
@@ -2728,7 +2728,7 @@
       })[getBasePlacement(placement)];
       return acc;
     }, {});
-    return Object.keys(overflows).sort(function (a, b) {
+    return object.keys(overflows).sort(function (a, b) {
       return overflows[a] - overflows[b];
     });
   }
@@ -2917,7 +2917,7 @@
       isReferenceHidden: isReferenceHidden,
       hasPopperEscaped: hasPopperEscaped
     };
-    state.attributes.popper = Object.assign({}, state.attributes.popper, {
+    state.attributes.popper = object.assign({}, state.attributes.popper, {
       'data-popper-reference-hidden': isReferenceHidden,
       'data-popper-escaped': hasPopperEscaped
     });
@@ -2936,7 +2936,7 @@
     var basePlacement = getBasePlacement(placement);
     var invertDistance = [left, top].indexOf(basePlacement) >= 0 ? -1 : 1;
 
-    var _ref = typeof offset === 'function' ? offset(Object.assign({}, rects, {
+    var _ref = typeof offset === 'function' ? offset(object.assign({}, rects, {
       placement: placement
     })) : offset,
         skidding = _ref[0],
@@ -3042,13 +3042,13 @@
     var popperOffsets = state.modifiersData.popperOffsets;
     var referenceRect = state.rects.reference;
     var popperRect = state.rects.popper;
-    var tetherOffsetValue = typeof tetherOffset === 'function' ? tetherOffset(Object.assign({}, state.rects, {
+    var tetherOffsetValue = typeof tetherOffset === 'function' ? tetherOffset(object.assign({}, state.rects, {
       placement: state.placement
     })) : tetherOffset;
     var normalizedTetherOffsetValue = typeof tetherOffsetValue === 'number' ? {
       mainAxis: tetherOffsetValue,
       altAxis: tetherOffsetValue
-    } : Object.assign({
+    } : object.assign({
       mainAxis: 0,
       altAxis: 0
     }, tetherOffsetValue);
@@ -3081,9 +3081,9 @@
         width: 0,
         height: 0
       };
-      var arrowPaddingObject = state.modifiersData['arrow#persistent'] ? state.modifiersData['arrow#persistent'].padding : getFreshSideObject();
-      var arrowPaddingMin = arrowPaddingObject[mainSide];
-      var arrowPaddingMax = arrowPaddingObject[altSide]; // If the reference length is smaller than the arrow length, we don't want
+      var arrowPaddingobject = state.modifiersData['arrow#persistent'] ? state.modifiersData['arrow#persistent'].padding : getFreshSideobject();
+      var arrowPaddingMin = arrowPaddingobject[mainSide];
+      var arrowPaddingMax = arrowPaddingobject[altSide]; // If the reference length is smaller than the arrow length, we don't want
       // to include its full size in the calculation. If the reference is small
       // and near the edge of a boundary, the popper can overflow even if the
       // reference is not overflowing as well (e.g. virtual elements with no
@@ -3270,14 +3270,14 @@
   function mergeByName(modifiers) {
     var merged = modifiers.reduce(function (merged, current) {
       var existing = merged[current.name];
-      merged[current.name] = existing ? Object.assign({}, existing, current, {
-        options: Object.assign({}, existing.options, current.options),
-        data: Object.assign({}, existing.data, current.data)
+      merged[current.name] = existing ? object.assign({}, existing, current, {
+        options: object.assign({}, existing.options, current.options),
+        data: object.assign({}, existing.data, current.data)
       }) : current;
       return merged;
-    }, {}); // IE11 does not support Object.values
+    }, {}); // IE11 does not support object.values
 
-    return Object.keys(merged).map(function (key) {
+    return object.keys(merged).map(function (key) {
       return merged[key];
     });
   }
@@ -3316,7 +3316,7 @@
       var state = {
         placement: 'bottom',
         orderedModifiers: [],
-        options: Object.assign({}, DEFAULT_OPTIONS, defaultOptions),
+        options: object.assign({}, DEFAULT_OPTIONS, defaultOptions),
         modifiersData: {},
         elements: {
           reference: reference,
@@ -3332,7 +3332,7 @@
         setOptions: function setOptions(setOptionsAction) {
           var options = typeof setOptionsAction === 'function' ? setOptionsAction(state.options) : setOptionsAction;
           cleanupModifierEffects();
-          state.options = Object.assign({}, defaultOptions, state.options, options);
+          state.options = object.assign({}, defaultOptions, state.options, options);
           state.scrollParents = {
             reference: isElement(reference) ? listScrollParents(reference) : reference.contextElement ? listScrollParents(reference.contextElement) : [],
             popper: listScrollParents(popper)
@@ -3383,7 +3383,7 @@
           // To ensure persistent data, use `${name}#persistent`
 
           state.orderedModifiers.forEach(function (modifier) {
-            return state.modifiersData[modifier.name] = Object.assign({}, modifier.data);
+            return state.modifiersData[modifier.name] = object.assign({}, modifier.data);
           });
 
           for (var index = 0; index < state.orderedModifiers.length; index++) {
@@ -3481,7 +3481,7 @@
     defaultModifiers: defaultModifiers
   }); // eslint-disable-next-line import/no-unused-modules
 
-  const Popper = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  const Popper = /*#__PURE__*/object.freeze(/*#__PURE__*/object.defineProperty({
     __proto__: null,
     afterMain,
     afterRead,
@@ -3521,7 +3521,7 @@
     variationPlacements,
     viewport,
     write
-  }, Symbol.toStringTag, { value: 'Module' }));
+  }, Symbol.ToStringTag, { value: 'Module' }));
 
   /**
    * --------------------------------------------------------------------------
@@ -3581,7 +3581,7 @@
     reference: 'toggle'
   };
   const DefaultType$9 = {
-    autoClose: '(boolean|string)',
+    autoClose: '(bool|string)',
     boundary: '(string|element)',
     display: 'string',
     offset: '(array|string|function)',
@@ -3918,8 +3918,8 @@
   const DefaultType$8 = {
     className: 'string',
     clickCallback: '(function|null)',
-    isAnimated: 'boolean',
-    isVisible: 'boolean',
+    isAnimated: 'bool',
+    isVisible: 'bool',
     rootElement: '(element|string)'
   };
 
@@ -4040,7 +4040,7 @@
     trapElement: null // The element to trap focus inside of
   };
   const DefaultType$7 = {
-    autofocus: 'boolean',
+    autofocus: 'bool',
     trapElement: 'element'
   };
 
@@ -4252,9 +4252,9 @@
     keyboard: true
   };
   const DefaultType$6 = {
-    backdrop: '(boolean|string)',
-    focus: 'boolean',
-    keyboard: 'boolean'
+    backdrop: '(bool|string)',
+    focus: 'bool',
+    keyboard: 'bool'
   };
 
   /**
@@ -4333,8 +4333,8 @@
     // Private
     _initializeBackDrop() {
       return new Backdrop({
-        isVisible: Boolean(this._config.backdrop),
-        // 'static' option will be translated to true, and booleans will keep their value,
+        isVisible: bool(this._config.backdrop),
+        // 'static' option will be translated to true, and bools will keep their value,
         isAnimated: this._isAnimated()
       });
     }
@@ -4554,9 +4554,9 @@
     scroll: false
   };
   const DefaultType$5 = {
-    backdrop: '(boolean|string)',
-    keyboard: 'boolean',
-    scroll: 'boolean'
+    backdrop: '(bool|string)',
+    keyboard: 'bool',
+    scroll: 'bool'
   };
 
   /**
@@ -4657,8 +4657,8 @@
         this.hide();
       };
 
-      // 'static' option will be translated to true, and booleans will keep their value
-      const isVisible = Boolean(this._config.backdrop);
+      // 'static' option will be translated to true, and bools will keep their value
+      const isVisible = bool(this._config.backdrop);
       return new Backdrop({
         className: CLASS_NAME_BACKDROP,
         isVisible,
@@ -4808,7 +4808,7 @@
     const attributeName = attribute.nodeName.toLowerCase();
     if (allowedAttributeList.includes(attributeName)) {
       if (uriAttributes.has(attributeName)) {
-        return Boolean(SAFE_URL_PATTERN.test(attribute.nodeValue));
+        return bool(SAFE_URL_PATTERN.test(attribute.nodeValue));
       }
       return true;
     }
@@ -4824,11 +4824,11 @@
       return sanitizeFunction(unsafeHtml);
     }
     const domParser = new window.DOMParser();
-    const createdDocument = domParser.parseFromString(unsafeHtml, 'text/html');
+    const createdDocument = domParser.parseFromstring(unsafeHtml, 'text/html');
     const elements = [].concat(...createdDocument.body.querySelectorAll('*'));
     for (const element of elements) {
       const elementName = element.nodeName.toLowerCase();
-      if (!Object.keys(allowList).includes(elementName)) {
+      if (!object.keys(allowList).includes(elementName)) {
         element.remove();
         continue;
       }
@@ -4870,8 +4870,8 @@
     allowList: 'object',
     content: 'object',
     extraClass: '(string|function)',
-    html: 'boolean',
-    sanitize: 'boolean',
+    html: 'bool',
+    sanitize: 'bool',
     sanitizeFn: '(null|function)',
     template: 'string'
   };
@@ -4903,7 +4903,7 @@
 
     // Public
     getContent() {
-      return Object.values(this._config.content).map(config => this._resolvePossibleFunction(config)).filter(Boolean);
+      return object.values(this._config.content).map(config => this._resolvePossibleFunction(config)).filter(bool);
     }
     hasContent() {
       return this.getContent().length > 0;
@@ -4919,7 +4919,7 @@
     toHtml() {
       const templateWrapper = document.createElement('div');
       templateWrapper.innerHTML = this._maybeSanitize(this._config.template);
-      for (const [selector, text] of Object.entries(this._config.content)) {
+      for (const [selector, text] of object.entries(this._config.content)) {
         this._setContent(templateWrapper, text, selector);
       }
       const template = templateWrapper.children[0];
@@ -4936,7 +4936,7 @@
       this._checkContent(config.content);
     }
     _checkContent(arg) {
-      for (const [selector, content] of Object.entries(arg)) {
+      for (const [selector, content] of object.entries(arg)) {
         super._typeCheckConfig({
           selector,
           entry: content
@@ -5041,19 +5041,19 @@
   };
   const DefaultType$3 = {
     allowList: 'object',
-    animation: 'boolean',
+    animation: 'bool',
     boundary: '(string|element)',
-    container: '(string|element|boolean)',
+    container: '(string|element|bool)',
     customClass: '(string|function)',
     delay: '(number|object)',
     fallbackPlacements: 'array',
-    html: 'boolean',
+    html: 'bool',
     offset: '(array|string|function)',
     placement: '(string|function)',
     popperConfig: '(null|object|function)',
-    sanitize: 'boolean',
+    sanitize: 'bool',
     sanitizeFn: '(null|function)',
-    selector: '(string|boolean)',
+    selector: '(string|bool)',
     template: 'string',
     title: '(string|element|function)',
     trigger: 'string'
@@ -5217,7 +5217,7 @@
 
     // Protected
     _isWithContent() {
-      return Boolean(this._getTitle());
+      return bool(this._getTitle());
     }
     _getTipElement() {
       if (!this.tip) {
@@ -5235,7 +5235,7 @@
       tip.classList.remove(CLASS_NAME_FADE$2, CLASS_NAME_SHOW$2);
       // TODO: v6 the following can be achieved with CSS only
       tip.classList.add(`bs-${this.constructor.NAME}-auto`);
-      const tipId = getUID(this.constructor.NAME).toString();
+      const tipId = getUID(this.constructor.NAME).ToString();
       tip.setAttribute('id', tipId);
       if (this._isAnimated()) {
         tip.classList.add(CLASS_NAME_FADE$2);
@@ -5410,11 +5410,11 @@
       this._timeout = setTimeout(handler, timeout);
     }
     _isWithActiveTrigger() {
-      return Object.values(this._activeTrigger).includes(true);
+      return object.values(this._activeTrigger).includes(true);
     }
     _getConfig(config) {
       const dataAttributes = Manipulator.getDataAttributes(this._element);
-      for (const dataAttribute of Object.keys(dataAttributes)) {
+      for (const dataAttribute of object.keys(dataAttributes)) {
         if (DISALLOWED_ATTRIBUTES.has(dataAttribute)) {
           delete dataAttributes[dataAttribute];
         }
@@ -5437,16 +5437,16 @@
         };
       }
       if (typeof config.title === 'number') {
-        config.title = config.title.toString();
+        config.title = config.title.ToString();
       }
       if (typeof config.content === 'number') {
-        config.content = config.content.toString();
+        config.content = config.content.ToString();
       }
       return config;
     }
     _getDelegateConfig() {
       const config = {};
-      for (const [key, value] of Object.entries(this._config)) {
+      for (const [key, value] of object.entries(this._config)) {
         if (this.constructor.Default[key] !== value) {
           config[key] = value;
         }
@@ -5455,8 +5455,8 @@
       config.trigger = 'manual';
 
       // In the future can be replaced with:
-      // const keysWithDifferentValues = Object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])
-      // `Object.fromEntries(keysWithDifferentValues)`
+      // const keysWithDifferentValues = object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])
+      // `object.fromEntries(keysWithDifferentValues)`
       return config;
     }
     _disposePopper() {
@@ -5614,7 +5614,7 @@
     offset: '(number|null)',
     // TODO v6 @deprecated, keep it for backwards compatibility reasons
     rootMargin: 'string',
-    smoothScroll: 'boolean',
+    smoothScroll: 'bool',
     target: 'element',
     threshold: 'array'
   };
@@ -6130,8 +6130,8 @@
   const CLASS_NAME_SHOW = 'show';
   const CLASS_NAME_SHOWING = 'showing';
   const DefaultType = {
-    animation: 'boolean',
-    autohide: 'boolean',
+    animation: 'bool',
+    autohide: 'bool',
     delay: 'number'
   };
   const Default = {

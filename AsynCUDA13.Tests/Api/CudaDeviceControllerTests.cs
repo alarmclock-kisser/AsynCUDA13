@@ -18,7 +18,7 @@ namespace AsynCUDA13.Tests.Api
         public void SetUp()
         {
             this._mockCuda = new Mock<ICudaService>();
-            this._controller = new CudaDeviceController(this._mockCuda.Object);
+            this._controller = new CudaDeviceController(this._mockCuda.object);
         }
 
         // =====================================================================
@@ -38,7 +38,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(503);
 
@@ -73,7 +73,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(200);
 
@@ -99,7 +99,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             Assert.IsNotNull(objectResult);
             objectResult.StatusCode.ShouldBe(404);
 
@@ -133,7 +133,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
             var deviceInfos = objectResult.Value.ShouldBeOfType<CudaDeviceInfo[]>();
@@ -167,7 +167,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             objectResult?.StatusCode.ShouldBe(200);
 
             var deviceInfos = objectResult?.Value.ShouldBeOfType<CudaDeviceInfo[]>();
@@ -193,7 +193,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             var deviceInfos = objectResult?.Value.ShouldBeOfType<CudaDeviceInfo[]>();
 
             var deviceIds = deviceInfos?.Select(d => d.DeviceId).ToList();
@@ -211,7 +211,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetDevices();
 
             // Assert
-            var objectResult = result.Result.ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = result.Result.ShouldBeAssignableTo<objectResult>();
             objectResult?.StatusCode.ShouldBe(500);
 
             var problemDetails = (objectResult?.Value as ProblemDetails)!;

@@ -73,9 +73,9 @@
                 }
             </RadzenCard>
 
-            <h4>@L["MemoryObjects"]</h4>
+            <h4>@L["Memoryobjects"]</h4>
             <RadzenAccordion>
-                <RadzenAccordionItem Text="@(L["AllCudaMemObjects"] + $" ({VM.ContextInfo.MemoryInfos?.Length ?? 0})")">
+                <RadzenAccordionItem Text="@(L["AllCudaMemobjects"] + $" ({VM.ContextInfo.MemoryInfos?.Length ?? 0})")">
                     @if (VM.ContextInfo?.MemoryInfos != null && VM.ContextInfo.MemoryInfos.Length > 0)
                     {
                         <table class="table table-sm"><tbody>
@@ -87,7 +87,7 @@
                     }
                     else
                     {
-                        <p class="text-muted">@L["NoCudaMemObjects"]</p>
+                        <p class="text-muted">@L["NoCudaMemobjects"]</p>
                     }
                 </RadzenAccordionItem>
             </RadzenAccordion>

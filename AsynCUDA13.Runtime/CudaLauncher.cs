@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Runtime
 {
@@ -15,7 +16,7 @@ namespace AsynCUDA13.Runtime
     /// validates their count and types, configures the launch grid/block dimensions and runs the kernel,
     /// supporting both linear (1D) workloads and image (2D) workloads.
     /// </summary>
-    public class CudaLauncher : IDisposable
+    internal class CudaLauncher : IRuntimeLauncher, IDisposable
     {
         // Fields
         /// <summary>The CUDA primary context the kernels are launched on.</summary>
@@ -35,6 +36,11 @@ namespace AsynCUDA13.Runtime
 
         /// <summary>Gets the name of the currently loaded kernel, or <c>null</c> if none is loaded.</summary>
         public string? KernelName => this.Compiler.KernelName;
+
+        /// <summary>
+        /// Gets the IRuntimeLauncher interface for this instance.
+        /// </summary>
+        public IRuntimeLauncher Launcher => this;
 
 
 
@@ -70,7 +76,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="arguments">The non-pointer scalar arguments expected by the kernel, in order.</param>
         /// <param name="length">The number of elements to process (used to size the launch grid).</param>
         /// <returns>The input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
-        public IntPtr? ExecuteLinearKernel(string? kernelName, IntPtr pointer, object[] arguments, nint length)
+        public IntPtr? ExecuteLinearKernel(string? kernelName, IntPtr pointer, object[] arguments, IntPtr length)
         {
             this.Context.SetCurrent();
 
@@ -225,7 +231,7 @@ namespace AsynCUDA13.Runtime
                 string name = arg.Key;
                 Type type = arg.Value;
 
-                // Count every pointer as a buffer slot: a single-pointer kernel runs in-place (IP), a
+                // Count every pointer as a buffer slot: a float-pointer kernel runs in-place (IP), a
                 // two-pointer kernel writes to a separate output buffer (OOP). This must not be capped at a
                 // fixed number, otherwise an extra pointer is mistaken for a user scalar and the argument
                 // count no longer matches (the "Expected 7, got 9" mismatch when the image had 2 pointers).
@@ -265,7 +271,7 @@ namespace AsynCUDA13.Runtime
             {
                 IntPtr devicePtr = pointer;
 
-                // IP kernels (a single pointer) run in-place: the input buffer is also the output buffer.
+                // IP kernels (a float pointer) run in-place: the input buffer is also the output buffer.
                 // OOP kernels (two pointers) need a distinct output buffer so a stale/reused input allocation
                 // cannot corrupt the result when switching kernels (e.g. mandelbrot -> julia). A fresh output
                 // buffer of the same size is allocated per launch and its pointer is returned to the caller.
@@ -281,7 +287,7 @@ namespace AsynCUDA13.Runtime
                         return null;
                     }
 
-                    var output = this.Register.AllocateSingle<byte>((nint) byteLength);
+                    var output = this.Register.AllocateSingle<Byte>((IntPtr) byteLength);
                     if (output == null)
                     {
                         StaticLogger.Log("Failed to allocate the out-of-place output image buffer.");
@@ -322,6 +328,12 @@ namespace AsynCUDA13.Runtime
         }
 
 
+        // IRuntimeLauncher API
+        public int? Execute(string kernelName, params object[] arguments)
+        {
+            return this.ExecuteGenericKernel(kernelName, arguments);
+        }
+
 
         // Generic async EXEC
         public async Task<int?> ExecuteGenericKernelAsync(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
@@ -339,7 +351,7 @@ namespace AsynCUDA13.Runtime
             // If kernelName equals current KernelName, use that, otherwise unload current kernel and load new one
             if (!string.IsNullOrEmpty(kernelName) && !string.Equals(this.KernelName, kernelName, StringComparison.Ordinal))
             {
-                this.Compiler.UnloadKernel();
+                this.Compiler.UnloadKernel(null);
                 this.Compiler.LoadKernel(kernelName);
             }
             if (this.Kernel == null)
@@ -379,7 +391,7 @@ namespace AsynCUDA13.Runtime
                             return null;
                         }
 
-                        long pointerLength = memory.IndexLength.ToInt64();
+                        long pointerLength = memory.IndexLength;
                         if (pointerLength <= 0 || pointerLength > int.MaxValue)
                         {
                             await StaticLogger.LogAsync("A registered kernel buffer has an invalid element length.");
@@ -436,7 +448,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (unloadWhenExecuted)
                 {
-                    this.Compiler.UnloadKernel();
+                    this.Compiler.UnloadKernel(null);
                 }
             }
 
@@ -445,6 +457,126 @@ namespace AsynCUDA13.Runtime
             return elapsedMs;
         }
 
+        public int? ExecuteGenericKernel(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
+        {
+            // Set context first for thread-affine CUDA operations
+            this.Context.SetCurrent();
+
+            // If no kernelName provided but Kernel loaded, use that
+            if (string.IsNullOrEmpty(kernelName) && this.Kernel == null)
+            {
+                StaticLogger.Log("No kernel name provided and no kernel is currently loaded.");
+                return null;
+            }
+
+            // If kernelName equals current KernelName, use that, otherwise unload current kernel and load new one
+            if (!string.IsNullOrEmpty(kernelName) && !string.Equals(this.KernelName, kernelName, StringComparison.Ordinal))
+            {
+                this.Compiler.UnloadKernel(null);
+                this.Compiler.LoadKernel(kernelName);
+            }
+            if (this.Kernel == null)
+            {
+                StaticLogger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
+                return null;
+            }
+
+            // Verify arguments match Kernel signature
+            Type[] argTypes = arguments.Select(a => a?.GetType() ?? typeof(object)).ToArray();
+            Type[] argTypesSignature = this.Compiler.GetArguments(null).Values.ToArray();
+            if (argTypes.Length != argTypesSignature.Length)
+            {
+                StaticLogger.Log($"Kernel argument count does not match signature '{kernelName ?? "N/A"}': expected {argTypesSignature.Length}, got {argTypes.Length}.");
+                return null;
+            }
+
+            if (!argTypes.SequenceEqual(argTypesSignature))
+            {
+                string[] details = argTypes.Select((t, i) => new { Type = t, Index = i }).Where(x => x.Type != argTypesSignature[x.Index]).Select(x => $"<{x.Index}> {x.Type.Name} != {argTypesSignature[x.Index].Name}").ToArray();
+                StaticLogger.Log($"Kernel arguments do not match signature '{kernelName ?? "N/A"}': {string.Join(", ", details)}");
+                return null;
+            }
+
+            DateTime startTime = DateTime.Now;
+            try
+            {
+                int length = 1;
+                for (int i = 0; i < arguments.Length; i++)
+                {
+                    object argument = arguments[i];
+                    if (argTypesSignature[i] == typeof(IntPtr))
+                    {
+                        if (argument is not IntPtr pointer || pointer == IntPtr.Zero || this.Register[pointer] is not CudaMem memory)
+                        {
+                            StaticLogger.Log($"Kernel pointer argument at index {i} is not a registered device buffer.");
+                            return null;
+                        }
+
+                        long pointerLength = memory.IndexLength;
+                        if (pointerLength <= 0 || pointerLength > int.MaxValue)
+                        {
+                            StaticLogger.Log("A registered kernel buffer has an invalid element length.");
+                            return null;
+                        }
+
+                        length = Math.Max(length, (int) pointerLength);
+                    }
+                }
+
+                var argumentDefinitions = this.Compiler.GetArguments(null);
+                int widthIndex = argumentDefinitions.Keys
+                    .Select((name, index) => new { name, index })
+                    .FirstOrDefault(x => x.name.Contains("width", StringComparison.OrdinalIgnoreCase))?.index ?? -1;
+                int heightIndex = argumentDefinitions.Keys
+                    .Select((name, index) => new { name, index })
+                    .FirstOrDefault(x => x.name.Contains("height", StringComparison.OrdinalIgnoreCase))?.index ?? -1;
+
+                if (widthIndex >= 0 && heightIndex >= 0 &&
+                    arguments[widthIndex] is int width && arguments[heightIndex] is int height &&
+                    width > 0 && height > 0)
+                {
+                    const int blockSizeX = 8;
+                    const int blockSizeY = 8;
+                    int gridSizeX = (width + blockSizeX - 1) / blockSizeX;
+                    int gridSizeY = (height + blockSizeY - 1) / blockSizeY;
+                    this.Kernel.BlockDimensions = new dim3(blockSizeX, blockSizeY, 1);
+                    this.Kernel.GridDimensions = new dim3(gridSizeX, gridSizeY, 1);
+                }
+                else
+                {
+                    const int blockSize = 256;
+                    int gridSize = (length + blockSize - 1) / blockSize;
+                    this.Kernel.BlockDimensions = new dim3(blockSize, 1, 1);
+                    this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
+                }
+
+                object[] kernelArguments = arguments.Select((argument, index) =>
+                    argTypesSignature[index] == typeof(IntPtr) && argument is IntPtr pointer
+                        ? new CUdeviceptr(pointer)
+                        : argument).ToArray();
+
+                // EXEC. Use the synchronous launch here so the configured grid and block dimensions
+                // are applied by the same path as the dedicated image launcher before the output is read.
+                this.Kernel.Run(kernelArguments);
+                this.Context.Synchronize();
+            }
+            catch (Exception ex)
+            {
+                StaticLogger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}': {ex.Message}");
+                return null;
+            }
+            finally
+            {
+                if (unloadWhenExecuted)
+                {
+                    this.Compiler.UnloadKernel(null);
+                }
+            }
+
+            int elapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
+            StaticLogger.Log($"Kernel executed '{this.KernelName ?? "N/A"}' in {elapsedMs} ms");
+            return elapsedMs;
+        }
 
 
         // Methods (async)
@@ -457,7 +589,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="arguments">The non-pointer scalar arguments expected by the kernel, in order.</param>
         /// <param name="length">The number of elements to process.</param>
         /// <returns>A task producing the input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
-        public async Task<IntPtr?> ExecuteLinearKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, nint length)
+        public async Task<IntPtr?> ExecuteLinearKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, IntPtr length)
         {
             this.Context.SetCurrent();
             return await Task.Run(() => this.ExecuteLinearKernel(kernelName, pointer, arguments, length));

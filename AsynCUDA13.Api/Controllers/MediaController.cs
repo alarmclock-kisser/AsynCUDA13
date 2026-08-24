@@ -167,7 +167,7 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     if (pullIfRequired && image.Pointer != 0 && image.Pointer != IntPtr.Zero)
                     {
-                        await image.SetImageAsync(await this.cuda.PullDataAsync<byte>((nint) image.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull image data from CUDA."));
+                        await image.SetImageAsync(await this.cuda.PullDataAsync<Byte>((IntPtr) image.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull image data from CUDA."));
                     }
 
                     // Export image with format to temp path
@@ -188,14 +188,14 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     if (pullIfRequired && audio.Pointer != 0 && audio.Pointer != IntPtr.Zero)
                     {
-                        CudaMem audioMem = this.cuda[(nint) audio.Pointer] ?? throw new InvalidOperationException("Failed to retrieve audio data from CUDA.");
+                        CudaMem audioMem = this.cuda[(IntPtr) audio.Pointer] ?? throw new InvalidOperationException("Failed to retrieve audio data from CUDA.");
                         if (audioMem.Count > 1)
                         {
-                            await audio.AggregateChunksAsync(await this.cuda.PullChunksAsync<float>((nint) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int) audioMem.IndexLength);
+                            await audio.AggregateChunksAsync(await this.cuda.PullChunksAsync<float>((IntPtr) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA."), (int) audioMem.IndexLength);
                         }
                         else
                         {
-                            audio.Data = await this.cuda.PullDataAsync<float>((nint) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA.");
+                            audio.Data = await this.cuda.PullDataAsync<float>((IntPtr) audio.Pointer, keepBufferWhenPulled) ?? throw new InvalidOperationException("Failed to pull audio data from CUDA.");
                         }
                     }
 

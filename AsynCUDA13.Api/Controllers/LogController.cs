@@ -14,7 +14,7 @@ namespace AsynCUDA13.Api.Controllers
             }
             catch
             {
-                return this.Ok(Array.Empty<String>());
+                return this.Ok(Array.Empty<string>());
             }
         }
 

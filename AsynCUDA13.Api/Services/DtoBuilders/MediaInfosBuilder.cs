@@ -10,6 +10,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new ImageInfo()
             {
                 Id = imageObj.Id,
+                CreatedAt = imageObj.CreatedAt,
                 Name = imageObj.Name,
                 Pointer = imageObj.Pointer.ToString(),
                 Width = imageObj.Width,
@@ -24,6 +25,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new AudioInfo()
             {
                 Id = audioObj.Id,
+                CreatedAt = audioObj.CreatedAt,
                 Name = audioObj.Name,
                 Pointer = audioObj.Pointer.ToString(),
                 Length = audioObj.Length.ToString(),

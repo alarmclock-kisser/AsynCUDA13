@@ -8,7 +8,7 @@ namespace AsynCUDA13.Shared.MediaDtos
     {
         public required ImageInfo Info { get; set; }
 
-        public string? Pointer { get; set; } = null;
+        public string? Pointer => this.Info.Pointer;
 
         public string MimeType { get; set; } = "image/png";
         public string Base64Data { get; set; } = string.Empty;
@@ -16,6 +16,9 @@ namespace AsynCUDA13.Shared.MediaDtos
 
         public float DataSizeMb => this.Base64Data.LongCount() * 4f / 3f / 1024f / 1024f;
 
-
+        public bool IdMatch(string id, bool requireOnGpu = false)
+        {
+            return this.Info.IdMatch(id, requireOnGpu);
+        }
     }
 }

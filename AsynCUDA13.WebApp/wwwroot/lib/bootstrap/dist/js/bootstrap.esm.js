@@ -82,7 +82,7 @@ const toType = object => {
   if (object === null || object === undefined) {
     return `${object}`;
   }
-  return Object.prototype.toString.call(object).match(/\s([a-z]+)/i)[1].toLowerCase();
+  return object.prototype.ToString.call(object).match(/\s([a-z]+)/i)[1].toLowerCase();
 };
 
 /**
@@ -368,7 +368,7 @@ function bootstrapDelegationHandler(element, selector, fn) {
   };
 }
 function findHandler(events, callable, delegationSelector = null) {
-  return Object.values(events).find(event => event.callable === callable && event.delegationSelector === delegationSelector);
+  return object.values(events).find(event => event.callable === callable && event.delegationSelector === delegationSelector);
 }
 function normalizeParameters(originalTypeEvent, handler, delegationFunction) {
   const isDelegated = typeof handler === 'string';
@@ -419,12 +419,12 @@ function removeHandler(element, events, typeEvent, handler, delegationSelector) 
   if (!fn) {
     return;
   }
-  element.removeEventListener(typeEvent, fn, Boolean(delegationSelector));
+  element.removeEventListener(typeEvent, fn, bool(delegationSelector));
   delete events[typeEvent][fn.uidEvent];
 }
 function removeNamespacedHandlers(element, events, typeEvent, namespace) {
   const storeElementEvent = events[typeEvent] || {};
-  for (const [handlerKey, event] of Object.entries(storeElementEvent)) {
+  for (const [handlerKey, event] of object.entries(storeElementEvent)) {
     if (handlerKey.includes(namespace)) {
       removeHandler(element, events, typeEvent, event.callable, event.delegationSelector);
     }
@@ -453,18 +453,18 @@ const EventHandler = {
     const isNamespace = originalTypeEvent.startsWith('.');
     if (typeof callable !== 'undefined') {
       // Simplest case: handler is passed, remove that listener ONLY.
-      if (!Object.keys(storeElementEvent).length) {
+      if (!object.keys(storeElementEvent).length) {
         return;
       }
       removeHandler(element, events, typeEvent, callable, isDelegated ? handler : null);
       return;
     }
     if (isNamespace) {
-      for (const elementEvent of Object.keys(events)) {
+      for (const elementEvent of object.keys(events)) {
         removeNamespacedHandlers(element, events, elementEvent, originalTypeEvent.slice(1));
       }
     }
-    for (const [keyHandlers, event] of Object.entries(storeElementEvent)) {
+    for (const [keyHandlers, event] of object.entries(storeElementEvent)) {
       const handlerKey = keyHandlers.replace(stripUidRegex, '');
       if (!inNamespace || originalTypeEvent.includes(handlerKey)) {
         removeHandler(element, events, typeEvent, event.callable, event.delegationSelector);
@@ -506,11 +506,11 @@ const EventHandler = {
   }
 };
 function hydrateObj(obj, meta = {}) {
-  for (const [key, value] of Object.entries(meta)) {
+  for (const [key, value] of object.entries(meta)) {
     try {
       obj[key] = value;
     } catch (_unused) {
-      Object.defineProperty(obj, key, {
+      object.defineProperty(obj, key, {
         configurable: true,
         get() {
           return value;
@@ -535,7 +535,7 @@ function normalizeData(value) {
   if (value === 'false') {
     return false;
   }
-  if (value === Number(value).toString()) {
+  if (value === Number(value).ToString()) {
     return Number(value);
   }
   if (value === '' || value === 'null') {
@@ -565,7 +565,7 @@ const Manipulator = {
       return {};
     }
     const attributes = {};
-    const bsKeys = Object.keys(element.dataset).filter(key => key.startsWith('bs') && !key.startsWith('bsConfig'));
+    const bsKeys = object.keys(element.dataset).filter(key => key.startsWith('bs') && !key.startsWith('bsConfig'));
     for (const key of bsKeys) {
       let pureKey = key.replace(/^bs/, '');
       pureKey = pureKey.charAt(0).toLowerCase() + pureKey.slice(1, pureKey.length);
@@ -621,7 +621,7 @@ class Config {
     };
   }
   _typeCheckConfig(config, configTypes = this.constructor.DefaultType) {
-    for (const [property, expectedTypes] of Object.entries(configTypes)) {
+    for (const [property, expectedTypes] of object.entries(configTypes)) {
       const value = config[property];
       const valueType = isElement(value) ? 'element' : toType(value);
       if (!new RegExp(expectedTypes).test(valueType)) {
@@ -665,7 +665,7 @@ class BaseComponent extends Config {
   dispose() {
     Data.remove(this._element, this.constructor.DATA_KEY);
     EventHandler.off(this._element, this.constructor.EVENT_KEY);
-    for (const propertyName of Object.getOwnPropertyNames(this)) {
+    for (const propertyName of object.getOwnPropertyNames(this)) {
       this[propertyName] = null;
     }
   }
@@ -1000,7 +1000,7 @@ class Swipe extends Config {
     }
     this._config = this._getConfig(config);
     this._deltaX = 0;
-    this._supportPointerEvents = Boolean(window.PointerEvent);
+    this._supportPointerEvents = bool(window.PointerEvent);
     this._initEvents();
   }
 
@@ -1132,13 +1132,13 @@ const Default$b = {
   wrap: true
 };
 const DefaultType$b = {
-  interval: '(number|boolean)',
-  // TODO:v6 remove boolean support
-  keyboard: 'boolean',
-  pause: '(string|boolean)',
-  ride: '(boolean|string)',
-  touch: 'boolean',
-  wrap: 'boolean'
+  interval: '(number|bool)',
+  // TODO:v6 remove bool support
+  keyboard: 'bool',
+  pause: '(string|bool)',
+  ride: '(bool|string)',
+  touch: 'bool',
+  wrap: 'bool'
 };
 
 /**
@@ -1339,7 +1339,7 @@ class Carousel extends BaseComponent {
       // TODO: change tests that use empty divs to avoid this check
       return;
     }
-    const isCycling = Boolean(this._interval);
+    const isCycling = bool(this._interval);
     this.pause();
     this._isSliding = true;
     this._setActiveIndicatorElement(nextElementIndex);
@@ -1483,7 +1483,7 @@ const Default$a = {
 };
 const DefaultType$a = {
   parent: '(null|element)',
-  toggle: 'boolean'
+  toggle: 'bool'
 };
 
 /**
@@ -1606,7 +1606,7 @@ class Collapse extends BaseComponent {
 
   // Private
   _configAfterMerge(config) {
-    config.toggle = Boolean(config.toggle); // Coerce string values
+    config.toggle = bool(config.toggle); // Coerce string values
     config.parent = getElement(config.parent);
     return config;
   }
@@ -1738,7 +1738,7 @@ const Default$9 = {
   reference: 'toggle'
 };
 const DefaultType$9 = {
-  autoClose: '(boolean|string)',
+  autoClose: '(bool|string)',
   boundary: '(string|element)',
   display: 'string',
   offset: '(array|string|function)',
@@ -2075,8 +2075,8 @@ const Default$8 = {
 const DefaultType$8 = {
   className: 'string',
   clickCallback: '(function|null)',
-  isAnimated: 'boolean',
-  isVisible: 'boolean',
+  isAnimated: 'bool',
+  isVisible: 'bool',
   rootElement: '(element|string)'
 };
 
@@ -2197,7 +2197,7 @@ const Default$7 = {
   trapElement: null // The element to trap focus inside of
 };
 const DefaultType$7 = {
-  autofocus: 'boolean',
+  autofocus: 'bool',
   trapElement: 'element'
 };
 
@@ -2409,9 +2409,9 @@ const Default$6 = {
   keyboard: true
 };
 const DefaultType$6 = {
-  backdrop: '(boolean|string)',
-  focus: 'boolean',
-  keyboard: 'boolean'
+  backdrop: '(bool|string)',
+  focus: 'bool',
+  keyboard: 'bool'
 };
 
 /**
@@ -2490,8 +2490,8 @@ class Modal extends BaseComponent {
   // Private
   _initializeBackDrop() {
     return new Backdrop({
-      isVisible: Boolean(this._config.backdrop),
-      // 'static' option will be translated to true, and booleans will keep their value,
+      isVisible: bool(this._config.backdrop),
+      // 'static' option will be translated to true, and bools will keep their value,
       isAnimated: this._isAnimated()
     });
   }
@@ -2711,9 +2711,9 @@ const Default$5 = {
   scroll: false
 };
 const DefaultType$5 = {
-  backdrop: '(boolean|string)',
-  keyboard: 'boolean',
-  scroll: 'boolean'
+  backdrop: '(bool|string)',
+  keyboard: 'bool',
+  scroll: 'bool'
 };
 
 /**
@@ -2814,8 +2814,8 @@ class Offcanvas extends BaseComponent {
       this.hide();
     };
 
-    // 'static' option will be translated to true, and booleans will keep their value
-    const isVisible = Boolean(this._config.backdrop);
+    // 'static' option will be translated to true, and bools will keep their value
+    const isVisible = bool(this._config.backdrop);
     return new Backdrop({
       className: CLASS_NAME_BACKDROP,
       isVisible,
@@ -2965,7 +2965,7 @@ const allowedAttribute = (attribute, allowedAttributeList) => {
   const attributeName = attribute.nodeName.toLowerCase();
   if (allowedAttributeList.includes(attributeName)) {
     if (uriAttributes.has(attributeName)) {
-      return Boolean(SAFE_URL_PATTERN.test(attribute.nodeValue));
+      return bool(SAFE_URL_PATTERN.test(attribute.nodeValue));
     }
     return true;
   }
@@ -2981,11 +2981,11 @@ function sanitizeHtml(unsafeHtml, allowList, sanitizeFunction) {
     return sanitizeFunction(unsafeHtml);
   }
   const domParser = new window.DOMParser();
-  const createdDocument = domParser.parseFromString(unsafeHtml, 'text/html');
+  const createdDocument = domParser.parseFromstring(unsafeHtml, 'text/html');
   const elements = [].concat(...createdDocument.body.querySelectorAll('*'));
   for (const element of elements) {
     const elementName = element.nodeName.toLowerCase();
-    if (!Object.keys(allowList).includes(elementName)) {
+    if (!object.keys(allowList).includes(elementName)) {
       element.remove();
       continue;
     }
@@ -3027,8 +3027,8 @@ const DefaultType$4 = {
   allowList: 'object',
   content: 'object',
   extraClass: '(string|function)',
-  html: 'boolean',
-  sanitize: 'boolean',
+  html: 'bool',
+  sanitize: 'bool',
   sanitizeFn: '(null|function)',
   template: 'string'
 };
@@ -3060,7 +3060,7 @@ class TemplateFactory extends Config {
 
   // Public
   getContent() {
-    return Object.values(this._config.content).map(config => this._resolvePossibleFunction(config)).filter(Boolean);
+    return object.values(this._config.content).map(config => this._resolvePossibleFunction(config)).filter(bool);
   }
   hasContent() {
     return this.getContent().length > 0;
@@ -3076,7 +3076,7 @@ class TemplateFactory extends Config {
   toHtml() {
     const templateWrapper = document.createElement('div');
     templateWrapper.innerHTML = this._maybeSanitize(this._config.template);
-    for (const [selector, text] of Object.entries(this._config.content)) {
+    for (const [selector, text] of object.entries(this._config.content)) {
       this._setContent(templateWrapper, text, selector);
     }
     const template = templateWrapper.children[0];
@@ -3093,7 +3093,7 @@ class TemplateFactory extends Config {
     this._checkContent(config.content);
   }
   _checkContent(arg) {
-    for (const [selector, content] of Object.entries(arg)) {
+    for (const [selector, content] of object.entries(arg)) {
       super._typeCheckConfig({
         selector,
         entry: content
@@ -3198,19 +3198,19 @@ const Default$3 = {
 };
 const DefaultType$3 = {
   allowList: 'object',
-  animation: 'boolean',
+  animation: 'bool',
   boundary: '(string|element)',
-  container: '(string|element|boolean)',
+  container: '(string|element|bool)',
   customClass: '(string|function)',
   delay: '(number|object)',
   fallbackPlacements: 'array',
-  html: 'boolean',
+  html: 'bool',
   offset: '(array|string|function)',
   placement: '(string|function)',
   popperConfig: '(null|object|function)',
-  sanitize: 'boolean',
+  sanitize: 'bool',
   sanitizeFn: '(null|function)',
-  selector: '(string|boolean)',
+  selector: '(string|bool)',
   template: 'string',
   title: '(string|element|function)',
   trigger: 'string'
@@ -3374,7 +3374,7 @@ class Tooltip extends BaseComponent {
 
   // Protected
   _isWithContent() {
-    return Boolean(this._getTitle());
+    return bool(this._getTitle());
   }
   _getTipElement() {
     if (!this.tip) {
@@ -3392,7 +3392,7 @@ class Tooltip extends BaseComponent {
     tip.classList.remove(CLASS_NAME_FADE$2, CLASS_NAME_SHOW$2);
     // TODO: v6 the following can be achieved with CSS only
     tip.classList.add(`bs-${this.constructor.NAME}-auto`);
-    const tipId = getUID(this.constructor.NAME).toString();
+    const tipId = getUID(this.constructor.NAME).ToString();
     tip.setAttribute('id', tipId);
     if (this._isAnimated()) {
       tip.classList.add(CLASS_NAME_FADE$2);
@@ -3567,11 +3567,11 @@ class Tooltip extends BaseComponent {
     this._timeout = setTimeout(handler, timeout);
   }
   _isWithActiveTrigger() {
-    return Object.values(this._activeTrigger).includes(true);
+    return object.values(this._activeTrigger).includes(true);
   }
   _getConfig(config) {
     const dataAttributes = Manipulator.getDataAttributes(this._element);
-    for (const dataAttribute of Object.keys(dataAttributes)) {
+    for (const dataAttribute of object.keys(dataAttributes)) {
       if (DISALLOWED_ATTRIBUTES.has(dataAttribute)) {
         delete dataAttributes[dataAttribute];
       }
@@ -3594,16 +3594,16 @@ class Tooltip extends BaseComponent {
       };
     }
     if (typeof config.title === 'number') {
-      config.title = config.title.toString();
+      config.title = config.title.ToString();
     }
     if (typeof config.content === 'number') {
-      config.content = config.content.toString();
+      config.content = config.content.ToString();
     }
     return config;
   }
   _getDelegateConfig() {
     const config = {};
-    for (const [key, value] of Object.entries(this._config)) {
+    for (const [key, value] of object.entries(this._config)) {
       if (this.constructor.Default[key] !== value) {
         config[key] = value;
       }
@@ -3612,8 +3612,8 @@ class Tooltip extends BaseComponent {
     config.trigger = 'manual';
 
     // In the future can be replaced with:
-    // const keysWithDifferentValues = Object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])
-    // `Object.fromEntries(keysWithDifferentValues)`
+    // const keysWithDifferentValues = object.entries(this._config).filter(entry => this.constructor.Default[entry[0]] !== this._config[entry[0]])
+    // `object.fromEntries(keysWithDifferentValues)`
     return config;
   }
   _disposePopper() {
@@ -3771,7 +3771,7 @@ const DefaultType$1 = {
   offset: '(number|null)',
   // TODO v6 @deprecated, keep it for backwards compatibility reasons
   rootMargin: 'string',
-  smoothScroll: 'boolean',
+  smoothScroll: 'bool',
   target: 'element',
   threshold: 'array'
 };
@@ -4287,8 +4287,8 @@ const CLASS_NAME_HIDE = 'hide'; // @deprecated - kept here only for backwards co
 const CLASS_NAME_SHOW = 'show';
 const CLASS_NAME_SHOWING = 'showing';
 const DefaultType = {
-  animation: 'boolean',
-  autohide: 'boolean',
+  animation: 'bool',
+  autohide: 'bool',
   delay: 'number'
 };
 const Default = {

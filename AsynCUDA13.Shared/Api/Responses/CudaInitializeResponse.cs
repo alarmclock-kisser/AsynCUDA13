@@ -9,9 +9,9 @@ namespace AsynCUDA13.Shared.Api.Responses
     {
         public CudaContextInfo? ContextInfo { get; set; } = null;
 
-        public bool Success => this.ContextInfo != null && this.ContextInfo.DeviceInfo != null;
+        public Boolean Success => this.ContextInfo != null && this.ContextInfo.DeviceInfo != null;
 
-        public int ElapsedMs { get; set; } = -1;
+        public Int32 ElapsedMs { get; set; } = -1;
 
     }
 }

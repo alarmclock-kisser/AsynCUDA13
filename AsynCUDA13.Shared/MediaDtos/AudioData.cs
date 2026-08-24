@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
 namespace AsynCUDA13.Shared.MediaDtos
@@ -8,13 +9,18 @@ namespace AsynCUDA13.Shared.MediaDtos
     {
         public required AudioInfo Info { get; set; }
 
-        public string? Pointer { get; set; } = null;
+        public string? Pointer => this.Info?.Pointer;
 
-        public float[] AudioDataFloats { get; set; } = [];
-        public float[][] AudioDataFloatChunks { get; set; } = [];
+        public Single[] AudioDataFloats { get; set; } = [];
+        public Single[][] AudioDataFloatChunks { get; set; } = [];
 
-        public int ChunkSize => this.AudioDataFloatChunks.Any() ? this.AudioDataFloatChunks.FirstOrDefault()?.Length ?? 0 : 0;
-        public float DataSizeMb => this.AudioDataFloats.Any() ? this.AudioDataFloats.LongCount() * sizeof(float) / 1024f / 1024f : this.AudioDataFloatChunks.Any() ? this.AudioDataFloatChunks.Sum(chunk => chunk.Length) * sizeof(float) / 1024f / 1024f : 0f;
+        public Int32 ChunkSize => this.AudioDataFloatChunks.Any() ? this.AudioDataFloatChunks.FirstOrDefault()?.Length ?? 0 : 0;
+        public Single DataSizeMb => this.AudioDataFloats.Any() ? this.AudioDataFloats.LongCount() * sizeof(Single) / 1024f / 1024f : this.AudioDataFloatChunks.Any() ? this.AudioDataFloatChunks.Sum(chunk => chunk.Length) * sizeof(Single) / 1024f / 1024f : 0f;
 
+
+        public Boolean IdMatch(string id, Boolean requireOnGpu = false)
+        {
+            return this.Info.IdMatch(id, requireOnGpu);
+        }
     }
 }

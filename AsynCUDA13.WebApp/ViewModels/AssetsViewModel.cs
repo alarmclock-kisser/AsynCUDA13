@@ -3,6 +3,7 @@ using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.CudaDtos;
 using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.WebApp.Components;
+using AsynCUDA13.WebApp.Components.Dialogs;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.JSInterop;
@@ -10,9 +11,9 @@ using Radzen;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class AssetsViewModel : ViewModelBase
+    public class AssetsViewModel : ViewModelBase<string, string>
     {
-        public AssetsViewModel(ApiClient apiClient, IJSRuntime js, int maxUploadKb = 16384)
+        public AssetsViewModel(ApiClient apiClient, IJSRuntime js, int maxUploadKb = 65536)
             : base(apiClient, js, maxUploadKb)
         {
         }
@@ -30,16 +31,16 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task LoadAssetsAsync()
         {
-            this.ImageInfos = await this.Api.GetImagesAsync();
-            this.AudiosInfos = await this.Api.GetAudiosAsync();
+            this.ImageInfos = await this.Api.GetImageInfosAsync();
+            this.AudiosInfos = await this.Api.GetAudioInfosAsync();
 
             await this.LoadPreviewsAsync();
         }
 
         public async Task LoadPreviewsAsync()
         {
-            this.AudioPreviews = this.AudiosInfos.Length> 0 ? await this.Api.GetAudioWaveformsAsync(this.AudiosInfos.Select(a => a.Id.ToString()).ToArray(), this.AudioPreviewSize) ?? [] : [];
-            this.ImagePreviews = this.ImageInfos.Length> 0 ? await this.Api.GetImagePreviewsAsync(this.ImageInfos.Select(i => i.Id.ToString()).ToArray(), this.ImagePreviewSize) ?? [] : [];
+            this.AudioPreviews = this.AudiosInfos.Length > 0 ? await this.Api.GetAudioWaveformsAsync(this.AudiosInfos.Select(a => a.Id.ToString()).ToArray(), this.AudioPreviewSize) ?? [] : [];
+            this.ImagePreviews = this.ImageInfos.Length > 0 ? await this.Api.GetImagePreviewsAsync(this.ImageInfos.Select(i => i.Id.ToString()).ToArray(), this.ImagePreviewSize) ?? [] : [];
 
             await this.NotifyStateChangedAsync(false);
         }
@@ -80,13 +81,13 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
             try
             {
-                using var stream = file.OpenReadStream((long) (this.MaxUploadKb * 1024) );
+                using var stream = file.OpenReadStream((long) (this.MaxUploadKb * 1024));
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();
                 var fileParameter = new FileParameter(new MemoryStream(bytes), file.Name, file.ContentType);
 
-               string guid = await this.Api.UploadMediaAsync(fileParameter) ?? throw new Exception("Upload failed, no ID returned.");
+                string guid = await this.Api.UploadMediaAsync(fileParameter) ?? throw new Exception("Upload failed, no ID returned.");
 
                 this.MediaUpload = null;
                 await this.LoadAssetsAsync();

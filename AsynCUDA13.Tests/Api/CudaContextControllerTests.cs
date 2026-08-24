@@ -18,7 +18,7 @@ namespace AsynCUDA13.Tests.Api
         public void SetUp()
         {
             this._mockCuda = new Mock<ICudaService>();
-            this._controller = new CudaContextController(this._mockCuda.Object);
+            this._controller = new CudaContextController(this._mockCuda.object);
         }
 
         // =====================================================================

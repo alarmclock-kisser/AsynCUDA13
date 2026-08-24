@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AsynCUDA13.Media\AsynCUDA13.Media.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.OpenClBackend\AsynCUDA13.OpenClBackend.csproj" />
     <ProjectReference Include="..\AsynCUDA13.Runtime\AsynCUDA13.Runtime.csproj" />
     <ProjectReference Include="..\AsynCUDA13.Shared\AsynCUDA13.Shared.csproj" />
   </ItemGroup>

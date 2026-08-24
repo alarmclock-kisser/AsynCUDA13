@@ -10,7 +10,7 @@ namespace AsynCUDA13.Shared
     /// </summary>
     public static class CudaAvailabilityTester
     {
-        public static bool IsCudaAvailable() => GetCudaRuntimeDirectories().Any();
+        public static Boolean IsCudaAvailable() => GetCudaRuntimeDirectories().Any();
 
         public static IReadOnlyList<string> GetCudaRuntimeDirectories()
         {

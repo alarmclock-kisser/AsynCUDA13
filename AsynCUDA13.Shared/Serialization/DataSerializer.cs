@@ -10,12 +10,12 @@ namespace AsynCUDA13.Shared.Serialization
 {
     public static class DataSerializer
     {
-        public static int ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
+        public static Int32 ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
         // --------------------------------------------------------------------------------
         // 1D Serialization (Sektor-Aufteilung über Threads)
         // --------------------------------------------------------------------------------
-        public static async Task<ICudaPayload?> SerializeAsync<T>(IEnumerable<T> data, bool asyncCall = true) where T : unmanaged
+        public static async Task<ICudaPayload?> SerializeAsync<T>(IEnumerable<T> data, Boolean asyncCall = true) where T : unmanaged
         {
             T[] items = data as T[] ?? data.ToArray();
 
@@ -29,8 +29,8 @@ namespace AsynCUDA13.Shared.Serialization
                 };
             }
 
-            int degreeOfParallelism = Math.Max(1, ParallelThreads);
-            int totalItems = items.Length;
+            Int32 degreeOfParallelism = Math.Max(1, ParallelThreads);
+            Int32 totalItems = items.Length;
 
             if (totalItems < degreeOfParallelism)
             {
@@ -38,14 +38,14 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             // Ausrichtung berechnen: Byte-Länge pro Sektor muss durch 3 teilbar sein,
-            // damit beim Zusammensetzen der Base64-Strings keine Padding-Fehler '=' entstehen.
-            int elementSize = Unsafe.SizeOf<T>();
-            int alignment = 3 / GreatCommonDivisor(3, elementSize); // Z. B. 3 Elemente bei float/int, 3 bei double
+            // damit beim Zusammensetzen der Base64-strings keine Padding-Fehler '=' entstehen.
+            Int32 elementSize = Unsafe.SizeOf<T>();
+            Int32 alignment = 3 / GreatCommonDivisor(3, elementSize); // Z. B. 3 Elemente bei float/int, 3 bei double
 
-            int itemsPerChunk = (int) Math.Ceiling((double) totalItems / degreeOfParallelism);
+            Int32 itemsPerChunk = (Int32) Math.Ceiling((Double) totalItems / degreeOfParallelism);
             itemsPerChunk = ((itemsPerChunk + alignment - 1) / alignment) * alignment;
 
-            int actualChunkCount = (int) Math.Ceiling((double) totalItems / itemsPerChunk);
+            Int32 actualChunkCount = (Int32) Math.Ceiling((Double) totalItems / itemsPerChunk);
             string[] sectorResults = new string[actualChunkCount];
 
             // Non-blocking Ausführung auf dem ThreadPool
@@ -53,8 +53,8 @@ namespace AsynCUDA13.Shared.Serialization
             {
                 Parallel.For(0, actualChunkCount, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, sectorIdx =>
                 {
-                    int start = sectorIdx * itemsPerChunk;
-                    int count = Math.Min(itemsPerChunk, totalItems - start);
+                    Int32 start = sectorIdx * itemsPerChunk;
+                    Int32 count = Math.Min(itemsPerChunk, totalItems - start);
 
                     if (count <= 0)
                     {
@@ -63,10 +63,10 @@ namespace AsynCUDA13.Shared.Serialization
 
                     // Zero-Allocation Memory-View auf das unmanaged Array
                     ReadOnlySpan<T> slice = items.AsSpan(start, count);
-                    ReadOnlySpan<byte> byteSlice = MemoryMarshal.AsBytes(slice);
+                    ReadOnlySpan<Byte> byteSlice = MemoryMarshal.AsBytes(slice);
 
                     // Sektor-Array ist thread-safe, da jeder Index eindeutig zugewiesen ist
-                    sectorResults[sectorIdx] = Convert.ToBase64String(byteSlice);
+                    sectorResults[sectorIdx] = Convert.ToBase64string(byteSlice);
                 });
             });
 
@@ -81,7 +81,7 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         // 2D Serialization (Chunk-Workerpool mit Parallel.ForAsync)
         // --------------------------------------------------------------------------------
-        public static async Task<ICudaPayload?> SerializeAsync<T>(IEnumerable<IEnumerable<T>> data, bool asyncCall = true) where T : unmanaged
+        public static async Task<ICudaPayload?> SerializeAsync<T>(IEnumerable<IEnumerable<T>> data, Boolean asyncCall = true) where T : unmanaged
         {
             // Materialisieren der äußeren Chunks als Arrays für schnellen Span-Zugriff
             List<T[]> chunkList = data.Select(c => c as T[] ?? c.ToArray()).ToList();
@@ -107,9 +107,9 @@ namespace AsynCUDA13.Shared.Serialization
             await Parallel.ForAsync(0, chunkList.Count, options, (i, ct) =>
             {
                 ReadOnlySpan<T> span = chunkList[i].AsSpan();
-                ReadOnlySpan<byte> byteSpan = MemoryMarshal.AsBytes(span);
+                ReadOnlySpan<Byte> byteSpan = MemoryMarshal.AsBytes(span);
 
-                results[i] = Convert.ToBase64String(byteSpan);
+                results[i] = Convert.ToBase64string(byteSpan);
                 return ValueTask.CompletedTask;
             });
 
@@ -121,11 +121,11 @@ namespace AsynCUDA13.Shared.Serialization
             };
         }
 
-        public static int GreatCommonDivisor(int a, int b)
+        public static Int32 GreatCommonDivisor(Int32 a, Int32 b)
         {
             while (b != 0)
             {
-                int temp = b;
+                Int32 temp = b;
                 b = a % b;
                 a = temp;
             }

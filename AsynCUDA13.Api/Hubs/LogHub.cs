@@ -65,7 +65,7 @@ namespace AsynCUDA13.Api.Hubs
                     _ = hubContext.Clients.All.SendAsync("LogWritten", timestamp, line);
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 // Fehler beim Senden - nichts mehr tun, da wir in einem Event-Handler sind
             }

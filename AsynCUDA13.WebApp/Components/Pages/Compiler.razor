@@ -1,15 +1,14 @@
 @page "/compiler"
 @inherits ViewModelComponentBase<CompilerViewModel>
-@inject HomeViewModel HomeVM
 @inject ApiClient ApiClient
 @inject LanguageService L
 
 <div class="container mt-4">
     <h2>@L["CudaKernelCompiler"]</h2>
 
-    <RadzenAlert Text="@(HomeVM.IsInitialized ? L["CudaInitialized"] : L["NoteCudaInitialized"])"
-                 Severity="@(HomeVM.IsInitialized ? AlertStyle.Success : AlertStyle.Warning)"
-                 Visible="true" ShowCloseButton="false" />
+    <RadzenAlert Text="@VM.InfoMessage"
+                 Severity="@VM.InfoSeverity"
+                 Visible="@VM.ShowInfoMessage" ShowCloseButton="@VM.ShowInfoCloseButton" />
 
     <RadzenCard>
         <RadzenCard>
@@ -17,23 +16,12 @@
         </RadzenCard>
         <RadzenBody>
             <RadzenTextArea @bind-Value="VM.KernelCode" Rows="10" Placeholder="@L["EnterCudaKernelCode"]" />
-            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="() => VM.CompileKernelAsync(VM.KernelCode)" Disabled="@(!HomeVM.IsInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
+            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="() => VM.CompileKernelAsync(VM.KernelCode)" Disabled="@(!VM.IsCudaInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
         </RadzenBody>
     </RadzenCard>
 
-    @if (VM.LastCompileResponse != null)
-    {
-        <CudaCompileDialog Response="VM.LastCompileResponse" />
-    }
+    <CudaCompileDialog @ref="VM.Dialog" @bind-Visible="@VM.ShowDialog" />
 
-    @if (VM.LastCompileResponse == null)
-    {
-        <h4>@L["CompiledKernels"]</h4>
-    }
-    else
-    {
-        <h4>@L["CompilationResult"]</h4>
-    }
     <RadzenPickList Data="@VM.Kernels" TItem="CudaKernelInfo">
         <Template Context="context">
             <div class="card mb-2">

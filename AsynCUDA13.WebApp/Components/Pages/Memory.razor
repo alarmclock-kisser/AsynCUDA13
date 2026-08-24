@@ -5,10 +5,9 @@
 <div class="container mt-4">
     <h2>@L["CudaMemoryManagement"]</h2>
 
-    <RadzenAlert Text="@(VM.IsCudaInitialized ? L["CudaInitialized"] : L["CudaNotInitialized"])"
-                 Severity="@(VM.IsCudaInitialized ? AlertStyle.Success : AlertStyle.Warning)"
-                 Visible="true"
-                 ShowCloseButton="false" />
+    <RadzenAlert Text="@VM.InfoMessage"
+                 Severity="@VM.InfoSeverity"
+                 Visible="@VM.ShowInfoMessage" ShowCloseButton="@VM.ShowInfoCloseButton" />
 
     @if (VM.IsCudaInitialized)
     {
@@ -17,17 +16,49 @@
                 <h5>@L["VramStatus"]</h5>
             </div>
             <div class="rz-card-body">
-                <p><strong>@L["AllocatedCudaMemObjects"]:</strong> @VM.MemoryInfos.Length</p>
+                <p><strong>@L["AllocatedCudaMemobjects"]:</strong> @VM.MemoryInfos.Length</p>
             </div>
         </RadzenCard>
 
-        <h4>@L["MemoryList"]</h4>
-        <RadzenAccordion>
+        <RadzenCard Class="mt-4">
+            <h5>@L["PushAssets"]</h5>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <RadzenDropDown @bind-Value="VM.SelectedAssetId"
+                                    Placeholder="@L["SelectAsset"]"
+                                    Data="@VM.AssetDropDownItems"
+                                    TextProperty="Name"
+                                    ValueProperty="Id"
+                                    ShowClear="true"
+                                    Disabled="@(!VM.AssetDropDownItems.Any())"
+                                    Change="@VM.OnSelectedAssetChangedAsync" />
+                </div>
+                <div class="col-md-2">
+                    <RadzenButton Text="@L["PushToCuda"]"
+                                    ButtonStyle="ButtonStyle.Success"
+                                    Click="@VM.OpenPushDialogAsync"
+                                    Disabled="@(!VM.AssetPushable)" />
+                </div>
+            </div>
+        </RadzenCard>
+
+        <CudaPushDialog @ref="VM.Dialog" @bind-Visible="@VM.ShowDialog"
+                        AssetName="@VM.SelectedAssetName"
+                        IsAudio="@VM.SelectedAssetIsAudio"
+                        ChunkSizeValue="@VM.ChunkSize"
+                        OverlapValue="@VM.Overlap"
+                        KeepDataValue="@VM.KeepData"
+                        ImageFormatValue="@VM.ImageFormat"
+                        OnPush="@(async () => await VM.HandlePushAsync())"
+                        OnClose="VM.ClosePushDialogAsync" />
+
+        <h4 class="mt-4">@L["MemoryList"]</h4>
+        <RadzenAccordion Multiple="true">
             <Items>
                 @foreach (var memInfo in VM.MemoryInfos)
                 {
-                    var isOnDevice = VM.IsOnDevice(memInfo);
-                    var accordionTitle = $"{memInfo.Id} ({VM.FormatSize(memInfo.TotalSize)}) ({memInfo.ElementType}) - {(isOnDevice ? L["OnDevice"] : L["OnHost"])}";
+                    var assetId = memInfo.Id;
+                    var accordionTitle = $"{memInfo.Id} ({VM.FormatSize(memInfo.TotalSize)}) ({memInfo.ElementType})";
 
                     <RadzenAccordionItem @key="memInfo.Id" Text="@accordionTitle">
                         <div class="row">
@@ -44,24 +75,14 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="d-flex justify-content-end gap-2">
-                                    @if (isOnDevice)
-                                    {
-                                        <RadzenButton Icon="arrow_downward"
-                                                      ButtonStyle="ButtonStyle.Primary"
-                                                      Title="@L["PushToHost"]"
-                                                      Click="@(() => VM.PullAsync(memInfo.IndexPointer, true))" />
-                                    }
-                                    else
-                                    {
-                                        <RadzenButton Icon="arrow_upward"
-                                                      ButtonStyle="ButtonStyle.Success"
-                                                      Title="@L["PullToDevice"]"
-                                                      Click="@(() => VM.PushAssetAsync(memInfo.Id, false, memInfo.ElementType.Contains("audio", StringComparison.OrdinalIgnoreCase)))" />
-                                    }
+                                    <RadzenButton Icon="arrow_downward"
+                                                  ButtonStyle="ButtonStyle.Primary"
+                                                  Title="@L["PushToHost"]"
+                                                  Click="@(() => VM.HandlePullAsync(memInfo.IndexPointer))"
+                                                  Disabled="@(!memInfo.IsValid)" />
                                     <RadzenButton Icon="delete"
                                                   ButtonStyle="ButtonStyle.Danger"
                                                   Title="@L["Delete"]"
-                                                  Disabled="@(!isOnDevice)"
                                                   Click="@(() => VM.FreeMemoryAsync(memInfo.IndexPointer))" />
                                 </div>
                             </div>
@@ -89,7 +110,7 @@
 
         @if (VM.MemoryInfos.Length == 0)
         {
-            <p class="text-muted">@L["NoCudaMemObjects"]</p>
+            <p class="text-muted">@L["NoCudaMemobjects"]</p>
         }
     }
     else
@@ -99,8 +120,8 @@
 </div>
 
 @code {
-    protected override Task LoadViewModelAsync()
+    protected override async Task LoadViewModelAsync()
     {
-        return VM.LoadMemoryListAsync();
+        await VM.LoadMemoryListAsync();
     }
 }

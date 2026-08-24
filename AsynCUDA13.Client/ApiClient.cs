@@ -37,7 +37,7 @@ namespace AsynCUDA13.Client
 
         public event Action<DateTime, string>? LogWritten;
 
-                public bool IsSignalRConnected => _hubConnection?.State == HubConnectionState.Connected;
+        public bool IsSignalRConnected => this._hubConnection?.State == HubConnectionState.Connected;
 
 
         public ApiClient(string baseUrl, int logLevel = (int) LogLevel.Information)
@@ -45,7 +45,9 @@ namespace AsynCUDA13.Client
             this.BaseUrl = baseUrl;
             this.httpClient = new HttpClient()
             {
-                BaseAddress = new Uri(this.BaseUrl)
+                BaseAddress = new Uri(this.BaseUrl),
+                Timeout = TimeSpan.FromMinutes(10),
+                MaxResponseContentBufferSize = int.MaxValue
             };
             this.internalClient = new(baseUrl, this.httpClient);
             this.LogLevel = (LogLevel) logLevel;
@@ -448,48 +450,72 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<CudaPushResponse?> PushAsync(string assetIdOrName, int chunkSize = 0, float overlap = 0.5f, string format = "png", bool keepData = false)
+        public async Task<CudaPushResponse?> PushAsync(string assetIdOrName, bool serverSided = true, int chunkSize = 0, float overlap = 0.5f, string format = "png", bool keepData = false)
         {
             DateTime started = DateTime.Now;
-            bool hasValue = false;
+            CudaPushResponse? response = null;
             try
             {
-                ICudaPayload? payload = null;
-
-                var audioData = await this.internalClient.AudioDataAsync(assetIdOrName, chunkSize, overlap, keepData);
-                ImageData? imageData = null;
-                if (audioData == null)
+                Guid? verifiedAssetId = await this.VerifyAssetIdExistsAsync(assetIdOrName);
+                bool? isAudioAsset = await this.IsAssetAudioAsync(verifiedAssetId);
+                if (isAudioAsset == null)
                 {
-                    imageData = await this.internalClient.ImageDataAsync(assetIdOrName, format, keepData);
-                    payload = await DataSerializer.SerializeAsync(imageData?.Base64Data ?? "", true);
-                }
-                else
-                {
-                    if (audioData.AudioDataFloats?.LongLength > 0)
+                    if ((int) this.LogLevel >= 4)
                     {
-                        payload = await DataSerializer.SerializeAsync(audioData.AudioDataFloats, true);
+                        await StaticLogger.LogAsync($"Asset '{assetIdOrName}' does not exist or could not determine if it is an audio asset. PushAsync() aborted.");
                     }
-                    else if (audioData.AudioDataFloatChunks?.LongLength > 0)
-                    {
-                        payload = await DataSerializer.SerializeAsync(audioData.AudioDataFloatChunks, true);
-                    }
-                }
-
-                if (payload == null)
-                {
-                    await StaticLogger.LogAsync($"Failed to serialize data for asset '{assetIdOrName}'.");
                     return null;
                 }
 
-                var request = new CudaPushRequest()
+                if (serverSided)
                 {
-                    Payload = payload,
-                    AsyncCall = true,
-                };
+                    response = await this.internalClient.PushAssetAsync(assetIdOrName, chunkSize, overlap, keepData);
+                }
 
-                var response = await this.internalClient.PushAsync(request);
-                hasValue = response != null;
-                return response;
+                else
+                {
+                    ICudaPayload? payload = null;
+
+                    if (isAudioAsset == false)
+                    {
+                        var imageData = await this.internalClient.ImageDataAsync(assetIdOrName, format, keepData);
+                        payload = await DataSerializer.SerializeAsync(imageData?.Base64Data ?? "", true);
+                    }
+                    else
+                    {
+                        var audioData = await this.internalClient.AudioDataAsync(assetIdOrName, chunkSize, overlap, keepData);
+                        if (audioData.AudioDataFloats?.LongLength > 0)
+                        {
+                            payload = await DataSerializer.SerializeAsync(audioData.AudioDataFloats, true);
+                        }
+                        else if (audioData.AudioDataFloatChunks?.LongLength > 0)
+                        {
+                            payload = await DataSerializer.SerializeAsync(audioData.AudioDataFloatChunks, true);
+                        }
+                    }
+
+                    if (payload == null)
+                    {
+                        await StaticLogger.LogAsync($"Failed to serialize data for asset '{assetIdOrName}'.");
+                        return null;
+                    }
+
+                    var request = new CudaPushRequest()
+                    {
+                        Payload = payload,
+                        AsyncCall = true,
+                    };
+
+                    response = await this.internalClient.PushAsync(request);
+                }
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
             }
             catch (Exception ex)
             {
@@ -500,27 +526,35 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PushAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : PushAsync() (elapsed={DateTime.Now - started}), {(response != null ? "returned DTO" : "returned NULL")}");
                 }
             }
+
+            return response;
         }
 
-        public async Task<CudaPullResponse?> PullAsync(string indexPointerOrId, bool freeBuffer = true)
+        public async Task<CudaPullResponse?> PullAsync(string indexPointerOrId, bool serverSided = true, bool freeBuffer = true)
         {
-            var request = new CudaPullRequest()
-            {
-                IndexPointerOrId = indexPointerOrId,
-                AsyncCall = true,
-                FreeAfterPull = freeBuffer
-            };
-
             DateTime started = DateTime.Now;
-            bool hasValue = false;
+            CudaPullResponse? response = null;
             try
             {
-                var response = await this.internalClient.PullAsync(request);
-                hasValue = response != null;
-                return response;
+
+
+                if (serverSided)
+                {
+                    response = await this.internalClient.PullAssetAsync(indexPointerOrId, !freeBuffer);
+                }
+                else
+                {
+                    var request = new CudaPullRequest()
+                    {
+                        IndexPointerOrId = indexPointerOrId,
+                        AsyncCall = true,
+                        FreeAfterPull = freeBuffer
+                    };
+                    response = await this.internalClient.PullAsync(request);
+                }
             }
             catch (Exception ex)
             {
@@ -531,9 +565,11 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PullAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : PullAsync() (elapsed={DateTime.Now - started}), {(response != null ? "returned DTO" : "returned NULL")}");
                 }
             }
+
+            return response;
         }
 
 
@@ -794,15 +830,27 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<ImageInfo[]> GetImagesAsync()
+        public async Task<ImageInfo[]> GetImageInfosAsync(string? nameSearch = null)
         {
             DateTime started = DateTime.Now;
             int count = 0;
             try
             {
                 var images = await this.internalClient.ImagesAsync();
+                if (!string.IsNullOrEmpty(nameSearch))
+                {
+                    images = images.Where(i => i.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase)).ToArray();
+                }
                 count = images.Count();
                 return images.ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                return [];
             }
             catch (Exception ex)
             {
@@ -813,20 +861,32 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetImagesAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await StaticLogger.LogAsync($"[ApiClient] : GetImageInfosAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
 
-        public async Task<AudioInfo[]> GetAudiosAsync()
+        public async Task<AudioInfo[]> GetAudioInfosAsync(string? nameSearch = null)
         {
             DateTime started = DateTime.Now;
             int count = 0;
             try
             {
                 var audios = await this.internalClient.AudiosAsync();
+                if (!string.IsNullOrEmpty(nameSearch))
+                {
+                    audios = audios.Where(a => a.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase)).ToArray();
+                }
                 count = audios.Count();
                 return audios.ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                return [];
             }
             catch (Exception ex)
             {
@@ -837,7 +897,38 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAudiosAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await StaticLogger.LogAsync($"[ApiClient] : GetAudioInfosAsync() (elapsed={DateTime.Now - started}, count={count})");
+                }
+            }
+        }
+
+        public async Task<Guid[]> GetAllAssetIdsAsync(string? nameSearch = null, bool fromAudios = true, bool fromImages = true)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                List<Guid> assetIds = [];
+                if (fromAudios)
+                {
+                    assetIds.AddRange((await this.GetAudioInfosAsync(nameSearch)).Select(a => a.Id));
+                }
+                if (fromImages)
+                {
+                    assetIds.AddRange((await this.GetImageInfosAsync(nameSearch)).Select(i => i.Id));
+                }
+
+                return assetIds.Distinct().ToArray();
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return [];
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetAllAssetIdsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -949,7 +1040,7 @@ namespace AsynCUDA13.Client
                         await StaticLogger.LogAsync(ex);
                     }
                 });
-                
+
                 await Task.WhenAll(tasks);
 
                 return result.OrderBy(e => e.Key).Select(e => e.Value).ToArray();
@@ -1087,6 +1178,517 @@ namespace AsynCUDA13.Client
                 }
             }
 
+        }
+
+
+
+
+        // Accessibility helpers
+
+
+        public async Task<Guid?> GetAssetIdForIndexPointerAsync(string indexPointer)
+        {
+            DateTime started = DateTime.Now;
+
+            try
+            {
+                CudaMemInfo? mem = await this.GetMemoryInfoAsync(indexPointer);
+                if (mem == null || mem.Id.Equals(Guid.Empty))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find a CudaMem-obj allocated with IndexPointer={indexPointer}");
+                    }
+                    return null;
+                }
+
+                Guid? audioId = (await this.GetAudioInfosAsync()).FirstOrDefault(a => !string.IsNullOrEmpty(a.Pointer) && a.Pointer.Equals(mem.Id.ToString(), StringComparison.OrdinalIgnoreCase))?.Id;
+                Guid? imageId = (await this.GetImageInfosAsync()).FirstOrDefault(i => !string.IsNullOrEmpty(i.Pointer) && i.Pointer.Equals(mem.Id.ToString(), StringComparison.OrdinalIgnoreCase))?.Id;
+
+                return audioId ?? imageId;
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetAssetIdForIndexPointer() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<Guid[]> GetAssetIdsForIndexPointersAsync(IEnumerable<string>? indexPointers = null)
+        {
+            DateTime started = DateTime.Now;
+
+            try
+            {
+                Guid[] guids = (indexPointers ?? (await this.GetMemoryListAsync()).Select(i => i.Id)).Select(ip => Guid.TryParse(ip, out var guid) ? guid : Guid.Empty).Where(g => g != Guid.Empty).ToArray();
+
+                List<Guid> assetIds = [];
+                assetIds.AddRange((await this.GetAudioInfosAsync()).Where(a => guids.Contains(a.Id)).Select(a => a.Id));
+                assetIds.AddRange((await this.GetImageInfosAsync()).Where(i => guids.Contains(i.Id)).Select(i => i.Id));
+
+                return assetIds.Distinct().ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return [];
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetAssetIdsForIndexPointers() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<Guid?> VerifyAssetIdExistsAsync(Guid id)
+        {
+            DateTime started = DateTime.Now;
+
+            try
+            {
+                Guid? audioId = (await this.GetAudioInfosAsync()).FirstOrDefault(a => a.Id.Equals(id))?.Id;
+                Guid? imageId = (await this.GetImageInfosAsync()).FirstOrDefault(i => i.Id.Equals(id))?.Id;
+
+                return audioId ?? imageId;
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdExistsAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<Guid?> VerifyAssetIdExistsAsync(string idOrName)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                Guid? guid = Guid.TryParse(idOrName, out var parsedGuid) ? parsedGuid : null;
+                if (guid.HasValue)
+                {
+                    return await this.VerifyAssetIdExistsAsync(guid.Value);
+                }
+
+                guid = (await this.GetAudioInfosAsync()).FirstOrDefault(a => a.Name.Equals(idOrName, StringComparison.OrdinalIgnoreCase))?.Id ?? (await this.GetImageInfosAsync()).FirstOrDefault(i => i.Name.Equals(idOrName, StringComparison.OrdinalIgnoreCase))?.Id;
+                return guid;
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdExistsAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<Guid[]> VerifyAssetIdsExistsAsync(IEnumerable<Guid> ids)
+        {
+            DateTime started = DateTime.Now;
+
+            try
+            {
+                var audioIds = (await this.GetAudioInfosAsync()).Where(a => ids.Contains(a.Id)).Select(a => a.Id);
+                var imageIds = (await this.GetImageInfosAsync()).Where(i => ids.Contains(i.Id)).Select(i => i.Id);
+
+                return (audioIds.Concat(imageIds)).ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return [];
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdsExistsAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<Guid[]> VerifyAssetIdsExistsAsync(IEnumerable<string> idsOrNames)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                var audioIds = (await this.GetAudioInfosAsync()).Where(a => idsOrNames.Contains(a.Id.ToString()) || idsOrNames.Contains(a.Name)).Select(a => a.Id);
+                var imageIds = (await this.GetImageInfosAsync()).Where(i => idsOrNames.Contains(i.Id.ToString()) || idsOrNames.Contains(i.Name)).Select(i => i.Id);
+                return (audioIds.Concat(imageIds)).ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return [];
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdsExistsAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<string?> GetIndexPointerForAssetIdAsync(Guid assetId)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                Guid? verifiedId = await this.VerifyAssetIdExistsAsync(assetId);
+                if (verifiedId != null || verifiedId.Equals(Guid.Empty))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId}");
+                    }
+                    return null;
+                }
+
+                string? assetPtr = (await this.GetAudioInfosAsync()).FirstOrDefault(a => a.Id.Equals(verifiedId))?.Pointer ?? (await this.GetImageInfosAsync()).FirstOrDefault(a => a.Id.Equals(verifiedId))?.Pointer;
+                if (string.IsNullOrEmpty(assetPtr))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId} that has a Pointer");
+                    }
+                    return null;
+                }
+
+                string? verifiedPtr = (await this.GetMemoryInfoAsync(assetPtr))?.IndexPointer;
+                if (string.IsNullOrEmpty(verifiedPtr))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId} that has a Pointer which can be found in any CudaMemInfo-obj allocated");
+                    }
+                }
+
+                return verifiedPtr;
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointerForAssetIdAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<string?> GetIndexPointerForAssetIdAsync(string idOrName)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                Guid? verifiedId = await this.VerifyAssetIdExistsAsync(idOrName);
+                if (verifiedId == null || verifiedId.Equals(Guid.Empty))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id or Name={idOrName}");
+                    }
+                    return null;
+                }
+                return await this.GetIndexPointerForAssetIdAsync(verifiedId.Value);
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointerForAssetIdAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<string[]> GetIndexPointersForAssetIdsAsync(IEnumerable<Guid> assetIds)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                var verifiedIds = await this.VerifyAssetIdsExistsAsync(assetIds);
+                if (verifiedIds?.Any(g => g.Equals(Guid.Empty)) == true || verifiedIds?.Length != assetIds.Count())
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"One or more provided assetIds do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", assetIds.Where(i => !verifiedIds.Contains(i)))}]");
+                    }
+                    return [];
+                }
+
+                var assetPtrs = (await this.GetAudioInfosAsync()).Where(a => verifiedIds.Contains(a.Id)).Select(i => i.Pointer ?? "0").Concat((await this.GetImageInfosAsync()).Where(a => verifiedIds.Contains(a.Id)).Select(i => i.Pointer ?? "0"));
+                if (assetPtrs.Count() != verifiedIds.Count())
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Lengths mismatching for verifiedIds and assetPtrs ({verifiedIds.Length} != {assetPtrs.Count()})");
+                        return [];
+                    }
+                    return [];
+                }
+
+                var verifiedPtrs = (await this.GetMemoryListAsync()).Where(m => assetPtrs.Contains(m.IndexPointer)).Select(i => i.IndexPointer);
+                if (verifiedPtrs.Count() != assetPtrs.Count())
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Lengths mismatching for verifiedPtrs and assetPtrs ({verifiedPtrs.Count()} != {assetPtrs.Count()})");
+                        return [];
+                    }
+                    return [];
+                }
+
+                return verifiedPtrs.ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return [];
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointesrForAssetIdsAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<string[]> GetIndexPointersForAssetIdsAsync(IEnumerable<string> idsOrNames)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                var verifiedIds = await this.VerifyAssetIdsExistsAsync(idsOrNames);
+                if (verifiedIds?.Any(g => g.Equals(Guid.Empty)) == true || verifiedIds?.Length != idsOrNames.Count())
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"One or more provided idsOrNames do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", idsOrNames.Select(i => Guid.TryParse(i, out var g) ? g : (Guid?)null)?.Where(v => v.HasValue && !verifiedIds.Contains(v.Value)) ?? [])}]");
+                    }
+                    return [];
+                }
+                return await this.GetIndexPointersForAssetIdsAsync(verifiedIds);
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return [];
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointersForAssetIdsAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<bool?> IsAssetAudioAsync(Guid? assetId)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                if (assetId == null || assetId.Equals(Guid.Empty))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Null or empty assetId provided: {assetId}");
+                    }
+                    return null;
+                }
+
+                Guid? verifiedId = await this.VerifyAssetIdExistsAsync(assetId.Value);
+                if (verifiedId == null || verifiedId.Equals(Guid.Empty))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId}");
+                    }
+                    return null;
+                }
+                bool isAudio = (await this.GetAudioInfosAsync()).Any(a => a.IdMatch(verifiedId.Value));
+                return isAudio;
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : IsAssetAudioAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
+        }
+
+        public async Task<bool?> IsAssetAudioAsync(string? assetIdOrName)
+        {
+            DateTime started = DateTime.Now;
+            try
+            {
+                if (string.IsNullOrEmpty(assetIdOrName))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Null or empty assetIdOrName provided: {assetIdOrName}");
+                    }
+                    return null;
+                }
+
+                Guid? verifiedId = await this.VerifyAssetIdExistsAsync(assetIdOrName);
+                if (verifiedId == null || verifiedId.Equals(Guid.Empty))
+                {
+                    if ((int) this.LogLevel >= 4)
+                    {
+                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id or Name={assetIdOrName}");
+                    }
+                    return null;
+                }
+
+                bool isAudio = (await this.GetAudioInfosAsync()).Any(a => a.IdMatch(verifiedId.Value));
+                return isAudio;
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return null;
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await StaticLogger.LogAsync(ex);
+                return null;
+            }
+            finally
+            {
+                if ((int) this.LogLevel >= 5)
+                {
+                    await StaticLogger.LogAsync($"[ApiClient] : IsAssetAudioAsync() (elapsed={DateTime.Now - started})");
+                }
+            }
         }
 
     }

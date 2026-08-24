@@ -26,7 +26,7 @@ namespace AsynCUDA13.Media
         public int SampleRate { get; set; } = 0;
         public int Channels { get; set; } = 0;
         public int BitDepth { get; set; } = 0;
-        public TimeSpan Duration => (this.SampleRate > 0 && this.Channels > 0) ? TimeSpan.FromSeconds((double) this.Length / this.Channels / this.SampleRate) : TimeSpan.Zero;
+        public TimeSpan Duration => (this.SampleRate > 0 && this.Channels > 0) ? TimeSpan.FromSeconds((Double) this.Length / this.Channels / this.SampleRate) : TimeSpan.Zero;
 
 
         public int ChunkSize { get; set; } = 0;
@@ -124,7 +124,7 @@ namespace AsynCUDA13.Media
         /// <param name="extension">The file extension indicating the container format (e.g. ".mp3", ".wav", ".flac").</param>
         /// <param name="name">An optional display name; falls back to a generated name when empty.</param>
         /// <returns><c>true</c> when the payload was decoded successfully; otherwise <c>false</c>.</returns>
-        public bool LoadFromBytes(byte[] data, string extension, string name = "")
+        public bool LoadFromBytes(Byte[] data, string extension, string name = "")
         {
             if (data == null || data.Length == 0)
             {
@@ -173,7 +173,7 @@ namespace AsynCUDA13.Media
         /// </summary>
         /// <param name="bits">The target bit depth of the WAV output (16 or 32). Defaults to 16-bit PCM.</param>
         /// <returns>The WAV-encoded bytes, or an empty array when there is no data.</returns>
-        public byte[] GetWavBytes(int bits = 16)
+        public Byte[] GetWavBytes(int bits = 16)
         {
             if (this.Data.Length == 0 || this.SampleRate <= 0 || this.Channels <= 0)
             {
@@ -196,12 +196,12 @@ namespace AsynCUDA13.Media
                     else
                     {
                         // Convert the float samples to 16-bit PCM.
-                        var pcm = new byte[this.Data.Length * 2];
+                        var pcm = new Byte[this.Data.Length * 2];
                         for (int i = 0; i < this.Data.Length; i++)
                         {
-                            short value = (short) Math.Clamp(this.Data[i] * short.MaxValue, short.MinValue, short.MaxValue);
-                            pcm[i * 2] = (byte) (value & 0xFF);
-                            pcm[(i * 2) + 1] = (byte) ((value >> 8) & 0xFF);
+                            Int16 value = (Int16) Math.Clamp(this.Data[i] * short.MaxValue, short.MinValue, short.MaxValue);
+                            pcm[i * 2] = (Byte) (value & 0xFF);
+                            pcm[(i * 2) + 1] = (Byte) ((value >> 8) & 0xFF);
                         }
 
                         writer.Write(pcm, 0, pcm.Length);
@@ -237,7 +237,7 @@ namespace AsynCUDA13.Media
                 {
                     // Create a wave format for the current data
                     var sourceFormat = WaveFormat.CreateIeeeFloatWaveFormat(this.SampleRate, this.Channels);
-                    var byteData = new byte[this.Data.Length * sizeof(float)];
+                    var byteData = new Byte[this.Data.Length * sizeof(float)];
                     Buffer.BlockCopy(this.Data, 0, byteData, 0, byteData.Length);
 
                     using var ms = new MemoryStream(byteData);
@@ -296,7 +296,7 @@ namespace AsynCUDA13.Media
                 return await Task.Run(async () =>
                 {
                     var sourceFormat = WaveFormat.CreateIeeeFloatWaveFormat(this.SampleRate, this.Channels);
-                    byte[] byteData = new byte[this.Data.Length * sizeof(float)];
+                    Byte[] byteData = new Byte[this.Data.Length * sizeof(float)];
                     var provider = new BufferedWaveProvider(sourceFormat)
                     {
                         BufferLength = byteData.Length,
@@ -613,9 +613,9 @@ namespace AsynCUDA13.Media
                             writer.WriteSamples(this.Data, 0, this.Data.Length);
                             writer.Flush();
                         }
-                        // Konvertiere den MemoryStream in ein Base64-String
-                        string base64String = Convert.ToBase64String(ms.ToArray());
-                        return base64String;
+                        // Konvertiere den MemoryStream in ein Base64-string
+                        string base64string = Convert.ToBase64string(ms.ToArray());
+                        return base64string;
                     }
                 }
                 catch (Exception ex)
@@ -647,7 +647,10 @@ namespace AsynCUDA13.Media
 
             // Audio-Daten für die Wellenform normalisieren
             float maxAmplitude = this.Data.Length > 0 ? this.Data.Max(Math.Abs) : 1f;
-            if (maxAmplitude == 0) maxAmplitude = 1f;
+            if (maxAmplitude == 0)
+            {
+                maxAmplitude = 1f;
+            }
 
             // Wellenform generieren
             int samples = this.Data.Length;
@@ -660,7 +663,10 @@ namespace AsynCUDA13.Media
                 int endSample = (int) ((x + 1) * samplesPerPixel);
                 endSample = Math.Min(endSample, samples);
 
-                if (endSample <= startSample) continue;
+                if (endSample <= startSample)
+                {
+                    continue;
+                }
 
                 float sum = 0f;
                 for (int i = startSample; i < endSample; i++)

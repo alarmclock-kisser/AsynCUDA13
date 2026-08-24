@@ -1,0 +1,40 @@
+@inject LanguageService L
+@inherits DialogComponentBase<CudaCompileRequest, CudaCompileResponse>
+@implements IRadzenDialog<CudaCompileRequest, CudaCompileResponse>
+
+<RadzenDialogWrapper Visible="@Visible"
+                     VisibleChanged="@VisibleChanged"
+                     Title="@L["CompilationResult"]"
+                     Width="600px"
+                     Height="400px">
+    <ChildContent>
+        @if (DialogResult == null)
+        {
+            <RadzenAlert Text="@($"{L["Error"]} - {L["CompilationFailed"]}")"
+                         Severity="AlertSeverity.Danger"
+                         Visible="true"
+                         ShowCloseButton="false" />
+        }
+        else if(DialogResult.KernelInfo?.PtxPath != null)
+        {
+            <RadzenAlert Text="@($"{L["Success"]} - {L["KernelCompiled"]}\n{L["PtxPath"]}: {DialogResult.KernelInfo.PtxPath}")"
+                         Severity="AlertSeverity.Success"
+                         Visible="true"
+                         ShowCloseButton="true" />
+        }
+        else
+        {
+            <RadzenAlert Text="@($"{L["Error"]} - {L["CompilationFailed"]}\n{DialogResult.BuildLog}")"
+                         Severity="AlertSeverity.Danger"
+                         Visible="true"
+                         ShowCloseButton="true" />
+        }
+        <div class="dialog-actions" style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+            <RadzenButton Text="@L["Close"]" ButtonStyle="ButtonStyle.Secondary" Click="CloseDialogAsync" />
+        </div>
+    </ChildContent>
+</RadzenDialogWrapper>
+
+@code {
+
+}

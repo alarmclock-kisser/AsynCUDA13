@@ -51,7 +51,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpPost("compile")]
         public async Task<ActionResult<CudaCompileResponse>?> CompileKernelAsync([FromBody] CudaCompileRequest request)
         {
-            if (!this.cuda.Online || this.cuda.Compiler == null)
+            if (!this.cuda.Online || this.cuda._compiler == null)
             {
                 var pd = new ProblemDetails
                 {
@@ -66,14 +66,14 @@ namespace AsynCUDA13.Api.Controllers
             try
             {
                 string? ptxPath = request.AsyncCall
-                    ? await Task.Run(() => this.cuda.Compiler.CompileKernel(request.KernelName, request.Silent))
-                    : this.cuda.Compiler.CompileKernel(request.KernelName, request.Silent);
+                    ? await Task.Run(() => this.cuda._compiler.CompileKernel(request.KernelName, request.Silent))
+                    : this.cuda._compiler.CompileKernel(request.KernelName, request.Silent);
                 if (string.IsNullOrEmpty(ptxPath))
                 {
                     var pd = new ProblemDetails
                     {
                         Title = "Compilation failed",
-                        Detail = $"The kernel '{request.KernelName}' could not be compiled.",
+                        Detail = $"The kernel '{request.KernelName}' could not be compiled due to a CUDA availability error. (CudaCompiler or PrimaryContext was not initialized.)",
                         Status = 400
                     };
                     return this.BadRequest(pd);
@@ -90,6 +90,11 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 500
                     };
                     return this.StatusCode(500, pd);
+                }
+
+                if (!ptxPath.EndsWith(".ptx", StringComparison.OrdinalIgnoreCase))
+                {
+                    response.BuildLog = ptxPath;
                 }
 
                 return this.Ok(response);
@@ -109,7 +114,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpPost("execute-generic")]
         public async Task<ActionResult<CudaExecuteResponse>?> ExecuteGenericKernelAsync([FromBody] CudaExecuteRequest request)
         {
-            if (!this.cuda.Online || this.cuda.Compiler == null || this.cuda.Launcher == null)
+            if (!this.cuda.Online || this.cuda._compiler == null || this.cuda._launcher == null)
             {
                 var pd = new ProblemDetails
                 {
@@ -126,17 +131,17 @@ namespace AsynCUDA13.Api.Controllers
                 object[] args = DataParser.ParseArgumentValues(request.ArgumentValues, request.KernelInfo);
 
                 this.cuda.SetCurrent();
-                var result = await this.cuda.Launcher.ExecuteGenericKernelAsync(request.KernelInfo.FunctionName, args);
+                var result = await this.cuda._launcher.ExecuteGenericKernelAsync(request.KernelInfo.FunctionName, args);
 
                 if (request.UnloadAfterExecution)
                 {
-                    this.cuda.Compiler.UnloadKernel();
-                    if (!string.IsNullOrEmpty(this.cuda.Compiler.KernelName))
+                    this.cuda._compiler.UnloadKernel();
+                    if (!string.IsNullOrEmpty(this.cuda._compiler.KernelName))
                     {
                         var pd = new ProblemDetails
                         {
                             Title = "Kernel unload error",
-                            Detail = $"The kernel '{this.cuda.Compiler.KernelName}' could not be unloaded after execution.",
+                            Detail = $"The kernel '{this.cuda._compiler.KernelName}' could not be unloaded after execution.",
                             Status = 500
                         };
                         return this.StatusCode(500, pd);
@@ -161,7 +166,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpPost("execute-linear")]
         public async Task<ActionResult<CudaExecuteResponse>?> ExecuteLinearKernelAsync([FromBody] CudaExecuteRequest request)
         {
-            if (!this.cuda.Online || this.cuda.Compiler == null || this.cuda.Launcher == null)
+            if (!this.cuda.Online || this.cuda._compiler == null || this.cuda._launcher == null)
             {
                 var pd = new ProblemDetails
                 {
@@ -201,10 +206,10 @@ namespace AsynCUDA13.Api.Controllers
                     return this.BadRequest(pd);
                 }
 
-                nint length = (nint) mem.TotalLength;
+                IntPtr length = (IntPtr) mem.TotalLength;
 
                 this.cuda.SetCurrent();
-                var resultPtr = await this.cuda.Launcher.ExecuteLinearKernelAsync(request.KernelInfo.FunctionName, pointer.Value, args, length);
+                var resultPtr = await this.cuda._launcher.ExecuteLinearKernelAsync(request.KernelInfo.FunctionName, pointer.Value, args, length);
                 if (resultPtr == null || resultPtr == IntPtr.Zero)
                 {
                     var pd = new ProblemDetails
@@ -218,13 +223,13 @@ namespace AsynCUDA13.Api.Controllers
 
                 if (request.UnloadAfterExecution)
                 {
-                    this.cuda.Compiler.UnloadKernel();
-                    if (!string.IsNullOrEmpty(this.cuda.Compiler.KernelName))
+                    this.cuda._compiler.UnloadKernel();
+                    if (!string.IsNullOrEmpty(this.cuda._compiler.KernelName))
                     {
                         var pd = new ProblemDetails
                         {
                             Title = "Kernel unload error",
-                            Detail = $"The kernel '{this.cuda.Compiler.KernelName}' could not be unloaded after execution.",
+                            Detail = $"The kernel '{this.cuda._compiler.KernelName}' could not be unloaded after execution.",
                             Status = 500
                         };
                         return this.StatusCode(500, pd);

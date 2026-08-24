@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Runtime
 {
@@ -18,7 +19,7 @@ namespace AsynCUDA13.Runtime
     /// normalize inverse-transform results. Allocations are obtained from and released through the
     /// associated <see cref="CudaRegister"/>.
     /// </summary>
-    public class CudaFourier : IDisposable
+    internal class CudaFourier : IRuntimeFourier, IDisposable
     {
         // Fields
         /// <summary>The CUDA primary context used for transform execution and synchronization.</summary>
@@ -38,6 +39,11 @@ namespace AsynCUDA13.Runtime
             this.CTX = ctx;
             this.Register = register;
         }
+
+        /// <summary>
+        /// Gets the IRuntimeFourier interface for this instance.
+        /// </summary>
+        public IRuntimeFourier Fourier => this;
 
 
         /// <summary>
@@ -70,7 +76,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Allocate output memory
-            var outputMem = this.Register.AllocateGroup<float2>(mem.Lengths.Select(l => l).ToArray());
+            var outputMem = this.Register.AllocateGroup<float2>(mem.PointerLengths.Select(l => (nint)l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -83,35 +89,35 @@ namespace AsynCUDA13.Runtime
             // Check if all lengths are the same (else create plan for each length in loop)
             try
             {
-                if (mem.Lengths.Distinct().Count() == 1)
+                if (mem.PointerLengths.Distinct().Count() == 1)
                 {
-                    int nx = (int) mem.IndexLength.ToInt64();
+                    int nx = (int) mem.IndexLength;
                     cufftType fftType = cufftType.R2C;
                     int batch = 1;
 
                     CudaFFTPlan1D plan = new(nx, fftType, batch);
                     for (int i = 0; i < mem.Count; i++)
                     {
-                        CUdeviceptr inPtr = new(mem.Pointers[i]);
-                        CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                        CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                        CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                         plan.Exec(inPtr, outPtr);
-                        outputMem.Pointers[i] = outPtr.Pointer;
+                        outputMem.PointerIds[i] = outPtr.Pointer;
                     }
                     plan.Dispose();
                 }
                 else
                 {
-                    int[] nx = mem.Lengths.Select(l => (int) l.ToInt64()).ToArray();
+                    long[] nx = mem.PointerLengths.Select(l => (long) l).ToArray();
                     cufftType fftType = cufftType.R2C;
                     int batch = 1;
 
                     for (int i = 0; i < mem.Count; i++)
                     {
-                        CudaFFTPlan1D plan = new(nx[i], fftType, batch);
-                        CUdeviceptr inPtr = new(mem.Pointers[i]);
-                        CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                        CudaFFTPlan1D plan = new((int)nx[i], fftType, batch);
+                        CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                        CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                         plan.Exec(inPtr, outPtr);
-                        outputMem.Pointers[i] = outPtr.Pointer;
+                        outputMem.PointerIds[i] = outPtr.Pointer;
                         plan.Dispose();
                     }
                 }
@@ -173,7 +179,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Allocate output memory
-            var outputMem = this.Register.AllocateGroup<float>(mem.Lengths.Select(l => l).ToArray());
+            var outputMem = this.Register.AllocateGroup<float>(mem.PointerLengths.Select(l => (nint)l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -186,35 +192,35 @@ namespace AsynCUDA13.Runtime
             // Check if all lengths are the same (else create plan for each length in loop)
             try
             {
-                if (mem.Lengths.Distinct().Count() == 1)
+                if (mem.PointerLengths.Distinct().Count() == 1)
                 {
-                    int nx = (int) mem.IndexLength.ToInt64();
+                    int nx = (int) mem.IndexLength;
                     cufftType fftType = cufftType.C2R;
                     int batch = 1;
 
                     CudaFFTPlan1D plan = new(nx, fftType, batch);
                     for (int i = 0; i < mem.Count; i++)
                     {
-                        CUdeviceptr inPtr = new(mem.Pointers[i]);
-                        CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                        CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                        CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                         plan.Exec(inPtr, outPtr);
-                        outputMem.Pointers[i] = outPtr.Pointer;
+                        outputMem.PointerIds[i] = outPtr.Pointer;
                     }
                     plan.Dispose();
                 }
                 else
                 {
-                    int[] nx = mem.Lengths.Select(l => (int) l.ToInt64()).ToArray();
+                    long[] nx = mem.PointerLengths.Select(l => (long) l).ToArray();
                     cufftType fftType = cufftType.C2R;
                     int batch = 1;
 
                     for (int i = 0; i < mem.Count; i++)
                     {
-                        CudaFFTPlan1D plan = new(nx[i], fftType, batch);
-                        CUdeviceptr inPtr = new(mem.Pointers[i]);
-                        CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                        CudaFFTPlan1D plan = new((int)nx[i], fftType, batch);
+                        CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                        CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                         plan.Exec(inPtr, outPtr);
-                        outputMem.Pointers[i] = outPtr.Pointer;
+                        outputMem.PointerIds[i] = outPtr.Pointer;
                         plan.Dispose();
                     }
                 }
@@ -266,7 +272,7 @@ namespace AsynCUDA13.Runtime
                 return result;
             }
 
-            double scale = 1.0 / count;
+            Double scale = 1.0 / count;
             if (typeof(T) == typeof(float))
             {
                 float fscale = (float) scale;
@@ -275,11 +281,11 @@ namespace AsynCUDA13.Runtime
                     result[i] = (T) (object) ((float) (object) result[i] * fscale);
                 }
             }
-            else if (typeof(T) == typeof(double))
+            else if (typeof(T) == typeof(Double))
             {
                 for (int i = 0; i < result.Length; i++)
                 {
-                    result[i] = (T) (object) ((double) (object) result[i] * scale);
+                    result[i] = (T) (object) ((Double) (object) result[i] * scale);
                 }
             }
 
@@ -308,7 +314,7 @@ namespace AsynCUDA13.Runtime
                 return IntPtr.Zero;
             }
 
-            var outputMem = await this.Register.AllocateGroupAsync<float2>(mem.Lengths.Select(l => l).ToArray());
+            var outputMem = await this.Register.AllocateGroupAsync<float2>(mem.PointerLengths.Select(l => (nint)l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -324,17 +330,17 @@ namespace AsynCUDA13.Runtime
                     return pointer;
                 }
 
-                int nx = (int) mem.IndexLength.ToInt64();
+                int nx = (int) mem.IndexLength;
                 cufftType fftType = cufftType.R2C;
                 int batch = 1;
                 CudaFFTPlan1D plan = new(nx, fftType, batch, stream.Stream);
 
                 for (int i = 0; i < mem.Count; i++)
                 {
-                    CUdeviceptr inPtr = new(mem.Pointers[i]);
-                    CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                    CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                    CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                     plan.Exec(inPtr, outPtr);
-                    outputMem.Pointers[i] = outPtr.Pointer;
+                    outputMem.PointerIds[i] = outPtr.Pointer;
                 }
 
                 await Task.Run(stream.Synchronize);
@@ -383,7 +389,7 @@ namespace AsynCUDA13.Runtime
                 return IntPtr.Zero;
             }
 
-            var outputMem = await this.Register.AllocateGroupAsync<float>(mem.Lengths.Select(l => l).ToArray());
+            var outputMem = await this.Register.AllocateGroupAsync<float>(mem.PointerLengths.Select(l => (nint)l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -399,17 +405,17 @@ namespace AsynCUDA13.Runtime
                     return pointer;
                 }
 
-                int nx = (int) mem.IndexLength.ToInt64();
+                int nx = (int) mem.IndexLength;
                 cufftType fftType = cufftType.C2R;
                 int batch = 1;
                 CudaFFTPlan1D plan = new(nx, fftType, batch, stream.Stream);
 
                 for (int i = 0; i < mem.Count; i++)
                 {
-                    CUdeviceptr inPtr = new(mem.Pointers[i]);
-                    CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                    CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                    CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                     plan.Exec(inPtr, outPtr);
-                    outputMem.Pointers[i] = outPtr.Pointer;
+                    outputMem.PointerIds[i] = outPtr.Pointer;
                 }
 
                 await Task.Run(stream.Synchronize);
@@ -471,7 +477,7 @@ namespace AsynCUDA13.Runtime
                 return IntPtr.Zero;
             }
 
-            IntPtr[] lengths = mem.Lengths;
+            IntPtr[] lengths = mem.PointerLengths.Select(l => (IntPtr) l).ToArray();
 
             var outputMem = await this.Register.AllocateGroupAsync<float2>(lengths);
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
@@ -491,16 +497,16 @@ namespace AsynCUDA13.Runtime
 
                 int rank = 1;
                 cufftType fftType = cufftType.R2C;
-                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.ToInt64()).ToArray(), mem.Count, fftType, stream.Stream);
+                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.Tolong()).ToArray(), mem.Count, fftType, stream.Stream);
 
                 for (int i = 0; i < mem.Count; i++)
                 {
-                    CUdeviceptr inPtr = new(mem.Pointers[i]);
-                    CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                    CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                    CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
 
                     plan.Exec(inPtr, outPtr);
 
-                    outputMem.Pointers[i] = outPtr.Pointer;
+                    outputMem.PointerIds[i] = outPtr.Pointer;
                 }
 
                 if (outputMem.IndexPointer == IntPtr.Zero)
@@ -548,7 +554,7 @@ namespace AsynCUDA13.Runtime
                 return IntPtr.Zero;
             }
 
-            IntPtr[] lengths = mem.Lengths;
+            IntPtr[] lengths = mem.PointerLengths.Select(l => (IntPtr) l).ToArray();
 
             var outputMem = await this.Register.AllocateGroupAsync<float>(lengths);
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
@@ -568,16 +574,16 @@ namespace AsynCUDA13.Runtime
 
                 int rank = 1;
                 cufftType fftType = cufftType.C2R;
-                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.ToInt64()).ToArray(), mem.Count, fftType, stream.Stream);
+                CudaFFTPlanMany plan = new(rank, lengths.Select(l => (int) l.Tolong()).ToArray(), mem.Count, fftType, stream.Stream);
 
                 for (int i = 0; i < mem.Count; i++)
                 {
-                    CUdeviceptr inPtr = new(mem.Pointers[i]);
-                    CUdeviceptr outPtr = new(outputMem.Pointers[i]);
+                    CUdeviceptr inPtr = new(mem.PointerIds[i]);
+                    CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
 
                     plan.Exec(inPtr, outPtr);
 
-                    outputMem.Pointers[i] = outPtr.Pointer;
+                    outputMem.PointerIds[i] = outPtr.Pointer;
                 }
 
                 if (outputMem.IndexPointer == IntPtr.Zero)
@@ -628,7 +634,7 @@ namespace AsynCUDA13.Runtime
                     continue;
                 }
 
-                double scale = 1.0 / src.Length;
+                Double scale = 1.0 / src.Length;
                 T[] dst = new T[src.Length];
                 if (typeof(T) == typeof(float))
                 {
@@ -638,11 +644,11 @@ namespace AsynCUDA13.Runtime
                         dst[j] = (T) (object) ((float) (object) src[j] * fscale);
                     }
                 }
-                else if (typeof(T) == typeof(double))
+                else if (typeof(T) == typeof(Double))
                 {
                     for (int j = 0; j < src.Length; j++)
                     {
-                        dst[j] = (T) (object) ((double) (object) src[j] * scale);
+                        dst[j] = (T) (object) ((Double) (object) src[j] * scale);
                     }
                 }
                 else

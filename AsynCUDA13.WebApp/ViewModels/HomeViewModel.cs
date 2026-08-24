@@ -1,12 +1,14 @@
 ﻿using AsynCUDA13.Client;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Api.Requests;
+using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.CudaDtos;
 using Microsoft.JSInterop;
 using System.Linq;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class HomeViewModel : ViewModelBase
+    public class HomeViewModel : ViewModelBase<CudaInitializeRequest, CudaInitializeResponse>
     {
         public HomeViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
@@ -47,7 +49,9 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
 
             this.Devices = await this.Api.GetCudaDevicesAsync();
-            await this.NotifyStateChangedAsync();
+            this.SelectedDevice = this.Devices?.FirstOrDefault(d => d.DeviceId == this.ContextInfo?.DeviceInfo?.DeviceId) ?? this.Devices?.FirstOrDefault();
+
+            await this.NotifyStateChangedAsync(false);
         }
 
         public async Task HandleInitializeButton()

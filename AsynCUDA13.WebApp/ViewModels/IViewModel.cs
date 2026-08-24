@@ -1,7 +1,10 @@
 ﻿using AsynCUDA13.Client;
 using AsynCUDA13.Shared.CudaDtos;
+using AsynCUDA13.WebApp.Components.Dialogs;
 using Microsoft.JSInterop;
 using Radzen;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
@@ -10,7 +13,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         event Action? StateChanged;
     }
 
-    public abstract class ViewModelBase : IViewModel
+    public abstract class ViewModelBase<TRequest, TResponse> : IViewModel where TRequest : class where TResponse : class
     {
         /// <summary>
         /// The API client used for making requests to the backend.
@@ -25,17 +28,44 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <summary>
         /// The maximum upload size in kilobytes. This value is used to limit the size of files that can be uploaded through the view model. The default value is set to 16 MB (16 * 1024 KB).
         /// </summary>
-        public readonly int MaxUploadKb = 16384;
+        public readonly int MaxUploadKb = 65536;
 
         /// <summary>
         /// Gets the current CUDA context information. This property is updated when the state of the view model changes with optional context refresh. It may be null if the context information has not been retrieved yet or if CUDA is not available.
         /// </summary>
-        protected CudaContextInfo? _contextInfo  = null;
+        protected CudaContextInfo? _contextInfo = null;
+
+        /// <summary>
+        /// Gets a value indicating whether CUDA is initialized and available for use. This property checks the Online status of the current CUDA context information. It returns true if CUDA is initialized and online, and false otherwise.
+        /// </summary>
+        public bool IsCudaInitialized => this._contextInfo?.Online == true;
 
         /// <summary>
         /// Event that is triggered when the state of the view model changes. Subscribers can use this event to update their UI or perform other actions in response to state changes.
         /// </summary>
         public event Action? StateChanged;
+
+        /// <summary>
+        /// Gets or sets whether the RadzenDialog shall be shown. Returns false if no dialog is attached.
+        /// </summary>
+        public bool ShowDialog
+        {
+            get => this.Dialog?.Visible ?? false;
+            set
+            {
+                if (this.Dialog is not null)
+                {
+                    this.Dialog.Visible = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the RadzenDialog component associated with this view model.
+        /// Set via @ref from the hosting .razor page after render.
+        /// Null if no dialog is associated with this view model.
+        /// </summary>
+        public IRadzenDialog<TRequest, TResponse>? Dialog { get; set; }
 
         /// <summary>
         /// Gets the current information message to be displayed in the view model. This message can be used to provide feedback to the user, such as success, warning, or error messages. It may be null if there is no message to display.
@@ -58,7 +88,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// </summary>
         public string ShowInfoCloseButton => this._showInfoCloseButton ? "true" : "false";
         private DateTime? _hideInfoMessageAt = null;
-        private readonly TimerCallback TCallback;
+        private readonly TimerCallback TimerEvent;
 
         /// <summary>
         /// Gets the timer used to automatically hide the information message after a specified duration. This timer is started when the HideInfoMessageAt property is set to a future time, and it stops when the message is hidden or cleared.
@@ -81,7 +111,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 {
                     if (this.InfoMessageTimer == null)
                     {
-                        this.InfoMessageTimer = new Timer(this.TCallback, null, Timeout.Infinite, Timeout.Infinite);
+                        this.InfoMessageTimer = new Timer(this.TimerEvent, null, Timeout.Infinite, Timeout.Infinite);
                     }
                     this.InfoMessageTimer.Change(0, 1000);
                 }
@@ -95,15 +125,15 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <summary>
         /// Gets the countdown in seconds until the information message is automatically hidden. If the HideInfoMessageAt property is set to a future time, this property returns the number of seconds remaining until that time. If HideInfoMessageAt is null or in the past, this property returns null.
         /// </summary>
-        public double? InfoMessageTimerCountdown => this.HideInfoMessageAt.HasValue ? (this.HideInfoMessageAt.Value - DateTime.Now).TotalSeconds : null;
+        public Double? InfoMessageTimerCountdown => this.HideInfoMessageAt.HasValue ? (this.HideInfoMessageAt.Value - DateTime.Now).TotalSeconds : null;
 
-        protected ViewModelBase(ApiClient api, IJSRuntime js, int maxUploadKb = 16384)
+        protected ViewModelBase(ApiClient api, IJSRuntime js, int maxUploadKb = 65536)
         {
             this.Api = api;
             this.Js = js;
             this.MaxUploadKb = maxUploadKb;
 
-            this.TCallback = new TimerCallback(async (state) =>
+            this.TimerEvent = new TimerCallback(async (state) =>
             {
                 if (this.HideInfoMessageAt.HasValue && DateTime.Now >= this.HideInfoMessageAt.Value)
                 {
@@ -150,7 +180,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <param name="showCloseButton">Whether to show a close button for the message.</param>
         /// <param name="secondsVisible">The number of seconds the message should be visible. Null means the message will remain visible until manually closed or new message is set.</param>
         /// <param name="notifyStateChanged">Whether to notify subscribers that the state has changed.</param>
-        protected void UpdateInfoMessage(string? message, string severity = "info", bool showCloseButton = true, double? secondsVisible = null, bool notifyStateChanged = false)
+        protected void UpdateInfoMessage(string? message, string severity = "info", bool showCloseButton = true, Double? secondsVisible = null, bool notifyStateChanged = false)
         {
             this.InfoSeverity = severity switch
             {
@@ -185,7 +215,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <param name="secondsVisible">The number of seconds the message should be visible. Null means the message will remain visible until manually closed or new message is set.</param>
         /// <param name="notifyStateChanged">Whether to notify subscribers that the state has changed.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        protected async Task UpdateInfoMessageAsync(string? message, string severity = "info", bool showCloseButton = true, double? secondsVisible = null, bool notifyStateChanged = false)
+        protected async Task UpdateInfoMessageAsync(string? message, string severity = "info", bool showCloseButton = true, Double? secondsVisible = null, bool notifyStateChanged = false)
         {
             this.InfoSeverity = severity switch
             {
@@ -208,6 +238,53 @@ namespace AsynCUDA13.WebApp.ViewModels
             if (notifyStateChanged)
             {
                 await this.NotifyStateChangedAsync(false);
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously sets an information message to be displayed in the view model with the specified parameters. This method is a convenience wrapper around UpdateInfoMessageAsync that automatically notifies subscribers of the state change.
+        /// </summary>
+        /// <param name="message">The message to display. If null, the message will be cleared.</param>
+        /// <param name="severity">The severity level of the message (e.g., "info", "success", "warning", "error").</param>
+        /// <param name="showCloseButton">Whether to show a close button for the message.</param>
+        /// <param name="secondsVisible">The number of seconds the message should be visible. Null means the message will remain visible until manually closed or new message is set.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task PutInfoMessageAsync(string message, string severity = "info", bool showCloseButton = true, Double? secondsVisible = null)
+        {
+            await this.UpdateInfoMessageAsync(message, severity, showCloseButton, secondsVisible, true);
+        }
+
+        /// <summary>
+        /// Asynchronously opens the dialog associated with this view model, passing in an optional request object. If no dialog is attached, an error message is displayed instead.
+        /// </summary>
+        /// <param name="request">The request object to pass to the dialog. If null, a new request may be created depending on the createRequestIfNull parameter.</param>
+        /// <param name="createRequestIfNull">Whether to create a new request object if the request parameter is null.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        protected async Task OpenDialogAsync(TRequest? request = null, bool createRequestIfNull = true)
+        {
+            if (this.Dialog is not null)
+            {
+                await this.Dialog.OpenDialogAsync(request, createRequestIfNull);
+            }
+            else
+            {
+                await this.UpdateInfoMessageAsync("No dialog is attached to this view model.", "error", true, 5, true);
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously closes the dialog associated with this view model. If no dialog is attached, an error message is displayed instead.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        protected async Task CloseDialogAsync()
+        {
+            if (this.Dialog is not null)
+            {
+                await this.Dialog.CloseDialogAsync();
+            }
+            else
+            {
+                await this.UpdateInfoMessageAsync("No dialog is attached to this view model.", "error", true, 5, true);
             }
         }
     }

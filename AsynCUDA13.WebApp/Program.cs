@@ -37,14 +37,14 @@ namespace AsynCUDA13.WebApp
                 options.RequestCultureProviders.Insert(0, new AcceptLanguageHeaderRequestCultureProvider());
             });
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddSingleton<LanguageService>();
+            builder.Services.Addfloatton<LanguageService>();
 
-            // ApiClient (Singleton, liest ApiBaseUrl aus appsettings.json)
+            // ApiClient (floatton, liest ApiBaseUrl aus appsettings.json)
             string apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl") ?? "https://localhost:7186";
             int apiClientLogLevel = builder.Configuration.GetValue<int>("ApiClientLogLevel", 4); // Default to LogLevel.Warning if not specified
-            builder.Services.AddSingleton<ApiClient>(provider => new ApiClient(apiBaseUrl, apiClientLogLevel));
+            builder.Services.Addfloatton<ApiClient>(provider => new ApiClient(apiBaseUrl, apiClientLogLevel));
 
-            // ViewModels (Singleton)
+            // ViewModels (floatton)
             builder.Services.AddScoped<HomeViewModel>();
             builder.Services.AddScoped<AssetsViewModel>();
             builder.Services.AddScoped<MemoryViewModel>();

@@ -36,7 +36,7 @@ namespace AsynCUDA13.Shared
         /// <summary>
         /// Gets or sets a value indicating whether log lines are echoed to the console. True echoes every log, false echoes none, and null echoes only lines containing the phrases in <see cref="EchoToConsoleKeyPhrases"/>.
         /// </summary>
-        public static bool? EchoToConsole { get; set; } = null;
+        public static Boolean? EchoToConsole { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the key phrases that determine which log lines are echoed to the console when <see cref="EchoToConsole"/> is null. Only log lines containing any of these phrases will be echoed to the console.
@@ -56,7 +56,7 @@ namespace AsynCUDA13.Shared
         /// <summary>
         /// Gets or sets a value indicating whether the logger should operate in silent mode. When set to true, log entries will not be echoed to the console or written to a log file, but they will still be recorded in the internal log entries dictionary and binding lists. This can be useful for scenarios where logging is needed for internal tracking but should not produce output to the console or files.
         /// </summary>
-        public static bool Silent { get; set; } = false;
+        public static Boolean Silent { get; set; } = false;
 
         /// <summary>
         /// The phrase used to filter log entries into separate BindingList.
@@ -100,7 +100,7 @@ namespace AsynCUDA13.Shared
         /// <param name="logDirectory">The directory where log files are stored.</param>
         /// <param name="createLogFile">Whether to create a new log file.</param>
         /// <param name="maxPreviousLogFiles">The maximum number of previous log files to retain.</param>
-        public static void InitializeLogFiles(string? logDirectory = null, bool createLogFile = false, int maxPreviousLogFiles = 3)
+        public static void InitializeLogFiles(string? logDirectory = null, Boolean createLogFile = false, Int32 maxPreviousLogFiles = 3)
         {
             if (!string.IsNullOrEmpty(logDirectory))
             {
@@ -222,7 +222,7 @@ namespace AsynCUDA13.Shared
         /// Determines whether a formatted line should be echoed to the console. Per the project's CLI
         /// logging guideline, only success, error and warning lines are printed.
         /// </summary>
-        private static bool ShouldEchoToConsole(string logEntry)
+        private static Boolean ShouldEchoToConsole(string logEntry)
         {
             if (Silent)
             {
@@ -303,7 +303,7 @@ namespace AsynCUDA13.Shared
         /// <summary>Logs an exception with an optional pre-text message (echoed to the console).</summary>
         /// <param name="ex">The exception to log.</param>
         /// <param name="configureAwait">Whether to configure await.</param>
-        public static async Task LogAsync(string message, bool configureAwait = false)
+        public static async Task LogAsync(string message, Boolean configureAwait = false)
         {
             await Task.Run(() => Log(message)).ConfigureAwait(configureAwait);
         }
@@ -312,7 +312,7 @@ namespace AsynCUDA13.Shared
         /// <param name="ex">The exception to log.</param>
         /// <param name="preText">An optional pre-text message to include before the exception details.</param>
         /// <param name="configureAwait">Whether to configure await.</param>
-        public static async Task LogAsync(Exception ex, string? preText = null, bool configureAwait = false)
+        public static async Task LogAsync(Exception ex, string? preText = null, Boolean configureAwait = false)
         {
             await Task.Run(() => Log(ex, preText)).ConfigureAwait(configureAwait);
         }
@@ -374,7 +374,7 @@ namespace AsynCUDA13.Shared
 
         /// <summary>
         /// Writes all recorded log lines to a timestamped TXT file under the repository's
-        /// <c>AsynCUDA12.Shared\Logs</c> folder and prunes the directory so only the newest
+        /// <c>AsynCUDA13.Shared\Logs</c> folder and prunes the directory so only the newest
         /// <see cref="MaxRepositoryLogFiles"/> files remain.
         /// </summary>
         /// <returns>The full path of the written file.</returns>
@@ -408,7 +408,7 @@ namespace AsynCUDA13.Shared
 
             IReadOnlyList<string> snapshot = GetLogLines();
 
-            var sb = new StringBuilder();
+            var sb = new stringBuilder();
             sb.AppendLine("==============================================================");
             sb.AppendLine("Aggregated Log Export");
             sb.Append("Timestamp : ").AppendLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
@@ -444,7 +444,7 @@ namespace AsynCUDA13.Shared
         /// </summary>
         /// <param name="backIndex">The zero-based index of the log file to retrieve, where 0 is the most recent log file.</param>
         /// <returns>The full path of the previous log file, or null if the index is out of range.</returns>
-        public static string? GetPreviousLogFilePath(int backIndex)
+        public static string? GetPreviousLogFilePath(Int32 backIndex)
         {
             return GetAllLogFilePaths().Skip(backIndex).FirstOrDefault();
         }
@@ -452,7 +452,7 @@ namespace AsynCUDA13.Shared
         /// <summary>
         /// The maximum number of saved log files to retain in the repository log directory.
         /// </summary>
-        public const int MaxRepositoryLogFiles = 16;
+        public const Int32 MaxRepositoryLogFiles = 16;
 
         /// <summary>
         /// Deletes the oldest saved log files so at most <see cref="MaxRepositoryLogFiles"/> remain.
@@ -540,13 +540,17 @@ namespace AsynCUDA13.Shared
         /// <returns>A string containing the details of the exception and all its inner exceptions.</returns>
         public static string GetAllInnerExceptionsRecursively(Exception ex, string openingBracket = "(", string closingBracket = ")", string separator = " ")
         {
-            if (ex == null) return string.Empty;
-            StringBuilder sb = new StringBuilder();
+            if (ex == null)
+            {
+                return string.Empty;
+            }
+
+            stringBuilder sb = new stringBuilder();
             sb.AppendLine($"Exception: {ex.GetType().FullName}");
             string message = $"Message: {ex.Message}";
 
             Exception? inner = ex.InnerException;
-            int count = 0;
+            Int32 count = 0;
             while (inner != null)
             {
                 message = message + $"{separator}{openingBracket}{inner.Message}";

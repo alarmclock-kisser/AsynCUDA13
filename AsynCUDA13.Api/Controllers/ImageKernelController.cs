@@ -22,7 +22,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpPost("execute-image/{kernelName}/{imageIdOrNameOrPath}")]
         public async Task<ActionResult<ImageData?>> ExecuteImageAsync(string imageIdOrNameOrPath, string kernelName, IEnumerable<string> argumentValues, bool overwriteImage = true, bool unloadKernelAfterExecution = false)
         {
-            if (!this.cuda.Online || this.cuda.Compiler == null || this.cuda.Launcher == null)
+            if (!this.cuda.Online || this.cuda._compiler == null || this.cuda._launcher == null)
             {
                 var pd = new ProblemDetails
                 {
@@ -50,8 +50,8 @@ namespace AsynCUDA13.Api.Controllers
                 }
 
                 this.cuda.SetCurrent();
-                this.cuda.Compiler.LoadKernel(kernelName);
-                if (string.IsNullOrEmpty(this.cuda.Compiler.KernelName))
+                this.cuda._compiler.LoadKernel(kernelName);
+                if (string.IsNullOrEmpty(this.cuda._compiler.KernelName))
                 {
                     var pd = new ProblemDetails
                     {
@@ -74,7 +74,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                var outputMem = await this.cuda.AllocateSingleAsync<byte>((nint) mem.TotalLength);
+                var outputMem = await this.cuda.AllocateSingleAsync<Byte>((IntPtr) mem.TotalLength);
                 if (outputMem == null)
                 {
                     var pd = new ProblemDetails
@@ -86,9 +86,9 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                object[] arguments = this.cuda.Compiler.MergeArgumentsImage(mem, outputMem, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
+                object[] arguments = this.cuda._compiler.MergeArgumentsImage(mem, outputMem, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
 
-                var elapsedMs = await this.cuda.Launcher.ExecuteGenericKernelAsync(kernelName, arguments, unloadKernelAfterExecution);
+                var elapsedMs = await this.cuda._launcher.ExecuteGenericKernelAsync(kernelName, arguments, unloadKernelAfterExecution);
                 if (!elapsedMs.HasValue)
                 {
                     var pd = new ProblemDetails
@@ -102,11 +102,11 @@ namespace AsynCUDA13.Api.Controllers
 
                 if (overwriteImage)
                 {
-                    await imageObj.SetImageAsync(await this.cuda.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
+                    await imageObj.SetImageAsync(await this.cuda.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
                 }
                 else
                 {
-                    imageObj = new ImageObj(await this.cuda.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
+                    imageObj = new ImageObj(await this.cuda.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
                 }
 
                 return MediaDatasBuilder.BuildImageData(imageObj);
@@ -145,7 +145,7 @@ namespace AsynCUDA13.Api.Controllers
                     await imageFile.CopyToAsync(stream);
                 }
 
-                if (!this.cuda.Online || this.cuda.Compiler == null || this.cuda.Launcher == null)
+                if (!this.cuda.Online || this.cuda._compiler == null || this.cuda._launcher == null)
                 {
                     var pd = new ProblemDetails
                     {
@@ -171,8 +171,8 @@ namespace AsynCUDA13.Api.Controllers
                     }
 
                     this.cuda.SetCurrent();
-                    this.cuda.Compiler.LoadKernel(kernelName);
-                    if (string.IsNullOrEmpty(this.cuda.Compiler.KernelName))
+                    this.cuda._compiler.LoadKernel(kernelName);
+                    if (string.IsNullOrEmpty(this.cuda._compiler.KernelName))
                     {
                         var pd = new ProblemDetails
                         {
@@ -195,7 +195,7 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
 
-                    var outputMem = await this.cuda.AllocateSingleAsync<byte>((nint) mem.TotalLength);
+                    var outputMem = await this.cuda.AllocateSingleAsync<Byte>((IntPtr) mem.TotalLength);
                     if (outputMem == null)
                     {
                         var pd = new ProblemDetails
@@ -207,9 +207,9 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
 
-                    object[] arguments = this.cuda.Compiler.MergeArgumentsImage(mem, outputMem, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
+                    object[] arguments = this.cuda._compiler.MergeArgumentsImage(mem, outputMem, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
 
-                    var elapsedMs = await this.cuda.Launcher.ExecuteGenericKernelAsync(kernelName, arguments, unloadKernelAfterExecution);
+                    var elapsedMs = await this.cuda._launcher.ExecuteGenericKernelAsync(kernelName, arguments, unloadKernelAfterExecution);
                     if (!elapsedMs.HasValue)
                     {
                         var pd = new ProblemDetails
@@ -223,11 +223,11 @@ namespace AsynCUDA13.Api.Controllers
 
                     if (overwriteImage)
                     {
-                        await imageObj.SetImageAsync(await this.cuda.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
+                        await imageObj.SetImageAsync(await this.cuda.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
                     }
                     else
                     {
-                        imageObj = new ImageObj(await this.cuda.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
+                        imageObj = new ImageObj(await this.cuda.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
                     }
 
                     var imageBytes = await imageObj.GetImageAsFileFormatAsync(new PngEncoder());

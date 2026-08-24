@@ -1,10 +1,12 @@
 using AsynCUDA13.Client;
+using AsynCUDA13.Shared.Api.Requests;
+using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.CudaDtos;
 using Microsoft.JSInterop;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class ExecuteViewModel : ViewModelBase
+    public class ExecuteViewModel : ViewModelBase<CudaExecuteRequest, CudaExecuteResponse>
     {
         public ExecuteViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
@@ -53,7 +55,9 @@ namespace AsynCUDA13.WebApp.ViewModels
         public CudaKernelInfo? GetSelectedKernel()
         {
             if (string.IsNullOrEmpty(this.SelectedKernelName))
+            {
                 return null;
+            }
 
             return this.CompiledKernels?.FirstOrDefault(k => k.FunctionName.Equals(this.SelectedKernelName, StringComparison.OrdinalIgnoreCase));
         }
@@ -61,12 +65,16 @@ namespace AsynCUDA13.WebApp.ViewModels
         public CudaMemInfo[] GetAvailablePointersForKernel(CudaKernelInfo kernel)
         {
             if (this.MemoryInfos == null || kernel.ArgumentTypes == null || kernel.ArgumentTypes.Length == 0)
+            {
                 return [];
+            }
 
             // Filter pointers by the element type of the first argument
             var firstArgType = kernel.ArgumentTypes.FirstOrDefault();
             if (string.IsNullOrEmpty(firstArgType))
+            {
                 return [];
+            }
 
             return this.MemoryInfos
                 .Where(m => m.ElementType.Equals(firstArgType, StringComparison.OrdinalIgnoreCase))
@@ -77,7 +85,9 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
             var kernel = this.GetSelectedKernel();
             if (kernel == null)
+            {
                 return null;
+            }
 
             var response = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, args ?? this.ArgumentValues, false);
             return response?.ResultPointer?.ToString();

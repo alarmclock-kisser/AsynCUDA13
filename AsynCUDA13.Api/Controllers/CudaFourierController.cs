@@ -29,7 +29,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpPost("CuFFT")]
         public async Task<ActionResult<CudaFourierResponse?>> RunCudaFourierAsync([FromBody] CudaFourierRequest request)
         {
-            if (!this.cuda.Online || this.cuda.Fourier == null)
+            if (!this.cuda.Online || this.cuda._fourier == null)
             {
                 var pd = new ProblemDetails
                 {
@@ -68,11 +68,11 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                bool inverse = request.Inverse ?? inputMem.ElementType == typeof(float) || inputMem.ElementType == typeof(double);
+                bool inverse = request.Inverse ?? inputMem.ElementType == typeof(float) || inputMem.ElementType == typeof(Double);
 
                 var resultMemPtr = request.AsyncCall ?
-                    (inverse ? await this.cuda.Fourier.PerformIfftAsync(inputMem.IndexPointer, request.KeepInputBuffer) : await this.cuda.Fourier.PerformFftAsync(inputMem.IndexPointer, request.KeepInputBuffer)) :
-                    (inverse ? this.cuda.Fourier.PerformIfft(inputMem.IndexPointer, request.KeepInputBuffer) : this.cuda.Fourier.PerformFft(inputMem.IndexPointer, request.KeepInputBuffer));
+                    (inverse ? await this.cuda._fourier.PerformIfftAsync(inputMem.IndexPointer, request.KeepInputBuffer) : await this.cuda._fourier.PerformFftAsync(inputMem.IndexPointer, request.KeepInputBuffer)) :
+                    (inverse ? this.cuda._fourier.PerformIfft(inputMem.IndexPointer, request.KeepInputBuffer) : this.cuda._fourier.PerformFft(inputMem.IndexPointer, request.KeepInputBuffer));
                 if (resultMemPtr == IntPtr.Zero)
                 {
                     var pd = new ProblemDetails
@@ -103,9 +103,9 @@ namespace AsynCUDA13.Api.Controllers
                     {
                         payload = outputMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.cuda.PullDataAsync<float>(outputMem.IndexPointer) ?? []) : await DataSerializer.SerializeAsync(await this.cuda.PullChunksAsync<float>(outputMem.IndexPointer) ?? []);
                     }
-                    else if (outputMem.ElementType == typeof(double))
+                    else if (outputMem.ElementType == typeof(Double))
                     {
-                        payload = outputMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.cuda.PullDataAsync<double>(outputMem.IndexPointer) ?? []) : await DataSerializer.SerializeAsync(await this.cuda.PullChunksAsync<double>(outputMem.IndexPointer) ?? []);
+                        payload = outputMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.cuda.PullDataAsync<Double>(outputMem.IndexPointer) ?? []) : await DataSerializer.SerializeAsync(await this.cuda.PullChunksAsync<Double>(outputMem.IndexPointer) ?? []);
                     }
                     else if (outputMem.ElementType == typeof(float2))
                     {
@@ -141,7 +141,7 @@ namespace AsynCUDA13.Api.Controllers
         [HttpPost("CuFFT/audio")]
         public async Task<ActionResult<CudaFourierResponse?>> RunCudaFourierOnAudioAsync([FromBody] string audioIdOrName, [FromQuery] int chunkSize = 0, [FromQuery] float overlap = 0.5f, [FromQuery] bool autoPullResult = false, [FromQuery] bool keepDataOrBuffer = false)
         {
-            if (!this.cuda.Online || this.cuda.Fourier == null)
+            if (!this.cuda.Online || this.cuda._fourier == null)
             {
                 var pd = new ProblemDetails
                 {
@@ -179,7 +179,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
                 else
                 {
-                    audioMem = this.cuda[(nint) audio.Pointer];
+                    audioMem = this.cuda[(IntPtr) audio.Pointer];
                 }
                 if (audioMem == null)
                 {
@@ -206,7 +206,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                var resultMemPtr = audioMem.ElementType == typeof(float2) ? await this.cuda.Fourier.PerformIfftAsync(audioMem.IndexPointer, keepDataOrBuffer) : await this.cuda.Fourier.PerformFftAsync(audioMem.IndexPointer, keepDataOrBuffer);
+                var resultMemPtr = audioMem.ElementType == typeof(float2) ? await this.cuda._fourier.PerformIfftAsync(audioMem.IndexPointer, keepDataOrBuffer) : await this.cuda._fourier.PerformFftAsync(audioMem.IndexPointer, keepDataOrBuffer);
                 var resultMem = this.cuda[resultMemPtr];
                 if (resultMem == null)
                 {
@@ -228,9 +228,9 @@ namespace AsynCUDA13.Api.Controllers
                     {
                         payload = resultMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.cuda.PullDataAsync<float>(resultMem.IndexPointer, keepDataOrBuffer) ?? []) : await DataSerializer.SerializeAsync(await this.cuda.PullChunksAsync<float>(resultMem.IndexPointer, keepDataOrBuffer) ?? []);
                     }
-                    else if (resultMem.ElementType == typeof(double))
+                    else if (resultMem.ElementType == typeof(Double))
                     {
-                        payload = resultMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.cuda.PullDataAsync<double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []) : await DataSerializer.SerializeAsync(await this.cuda.PullChunksAsync<double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []);
+                        payload = resultMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.cuda.PullDataAsync<Double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []) : await DataSerializer.SerializeAsync(await this.cuda.PullChunksAsync<Double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []);
                     }
                     else if (resultMem.ElementType == typeof(float2))
                     {

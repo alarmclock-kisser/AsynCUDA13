@@ -57,7 +57,7 @@ namespace AsynCUDA13.Tests
             this.service!.Dispose();
             this.service.Online.ShouldBeFalse();
             this.service.SelectedDeviceId.ShouldBe(-1);
-            this.service.RegisteredMemoryObjects.ShouldBe(0);
+            this.service.RegisteredMemoryobjects.ShouldBe(0);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using AsynCUDA13.Api.Services.DtoBuilders;
+﻿using AsynCUDA13.Api.Services;
+using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Api.Payloads;
@@ -16,15 +17,13 @@ namespace AsynCUDA13.Api.Controllers
     public class CudaMemoryController : ApiControllerBase
     {
         private readonly ICudaService cuda;
-        private readonly AudioCollection audios;
-        private readonly ImageCollection images;
+        private readonly IAssetProvider assetProvider;
 
 
-        public CudaMemoryController(ICudaService cuda, AudioCollection audios, ImageCollection images)
+        public CudaMemoryController(ICudaService cuda, IAssetProvider assetProvider)
         {
             this.cuda = cuda;
-            this.audios = audios;
-            this.images = images;
+            this.assetProvider = assetProvider;
         }
 
 
@@ -46,7 +45,7 @@ namespace AsynCUDA13.Api.Controllers
                 var memoryList = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda);
                 if (memoryList == null || !memoryList.Any())
                 {
-                    memoryList = Array.Empty<CudaMemInfo>();
+                    memoryList = [];
                 }
 
                 return this.Ok(memoryList);
@@ -78,7 +77,7 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 503
                     });
                 }
-                var memoryInfo = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda, indexPointerOrId).FirstOrDefault();
+                var memoryInfo = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda, indexPointerOrId)?.FirstOrDefault();
                 if (memoryInfo == null)
                 {
                     return this.StatusCode(404, new ProblemDetails
@@ -130,7 +129,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                var memoryInfo = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda, indexPointerOrId).FirstOrDefault();
+                var memoryInfo = CudaInfosBuilder.BuildCudaMemoryInfos(this.cuda, indexPointerOrId)?.FirstOrDefault();
                 if (memoryInfo == null)
                 {
                     return this.StatusCode(404, new ProblemDetails
@@ -202,6 +201,7 @@ namespace AsynCUDA13.Api.Controllers
 
 
         [HttpPost("push")]
+        [DisableRequestSizeLimit]
         public async Task<ActionResult<CudaPushResponse>?> PushAsync(CudaPushRequest request)
         {
             var response = new CudaPushResponse();
@@ -266,8 +266,8 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                response.MemoryInfo = memInfo;
-                response.ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds;
+                response = CudaResponsesBuilder.BuildPushResponse(this.cuda, memInfo.IndexPointer.ToString(), (int) (DateTime.Now - startDate).TotalMilliseconds);
+                response.Success = true;
             }
             catch (Exception ex)
             {
@@ -343,8 +343,7 @@ namespace AsynCUDA13.Api.Controllers
                 // Pull data from CUDA
                 var genericPullMethod = pullMethod.MakeGenericMethod(t);
                 var pointer = new IntPtr(long.Parse(memInfo.Pointers[0]));
-                var dataTask = genericPullMethod.Invoke(this.cuda, new object[] { pointer, false }) as Task<dynamic>;
-                var data = dataTask != null ? await dataTask : null;
+                var data = genericPullMethod.Invoke(this.cuda, new object[] { pointer, false }) is Task<dynamic> dataTask ? await dataTask : null;
                 bool isChunked = memInfo.Count > 1;
 
                 response.Payload = await InvokeGenericAsync(
@@ -356,6 +355,7 @@ namespace AsynCUDA13.Api.Controllers
                     isChunked) as ICudaPayload ?? throw new InvalidOperationException("Failed to serialize CUDA pull data.");
 
                 response.ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds;
+                response.Success = true;
 
                 return this.Ok(response);
             }
@@ -371,6 +371,7 @@ namespace AsynCUDA13.Api.Controllers
                 return this.StatusCode(500, pd);
             }
         }
+
 
         [HttpGet("push-asset")]
         public async Task<ActionResult<CudaPushResponse>?> PushAssetAsync(string assetIdOrName, int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
@@ -388,15 +389,262 @@ namespace AsynCUDA13.Api.Controllers
             var startDate = DateTime.Now;
             try
             {
+                Guid.TryParse(assetIdOrName, out var guid);
+                var audio = this.assetProvider.GetAudio(guid) ?? this.assetProvider.GetAudio(assetIdOrName);
+                var image = audio == null ? (this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName)) : null;
+
+                if (audio == null && image == null)
+                {
+                    return this.StatusCode(404, new ProblemDetails
+                    {
+                        Title = "Asset not found",
+                        Detail = $"No audio or image asset found for ID or name: {assetIdOrName}.",
+                        Status = 404
+                    });
+                }
+
+                CudaMem? mem = null;
+
+                if (audio != null)
+                {
+                    if (chunkSize <= 1)
+                    {
+                        if (audio.Data == null || audio.Data.Length == 0)
+                        {
+                            return this.StatusCode(400, new ProblemDetails
+                            {
+                                Title = "Invalid asset data",
+                                Detail = $"Audio asset '{assetIdOrName}' contains no float data.",
+                                Status = 400
+                            });
+                        }
+                        // Direktes Pushen des float[] Arrays in den VRAM
+                        mem = await this.cuda.PushDataAsync(audio.Data);
+                    }
+                    else
+                    {
+                        var chunks = audio.GetChunks(chunkSize, overlap, keepData);
+                        if (chunks == null || chunks.Length == 0)
+                        {
+                            return this.StatusCode(400, new ProblemDetails
+                            {
+                                Title = "Invalid asset data",
+                                Detail = $"Failed to slice audio asset '{assetIdOrName}' into chunks.",
+                                Status = 400
+                            });
+                        }
+                        // Direktes Pushen der float[][] Chunks in den VRAM
+                        mem = await this.cuda.PushChunksAsync(chunks);
+                    }
+
+                    if (mem != null)
+                    {
+                        audio.Pointer = mem.IndexPointer;
+                    }
+                }
+                else if (image != null)
+                {
+                    Byte[] imageBytes = (await image.GetBytesAsync(keepData)).ToArray();
+                    if (imageBytes == null || imageBytes.Length == 0)
+                    {
+                        return this.StatusCode(400, new ProblemDetails
+                        {
+                            Title = "Invalid asset data",
+                            Detail = $"Image asset '{assetIdOrName}' contains no byte data.",
+                            Status = 400
+                        });
+                    }
+                    // Direktes Pushen des byte[] Bild-Puffers in den VRAM
+                    mem = await this.cuda.PushDataAsync(imageBytes);
+
+                    if (mem != null)
+                    {
+                        image.Pointer = mem.IndexPointer;
+                    }
+                }
+
+                if (mem == null)
+                {
+                    return this.StatusCode(500, new ProblemDetails
+                    {
+                        Title = "CUDA push failed",
+                        Detail = $"Failed to push asset '{assetIdOrName}' to CUDA VRAM.",
+                        Status = 500
+                    });
+                }
+
+                CudaMemInfo? memInfo = CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, mem.IndexPointer.ToString());
+                if (memInfo == null)
+                {
+                    return this.StatusCode(500, new ProblemDetails
+                    {
+                        Title = "CUDA memory info not found",
+                        Detail = $"No CUDA memory info found for index/pointer: {mem.IndexPointer}.",
+                        Status = 500
+                    });
+                }
+
+                var response = CudaResponsesBuilder.BuildPushResponse(this.cuda, memInfo.IndexPointer.ToString(), (int) (DateTime.Now - startDate).TotalMilliseconds);
+                response.Success = true;
+
+                return this.Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal server error",
+                    Detail = ex.Message,
+                    Status = 500
+                });
+            }
+        }
+
+        [HttpGet("pull-asset")]
+        public async Task<ActionResult<CudaPullResponse>?> PullAssetAsync(string assetIdOrName, bool keepBuffer = false)
+        {
+            if (!this.cuda.Online)
+            {
+                return this.StatusCode(503, new ProblemDetails
+                {
+                    Title = "CUDA not initialized",
+                    Detail = "CUDA is not initialized.",
+                    Status = 503
+                });
+            }
+
+            var startDate = DateTime.Now;
+            try
+            {
+                Guid.TryParse(assetIdOrName, out var guid);
+                var audio = this.assetProvider.GetAudio(guid) ?? this.assetProvider.GetAudio(assetIdOrName);
+                var image = audio == null ? (this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName)) : null;
+
+                if (audio == null && image == null)
+                {
+                    return this.StatusCode(404, new ProblemDetails
+                    {
+                        Title = "Asset not found",
+                        Detail = $"No audio or image asset found for ID or name: {assetIdOrName}.",
+                        Status = 404
+                    });
+                }
+
+                IntPtr ptr = audio != null ? (IntPtr) audio.Pointer : (IntPtr) image!.Pointer;
+                if (ptr == IntPtr.Zero)
+                {
+                    return this.StatusCode(400, new ProblemDetails
+                    {
+                        Title = "Asset not in VRAM",
+                        Detail = $"Asset '{assetIdOrName}' has no valid CUDA memory pointer allocated.",
+                        Status = 400
+                    });
+                }
+
+                CudaMem? cudaMem = this.cuda[ptr];
+                CudaMemInfo? memInfo = CudaInfosBuilder.BuildCudaMemoryInfo(this.cuda, ptr.ToString());
+                if (cudaMem == null || memInfo == null)
+                {
+                    return this.StatusCode(404, new ProblemDetails
+                    {
+                        Title = "CUDA memory not found",
+                        Detail = $"No CUDA memory object found for index/pointer: {ptr}.",
+                        Status = 404
+                    });
+                }
+
+                if (audio != null)
+                {
+                    if (cudaMem != null && cudaMem.Count > 1)
+                    {
+                        // Direktes Pulling der Chunks aus dem VRAM in den Audio-Puffer
+                        float[][] chunks = (await this.cuda.PullChunksAsync<float>(ptr, keepBuffer))?.ToArray() ?? [];
+                        if (chunks == null)
+                        {
+                            return this.StatusCode(500, new ProblemDetails { Title = "CUDA pull failed", Detail = "Failed to pull audio chunks from CUDA.", Status = 500 });
+                        }
+                        await audio.AggregateChunksAsync(chunks, (int) cudaMem.IndexLength);
+                    }
+                    else
+                    {
+                        // Direktes Pulling des float[] Arrays aus dem VRAM
+                        float[] data = (await this.cuda.PullDataAsync<float>(ptr, keepBuffer)) ?? [];
+                        if (data == null)
+                        {
+                            return this.StatusCode(500, new ProblemDetails { Title = "CUDA pull failed", Detail = "Failed to pull audio data from CUDA.", Status = 500 });
+                        }
+                        audio.Data = data;
+                    }
+
+                    if (!keepBuffer)
+                    {
+                        audio.Pointer = IntPtr.Zero;
+                    }
+                }
+                else if (image != null)
+                {
+                    // Direktes Pulling der Byte-Daten aus dem VRAM in das Bild
+                    Byte[] bytes = (await this.cuda.PullDataAsync<Byte>(ptr, keepBuffer)) ?? [];
+                    if (bytes == null)
+                    {
+                        return this.StatusCode(500, new ProblemDetails { Title = "CUDA pull failed", Detail = "Failed to pull image data from CUDA.", Status = 500 });
+                    }
+                    await image.SetImageAsync(bytes);
+
+                    if (!keepBuffer)
+                    {
+                        image.Pointer = IntPtr.Zero;
+                    }
+                }
+
+                // Schlanke Antwort ohne Payload-Ballast zurückgeben
+                var response = new CudaPullResponse
+                {
+                    MemoryInfoReference = memInfo,
+                    ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds,
+                    Success = true
+                };
+
+                return this.Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal server error",
+                    Detail = ex.Message,
+                    Status = 500
+                });
+            }
+        }
+
+
+        [HttpGet("client-push-asset")]
+        public async Task<ActionResult<CudaPushResponse>?> PushAssetClientAsync(string assetIdOrName, int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
+        {
+            if (!this.cuda.Online)
+            {
+                return this.StatusCode(503, new ProblemDetails
+                {
+                    Title = "CUDA not initialized",
+                    Detail = "CUDA is not initialized.",
+                    Status = 503
+                });
+            }
+
+            var startDate = DateTime.Now;
+            try
+            {
                 ICudaPayload? payload = null;
 
-                var audio = this.audios[assetIdOrName] ?? this.audios[Guid.TryParse(assetIdOrName, out var guid) ? guid : Guid.Empty];
+                Guid.TryParse(assetIdOrName, out var guid);
+                var audio = this.assetProvider.GetAudio(guid) ?? this.assetProvider.GetAudio(assetIdOrName);
                 if (audio != null)
                 {
                     payload = chunkSize <= 1 ? await DataSerializer.SerializeAsync(audio.Data) : await DataSerializer.SerializeAsync(audio.GetChunks(chunkSize, overlap, keepData));
                 }
 
-                var image = this.images[assetIdOrName] ?? this.images[Guid.TryParse(assetIdOrName, out guid) ? guid : Guid.Empty];
+                var image = this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName);
                 if (image != null)
                 {
                     payload = await DataSerializer.SerializeAsync(await image.GetBytesAsync(keepData));
@@ -430,8 +678,8 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-        [HttpGet("pull-asset")]
-        public async Task<ActionResult<CudaPullResponse>?> PullAssetAsync(string assetIdOrName, bool keepBuffer = false)
+        [HttpGet("client-pull-asset")]
+        public async Task<ActionResult<CudaPullResponse>?> PullAssetClientAsync(string assetIdOrName, bool keepBuffer = false)
         {
             if (!this.cuda.Online)
             {
@@ -446,7 +694,8 @@ namespace AsynCUDA13.Api.Controllers
             var startDate = DateTime.Now;
             try
             {
-                var audio = this.audios[assetIdOrName] ?? this.audios[Guid.TryParse(assetIdOrName, out var guid) ? guid : Guid.Empty];
+                Guid.TryParse(assetIdOrName, out var guid);
+                var audio = this.assetProvider.GetAudio(guid) ?? this.assetProvider.GetAudio(assetIdOrName);
                 if (audio != null)
                 {
                     var pullRequest = new CudaPullRequest()
@@ -457,7 +706,7 @@ namespace AsynCUDA13.Api.Controllers
                     return await this.PullAsync(pullRequest);
                 }
 
-                var image = this.images[assetIdOrName] ?? this.images[Guid.TryParse(assetIdOrName, out guid) ? guid : Guid.Empty];
+                var image = this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName);
                 if (image != null)
                 {
                     var pullRequest = new CudaPullRequest()
@@ -490,7 +739,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             int parameterCount = methodName == nameof(DataSerializer.SerializeAsync) ? arguments.Length - 1 : arguments.Length;
             var methods = target is Type targetType ? targetType.GetMethods() : typeof(ICudaService).GetMethods();
-            var method = methods.SingleOrDefault(method => method.Name == methodName && method.IsGenericMethodDefinition && method.GetGenericArguments().Length == 1 && method.GetParameters().Length == parameterCount &&
+            var method = methods.floatOrDefault(method => method.Name == methodName && method.IsGenericMethodDefinition && method.GetGenericArguments().Length == 1 && method.GetParameters().Length == parameterCount &&
                 (methodName != nameof(DataParser.ParseAsync) || method.GetParameters()[0].ParameterType.IsInstanceOfType(arguments[0])) &&
                 (methodName != nameof(DataSerializer.SerializeAsync) || method.GetParameters()[0].ParameterType.GetGenericArguments()[0].IsGenericType == (arguments.Length == 3 && (bool) arguments[2])));
             if (method == null)

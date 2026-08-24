@@ -24,9 +24,8 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
             var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(CudaPayload1D) });
-            var task = method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) as Task;
 
-            if (task == null)
+            if (method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) is not Task task)
             {
                 return null;
             }
@@ -52,9 +51,8 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
             var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(CudaPayload2D) });
-            var task = method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) as Task;
 
-            if (task == null)
+            if (method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) is not Task task)
             {
                 return null;
             }
@@ -98,8 +96,8 @@ namespace AsynCUDA13.Shared.Serialization
             // Bei kleineren Datenmengen oder 1 Thread sofort im aktuellen Kontext dekodieren
             if (base64Data.Length < 100_000 || degreeOfParallelism == 1)
             {
-                Span<byte> targetBytes = MemoryMarshal.AsBytes(result.AsSpan());
-                Convert.TryFromBase64String(base64Data, targetBytes, out _);
+                Span<Byte> targetBytes = MemoryMarshal.AsBytes(result.AsSpan());
+                Convert.TryFromBase64string(base64Data, targetBytes, out _);
                 return result;
             }
 
@@ -110,7 +108,7 @@ namespace AsynCUDA13.Shared.Serialization
                 // Slice-Größe muss zwingend durch 4 teilbar sein.
                 int rawChunkChars = base64Data.Length / degreeOfParallelism;
                 int chunkChars = Math.Max(4, (rawChunkChars / 4) * 4);
-                int chunkCount = (int) Math.Ceiling((double) base64Data.Length / chunkChars);
+                int chunkCount = (int) Math.Ceiling((Double) base64Data.Length / chunkChars);
 
                 Parallel.For(0, chunkCount, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, chunkIdx =>
                 {
@@ -125,7 +123,7 @@ namespace AsynCUDA13.Shared.Serialization
                     int startByte = (startChar / 4) * 3;
 
                     // Thread-safe Slice auf die Bytes des Ziel-Arrays
-                    Span<byte> targetSlice = MemoryMarshal.AsBytes(result.AsSpan()).Slice(startByte);
+                    Span<Byte> targetSlice = MemoryMarshal.AsBytes(result.AsSpan()).Slice(startByte);
 
                     Convert.TryFromBase64Chars(base64Data.AsSpan(startChar, countChar), targetSlice, out _);
                 });
@@ -181,8 +179,8 @@ namespace AsynCUDA13.Shared.Serialization
                 T[] items = new T[totalElements];
 
                 // Direkt ins Chunk-Array dekodieren ohne Zwischen-Byte-Array
-                Span<byte> targetBytes = MemoryMarshal.AsBytes(items.AsSpan());
-                Convert.TryFromBase64String(chunkStr, targetBytes, out _);
+                Span<Byte> targetBytes = MemoryMarshal.AsBytes(items.AsSpan());
+                Convert.TryFromBase64string(chunkStr, targetBytes, out _);
 
                 results[i] = items;
                 return ValueTask.CompletedTask;
@@ -247,9 +245,9 @@ namespace AsynCUDA13.Shared.Serialization
         }
 
         // --------------------------------------------------------------------------------
-        // Hilfsmethode: Exakte Byte-Anzahl aus Base64-String berechnen (inkl. Padding-Check)
+        // Hilfsmethode: Exakte Byte-Anzahl aus Base64-string berechnen (inkl. Padding-Check)
         // --------------------------------------------------------------------------------
-        private static int GetByteCountFromBase64(ReadOnlySpan<char> base64)
+        private static int GetByteCountFromBase64(ReadOnlySpan<Char> base64)
         {
             if (base64.IsEmpty)
             {

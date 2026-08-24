@@ -11,7 +11,7 @@ namespace AsynCUDA13.Api.Controllers
         /// <summary>
         /// Overrides StatusCode to automatically log ProblemDetails responses.
         /// </summary>
-        public override ObjectResult StatusCode(int statusCode, object? value)
+        public override objectResult StatusCode(int statusCode, object? value)
         {
             if (value is ProblemDetails pd)
             {

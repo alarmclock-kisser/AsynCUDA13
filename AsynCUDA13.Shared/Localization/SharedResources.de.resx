@@ -26,8 +26,8 @@
   <data name="IdleThreads" xml:space="preserve"><value>Inaktive Threads</value></data>
   <data name="TotalAllocatedBytes" xml:space="preserve"><value>Allokierte Bytes</value></data>
   <data name="RegisteredMemoryCount" xml:space="preserve"><value>Speicherobjekte</value></data>
-  <data name="MemoryObjects" xml:space="preserve"><value>CUDA-Speicherobjekte</value></data>
-  <data name="AllCudaMemObjects" xml:space="preserve"><value>Alle CUDA-Speicherobjekte</value></data>
+  <data name="Memoryobjects" xml:space="preserve"><value>CUDA-Speicherobjekte</value></data>
+  <data name="AllCudaMemobjects" xml:space="preserve"><value>Alle CUDA-Speicherobjekte</value></data>
   <data name="GuidId" xml:space="preserve"><value>GUID</value></data>
   <data name="ElementType" xml:space="preserve"><value>Elementtyp</value></data>
   <data name="IndexPointer" xml:space="preserve"><value>Index-Pointer</value></data>
@@ -40,9 +40,9 @@
   <data name="CudaInitialized" xml:space="preserve"><value>CUDA ist initialisiert</value></data>
   <data name="CudaNotInitialized" xml:space="preserve"><value>CUDA ist nicht initialisiert</value></data>
   <data name="VramStatus" xml:space="preserve"><value>VRAM-Status</value></data>
-  <data name="AllocatedCudaMemObjects" xml:space="preserve"><value>Allokierte CUDA-Speicherobjekte</value></data>
+  <data name="AllocatedCudaMemobjects" xml:space="preserve"><value>Allokierte CUDA-Speicherobjekte</value></data>
   <data name="MemoryList" xml:space="preserve"><value>Speicherliste</value></data>
-  <data name="NoCudaMemObjects" xml:space="preserve"><value>Keine CUDA-Speicherobjekte vorhanden.</value></data>
+  <data name="NoCudaMemobjects" xml:space="preserve"><value>Keine CUDA-Speicherobjekte vorhanden.</value></data>
   <data name="PushOperations" xml:space="preserve"><value>Push-Operationen</value></data>
   <data name="PushHighResMediaToCuda" xml:space="preserve"><value>Medien vom Host nach CUDA übertragen</value></data>
   <data name="PushToCuda" xml:space="preserve"><value>Nach CUDA übertragen</value></data>
@@ -61,7 +61,7 @@
   <data name="KernelArguments" xml:space="preserve"><value>Kernel-Argumente</value></data>
   <data name="InPlace" xml:space="preserve"><value>In-Place</value></data>
   <data name="OutOfPlace" xml:space="preserve"><value>Out-of-Place</value></data>
-  <data name="AvailableCudaMemObjects" xml:space="preserve"><value>Verfügbare CUDA-Speicherobjekte</value></data>
+  <data name="AvailableCudaMemobjects" xml:space="preserve"><value>Verfügbare CUDA-Speicherobjekte</value></data>
   <data name="CompilationResult" xml:space="preserve"><value>Kompilierungsergebnis</value></data>
   <data name="Success" xml:space="preserve"><value>Erfolg</value></data>
   <data name="KernelCompiled" xml:space="preserve"><value>Kernel erfolgreich kompiliert</value></data>

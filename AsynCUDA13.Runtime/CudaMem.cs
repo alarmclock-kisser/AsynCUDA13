@@ -5,17 +5,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Runtime
 {
     /// <summary>
     /// Represents a managed descriptor for one or more contiguous CUDA device memory allocations.
     /// A <see cref="CudaMem"/> instance groups together the device pointers, their element lengths and
-    /// the element type so the buffer(s) can be tracked, transferred and freed as a single unit.
-    /// A single instance can describe either one buffer (single allocation) or multiple buffers of the
+    /// the element type so the buffer(s) can be tracked, transferred and freed as a float unit.
+    /// A float instance can describe either one buffer (float allocation) or multiple buffers of the
     /// same element type (a group / chunked allocation).
     /// </summary>
-    public class CudaMem : IDisposable
+    public class CudaMem : IRuntimeMem, IDisposable
     {
         /// <summary>
         /// Gets the unique identifier that the owning registry uses to track this memory object.
@@ -25,7 +26,13 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Gets the CUDA device pointers (<see cref="CUdeviceptr"/>) for every buffer described by this instance.
         /// </summary>
-        public CUdeviceptr[] DevicePointers { get; private set; } = [];
+        internal CUdeviceptr[] DevicePointers { get; private set; } = [];
+
+        /// <summary>
+        /// Gets the native handle of every device buffer, in <see cref="DevicePointers"/> order. This is the
+        /// backend-agnostic view over the CUDA device pointers so both backends share one representation.
+        /// </summary>
+        public IntPtr[] PointerIds => this.DevicePointers.Select(dp => (IntPtr) dp.Pointer).ToArray();
 
         /// <summary>
         /// Gets the raw native handles (<see cref="IntPtr"/>) of every buffer, in the same order as <see cref="DevicePointers"/>.
@@ -35,7 +42,7 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Gets the element count of each buffer, in the same order as <see cref="Pointers"/>.
         /// </summary>
-        public IntPtr[] Lengths { get; private set; } = [];
+        public long[] PointerLengths { get; private set; } = [];
 
         /// <summary>
         /// Gets the native handle of the first buffer, used as the primary index / lookup pointer for this allocation.
@@ -53,7 +60,7 @@ namespace AsynCUDA13.Runtime
         public Type ElementType { get; private set; } = typeof(void);
 
         /// <summary>
-        /// Gets the size, in bytes, of a single element of <see cref="ElementType"/>.
+        /// Gets the size, in bytes, of a float element of <see cref="ElementType"/>.
         /// </summary>
         public int ElementSize { get; private set; } = 0;
 
@@ -101,7 +108,7 @@ namespace AsynCUDA13.Runtime
 
         // Constructors
         /// <summary>
-        /// Initializes a new instance of the <see cref="CudaMem"/> class describing a single device buffer.
+        /// Initializes a new instance of the <see cref="CudaMem"/> class describing a float device buffer.
         /// </summary>
         /// <param name="pointer">The CUDA device pointer of the allocated buffer.</param>
         /// <param name="length">The number of elements contained in the buffer.</param>
@@ -110,7 +117,7 @@ namespace AsynCUDA13.Runtime
         {
             this.DevicePointers = [pointer];
             this.Pointers = [pointer.Pointer];
-            this.Lengths = [length];
+            this.PointerLengths = [length];
             this.ElementType = type;
 
             this.UpdateProperties();
@@ -131,8 +138,8 @@ namespace AsynCUDA13.Runtime
             }
 
             this.DevicePointers = pointers;
-            this.Pointers = pointers.Select(ptr => (nint) ptr.Pointer).ToArray();
-            this.Lengths = lengths;
+            this.Pointers = pointers.Select(ptr => (IntPtr) ptr.Pointer).ToArray();
+            this.PointerLengths = lengths.Select(l => (long) l).ToArray();
             this.ElementType = type;
 
             this.UpdateProperties();
@@ -150,7 +157,7 @@ namespace AsynCUDA13.Runtime
         public void Dispose()
         {
             this.Pointers = [];
-            this.Lengths = [];
+            this.PointerLengths = [];
             this.ElementType = typeof(void);
             this.ElementSize = 0;
             this.Count = 0;
@@ -169,10 +176,10 @@ namespace AsynCUDA13.Runtime
         {
             this.ElementSize = System.Runtime.InteropServices.Marshal.SizeOf(this.ElementType);
             this.Count = this.Pointers.Length;
-            this.TotalLength = this.Lengths.Sum(len => len.ToInt64());
+            this.TotalLength = this.PointerLengths.Sum(len => len);
             this.TotalSize = this.TotalLength * this.ElementSize;
             this.IndexPointer = this.Pointers.FirstOrDefault(IntPtr.Zero);
-            this.IndexLength = this.Lengths.FirstOrDefault(IntPtr.Zero);
+            this.IndexLength = (IntPtr) this.PointerLengths.FirstOrDefault(0);
         }
 
     }

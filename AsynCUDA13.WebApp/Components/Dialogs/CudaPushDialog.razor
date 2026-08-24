@@ -1,0 +1,85 @@
+@inject LanguageService L
+@inherits DialogComponentBase<CudaPushRequest, CudaPushResponse>
+@implements IRadzenDialog<CudaPushRequest, CudaPushResponse>
+
+<RadzenDialogWrapper Visible="@Visible"
+                     VisibleChanged="@VisibleChanged"
+                     Title="@(IsAudio ? L["PushAudio"] : L["PushImage"])"
+                     Width="@(Width ?? "500px")"
+                     Height="@(Height ?? "350px")"
+                     ShowCloseButton="@ShowCloseButton"
+                     Class="@Class"
+                     Style="@Style">
+    <ChildContent>
+        <div class="row g-3">
+            <div class="col-12">
+                <RadzenLabel Text="@(IsAudio ? L["AudioChunkSize"] : L["ImageFormat"])" />
+                @if (IsAudio)
+                {
+                    <RadzenNumeric @bind-Value="ChunkSizeValue"
+                                    Min="0"
+                                    Max="262144"
+                                    Placeholder="@L["EnterChunkSize"]" />
+
+                    <RadzenNumeric @bind-Value="OverlapValue"
+                                    Min="0"
+                                    Max="1"
+                                    Step="0.05"
+                                    Format="0.00"
+                                    Placeholder="@L["EnterOverlap"]" />
+                }
+                else
+                {
+                    <RadzenDropDown @bind-Value="ImageFormatValue"
+                                    Data="@(new[] { "JPEG", "PNG", "BMP" })"
+                                    Placeholder="@L["SelectImageFormat"]" />
+                }
+            </div>
+
+            <div class="col-12">
+                <RadzenLabel Text="@L["KeepData"]" />
+                <RadzenCheckBox @bind-Value="KeepDataValue" />
+            </div>
+        </div>
+        <div class="dialog-actions">
+            <RadzenButton Text="@L["Cancel"]" ButtonStyle="ButtonStyle.Secondary" Click="CloseDialogAsync" />
+            <RadzenButton Text="@L["Push"]" ButtonStyle="ButtonStyle.Success" Click="PushAssetAsync" />
+        </div>
+    </ChildContent>
+</RadzenDialogWrapper>
+
+@code {
+    [Parameter]
+    public bool IsAudio { get; set; }
+
+    [Parameter]
+    public string? AssetName { get; set; }
+
+    [Parameter]
+    public EventCallback<(int, float, bool)> OnPush { get; set; }
+
+    [Parameter]
+    public int ChunkSizeValue { get; set; } = 8192;
+
+    [Parameter]
+    public float OverlapValue { get; set; } = 0.5f;
+
+    [Parameter]
+    public bool KeepDataValue { get; set; } = false;
+
+    [Parameter]
+    public string ImageFormatValue { get; set; } = "JPEG";
+
+    private int _actualChunkSize = 1024;
+
+    private void UpdateActualChunkSize()
+    {
+        _actualChunkSize = ViewModelFunctions.GetPowerOfTwo(ChunkSizeValue, _actualChunkSize);
+    }
+
+    private async Task PushAssetAsync()
+    {
+        UpdateActualChunkSize();
+        await OnPush.InvokeAsync((_actualChunkSize, OverlapValue, KeepDataValue));
+    }
+}

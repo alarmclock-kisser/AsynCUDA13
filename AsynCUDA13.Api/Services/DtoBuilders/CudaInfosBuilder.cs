@@ -80,8 +80,8 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             {
                 ActiveThreads = service.ThreadsActive,
                 IdleThreads = service.ThreadsIdle,
-                RegisteredMemoryCount = service.RegisteredMemoryObjects,
-                TotalAllocatedBytes = service.TotalAllocated.ToString()
+                RegisteredMemoryCount = service.RegisteredMemoryobjects,
+                TotalAllocatedBytes = service.TotalAllocatedBytes.ToString()
             };
 
             return info;
@@ -99,7 +99,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Id = mem.Id.ToString(),
                 ElementType = mem.ElementType.ToString(),
                 Pointers = mem.Pointers.Select(ptr => ptr.ToString()).ToArray(),
-                Lengths = mem.Lengths.Select(len => len.ToString()).ToArray(),
+                Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
                 Message = mem.Message
             }).Where(mem => indexPointerOrId == null ? true : mem.Id == indexPointerOrId || (mem.Pointers.Contains(indexPointerOrId) && mem.IndexPointer == indexPointerOrId)).ToArray() ?? [];
 
@@ -124,7 +124,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Id = mem.Id.ToString(),
                 ElementType = mem.ElementType.ToString(),
                 Pointers = mem.Pointers.Select(ptr => ptr.ToString()).ToArray(),
-                Lengths = mem.Lengths.Select(len => len.ToString()).ToArray(),
+                Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
                 Message = mem.Message
             };
             return info;
@@ -132,7 +132,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
 
         public static CudaKernelInfo[]? BuildCudaKernelInfos(ICudaService service, bool filterCompiled = true)
         {
-            if (!service.Online || service.Compiler == null || service.Launcher == null)
+            if (!service.Online || service._compiler == null || service._launcher == null)
             {
                 return null;
             }
@@ -149,8 +149,8 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 PtxPath = CudaCompiler.CompiledFiles.FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == Path.GetFileNameWithoutExtension(kernel))?.ToString(),
                 KernelCode = CudaCompiler.GetKernelCode(kernel) ?? string.Empty,
                 FunctionName = Path.GetFileNameWithoutExtension(kernel),
-                ArgumentNames = service.Compiler.GetArguments(CudaCompiler.GetKernelCode(kernel) ?? string.Empty).Keys.ToArray(),
-                ArgumentTypes = service.Compiler.GetArguments(CudaCompiler.GetKernelCode(kernel) ?? string.Empty).Values.Select(type => type.Name).ToArray()
+                ArgumentNames = service._compiler.GetArguments(CudaCompiler.GetKernelCode(kernel) ?? string.Empty).Keys.ToArray(),
+                ArgumentTypes = service._compiler.GetArguments(CudaCompiler.GetKernelCode(kernel) ?? string.Empty).Values.Select(type => type.Name).ToArray()
 
             }).ToArray() ?? [];
 
@@ -159,7 +159,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
 
         public static CudaKernelInfo? BuildCudaKernelInfo(ICudaService service, string kernelName)
         {
-            if (!service.Online || service.Compiler == null || service.Launcher == null)
+            if (!service.Online || service._compiler == null || service._launcher == null)
             {
                 return null;
             }
@@ -174,8 +174,8 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 PtxPath = CudaCompiler.CompiledFiles.FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == kernelName)?.ToString(),
                 KernelCode = CudaCompiler.GetKernelCode(cuPath) ?? string.Empty,
                 FunctionName = kernelName,
-                ArgumentNames = service.Compiler.GetArguments(CudaCompiler.GetKernelCode(cuPath) ?? string.Empty).Keys.ToArray(),
-                ArgumentTypes = service.Compiler.GetArguments(CudaCompiler.GetKernelCode(cuPath) ?? string.Empty).Values.Select(type => type.Name).ToArray()
+                ArgumentNames = service._compiler.GetArguments(CudaCompiler.GetKernelCode(cuPath) ?? string.Empty).Keys.ToArray(),
+                ArgumentTypes = service._compiler.GetArguments(CudaCompiler.GetKernelCode(cuPath) ?? string.Empty).Values.Select(type => type.Name).ToArray()
             };
             return info;
         }

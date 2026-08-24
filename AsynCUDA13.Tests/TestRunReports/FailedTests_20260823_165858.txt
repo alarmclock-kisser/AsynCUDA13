@@ -1,5 +1,5 @@
 === Fehlgeschlagene Tests ===
-Datum: 2026-08-13 02:33:17
+Datum: 2026-08-23 16:58:58
 Anzahl: 14
 ============================================================
 
@@ -14,8 +14,8 @@ Shouldly.ShouldAssertException: objectResult.StatusCode
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices in CudaContextControllerTests.cs Zeile 63
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaContextControllerTests.cs:line 63
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
 Test: PushAsync_With1DPayload_Success_Returns200
@@ -32,7 +32,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With1DPayload_Succes
    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
-   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
 ----------------------------------------
 
 Test: GetDevices_WhenCudaAvailableButNoDevices_Returns404
@@ -46,8 +46,8 @@ Shouldly.ShouldAssertException: objectResult.StatusCode
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailableButNoDevices_Returns404 in CudaContextControllerTests.cs Zeile 93
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevices_WhenCudaAvailableButNoDevices_Returns404() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaContextControllerTests.cs:line 93
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
 Test: GetMemoryList_WhenOnlineWithMemory_Returns200
@@ -61,8 +61,8 @@ AsynCUDA13.Shared.CudaDtos.CudaMemInfo[]
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMemory_Returns200 in CudaMemoryControllerTests.cs Zeile 86
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMemory_Returns200() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 86
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
 Test: FreeMemory_WhenInvalidPointer_Returns400
@@ -76,25 +76,25 @@ Shouldly.ShouldAssertException: objectResult.StatusCode
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaMemoryControllerTests.FreeMemory_WhenInvalidPointer_Returns400 in CudaMemoryControllerTests.cs Zeile 274
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.FreeMemory_WhenInvalidPointer_Returns400() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 274
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
-Test: PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200
+Test: PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200
 Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
-Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200“ hat eine Ausnahme ausgelöst: 
+Fehler: Die Testmethode „AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200“ hat eine Ausnahme ausgelöst: 
 Shouldly.ShouldAssertException: objectResult.StatusCode
     should be
 200
     but was
 500
-Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200 in CudaMemoryControllerTests.cs Zeile 577
+Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200 in CudaMemoryControllerTests.cs Zeile 577
 Stacktrace:
-at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 577
+at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 577
    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
-   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
 ----------------------------------------
 
 Test: GetDevice_WhenDeviceIdNotFound_Returns404
@@ -108,8 +108,8 @@ Shouldly.ShouldAssertException: objectResult.StatusCode
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevice_WhenDeviceIdNotFound_Returns404 in CudaContextControllerTests.cs Zeile 177
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevice_WhenDeviceIdNotFound_Returns404() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaContextControllerTests.cs:line 177
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
 Test: PullAsync_WhenOnlineAndMemoryFound_MultipleElements_Returns200
@@ -126,7 +126,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PullAsync_WhenOnlineAndMemoryF
    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
-   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
 ----------------------------------------
 
 Test: GetDevice_WhenCudaAvailable_Returns200
@@ -137,12 +137,12 @@ This leaves the process in an inconsistent state and any further CUDA work will 
 To continue using CUDA, the process must be terminated and relaunched.
 Assert: Test-Assertion in AsynCUDA13.Runtime.CudaService.GetAvailableDevicesProperties in CudaService.cs Zeile 202
 Stacktrace:
-at ManagedCuda.CudaContext..ctor(Int32 deviceId, CUCtxFlags flags, Boolean createNew)
-   at ManagedCuda.CudaContext..ctor(Int32 deviceId)
+at ManagedCuda.CudaContext..ctor(int deviceId, CUCtxFlags flags, bool createNew)
+   at ManagedCuda.CudaContext..ctor(int deviceId)
    at AsynCUDA13.Runtime.CudaService.GetAvailableDevicesProperties() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Runtime\CudaService.cs:line 202
    at AsynCUDA13.Tests.Api.CudaContextControllerTests.GetDevice_WhenCudaAvailable_Returns200() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaContextControllerTests.cs:line 139
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
 Test: PushAsync_With2DPayload_Success_Returns200
@@ -159,7 +159,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_With2DPayload_Succes
    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
-   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
 ----------------------------------------
 
 Test: InvalidKernelCallsReturnNullWithoutCorruptingBuffer
@@ -176,7 +176,7 @@ at AsynCUDA13.Tests.CudaLauncherIntegrationTests.InvalidKernelCallsReturnNullWit
    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
-   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
 ----------------------------------------
 
 Test: PushAsync_WhenPushReturnsNull_Returns500
@@ -193,7 +193,7 @@ at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.PushAsync_WhenPushReturnsNull_
    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
-   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.Execution.cs:line 150
 ----------------------------------------
 
 Test: GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll
@@ -207,8 +207,8 @@ AsynCUDA13.Shared.CudaDtos.CudaMemInfo[]
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll in CudaMemoryControllerTests.cs Zeile 109
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaMemoryControllerTests.GetMemoryList_WhenOnlineWithMultipleMemory_ReturnsAll() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaMemoryControllerTests.cs:line 109
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------
 
 Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
@@ -222,6 +222,6 @@ AsynCUDA13.Shared.CudaDtos.CudaDeviceInfo[]
 Assert: Test-Assertion in AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices in CudaDeviceControllerTests.cs Zeile 64
 Stacktrace:
 at AsynCUDA13.Tests.Api.CudaDeviceControllerTests.GetDevices_WhenCudaAvailable_Returns200WithDevices() in C:\Users\op\source\repos\alarmclock-kisser\AsynCUDA13.Runtime\AsynCUDA13.Tests\Api\CudaDeviceControllerTests.cs:line 64
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(object obj, BindingFlags invokeAttr)
 ----------------------------------------

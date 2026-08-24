@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Threading;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 using System.Reflection;
 using AsynCUDA13.Shared.Serialization;
 
@@ -22,7 +23,7 @@ namespace AsynCUDA13.Runtime
     /// context, and parses kernel signatures to map CUDA argument types to .NET types and build ordered
     /// argument arrays for execution.
     /// </summary>
-    public class CudaCompiler : IDisposable
+    internal class CudaCompiler : IRuntimeCompiler, IDisposable
     {
         // Fields
         /// <summary>The CUDA primary context used for compilation and kernel loading.</summary>
@@ -31,14 +32,38 @@ namespace AsynCUDA13.Runtime
         /// <summary>The currently loaded CUDA kernel, or <c>null</c> if none is loaded.</summary>
         internal CudaKernel? Kernel = null;
 
+        /// <summary>
+        /// Gets the currently loaded CUDA kernel by name, or <c>null</c> if no kernel is loaded or the name does not match.
+        /// </summary>
+        /// <param name="name">The name of the kernel to get.</param>
+        /// <returns>The currently loaded CUDA kernel, or <c>null</c> if no kernel is loaded or the name does not match.</returns>
+        public object? GetKernel(string name)
+        {
+            if (this.Kernel != null && string.Equals(this.KernelName, name, StringComparison.OrdinalIgnoreCase))
+            {
+                return this.Kernel;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Checks if a kernel with the specified name is currently loaded.
+        /// </summary>
+        /// <param name="name">The name of the kernel to check.</param>
+        /// <returns><c>true</c> if the kernel is currently loaded; otherwise, <c>false</c>.</returns>
+        public bool HasKernel(string name)
+        {
+            return this.Kernel != null && string.Equals(this.KernelName, name, StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>The name of the currently loaded kernel, or <c>null</c> if none is loaded.</summary>
-        public string? KernelName = null;
+        public string? KernelName { get; private set; } = null;
 
         /// <summary>The PTX file path of the currently loaded kernel, or <c>null</c> if none is loaded.</summary>
-        public string? KernelFile = null;
+        public string? KernelFile { get; private set; } = null;
 
         /// <summary>The source code (<c>.cu</c> content) of the currently loaded kernel, or <c>null</c> if unavailable.</summary>
-        public string? KernelCode = null;
+        public string? KernelCode { get; private set; } = null;
 
         // Properties (static)
         /// <summary>Gets the resolved root directory that contains the CU, PTX and Logs sub-folders for kernels.</summary>
@@ -49,6 +74,8 @@ namespace AsynCUDA13.Runtime
 
         /// <summary>Gets the list of compiled PTX (<c>.ptx</c>) files.</summary>
         public static List<string> CompiledFiles => GetPtxFiles();
+
+        public string[] GetSourceFiles() => SourceFiles.ToArray();
 
 
         /// <summary>
@@ -70,7 +97,7 @@ namespace AsynCUDA13.Runtime
             catch (Exception ex)
             {
                 StaticLogger.Log("Failed to create kernel directory, using temporary path", ex);
-                KernelPath = Path.Combine(Path.GetTempPath(), "AsynCUDA12", "Kernels");
+                KernelPath = Path.Combine(Path.GetTempPath(), "AsynCUDA13", "Kernels");
                 Directory.CreateDirectory(KernelPath);
                 Directory.CreateDirectory(Path.Combine(KernelPath, "CU"));
                 Directory.CreateDirectory(Path.Combine(KernelPath, "PTX"));
@@ -80,6 +107,11 @@ namespace AsynCUDA13.Runtime
             // Compile all kernels
             this.CompileAll(false, true);
         }
+
+        /// <summary>
+        /// Gets the IRuntimeCompiler interface for this instance.
+        /// </summary>
+        public IRuntimeCompiler Compiler => this;
 
         /// <summary>
         /// Attempts to create a directory at the specified path.
@@ -158,7 +190,7 @@ namespace AsynCUDA13.Runtime
         /// <param name="delayMs">The delay in milliseconds between retries.</param>
         /// <returns>A byte array containing the file contents.</returns>
         /// <exception cref="IOException">Thrown if the file cannot be read after all retry attempts.</exception>
-        private static byte[] ReadAllBytesWithRetry(string path, int retries = 3, int delayMs = 50)
+        private static Byte[] ReadAllBytesWithRetry(string path, int retries = 3, int delayMs = 50)
         {
             for (int attempt = 0; attempt <= retries; attempt++)
             {
@@ -284,7 +316,7 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Unloads the currently loaded CUDA kernel and clears the kernel state.
         /// </summary>
-        public void UnloadKernel()
+        public void UnloadKernel(string? name)
         {
             // Set context for thread-affine CUDA operations
             this.Context.SetCurrent();
@@ -328,7 +360,7 @@ namespace AsynCUDA13.Runtime
             // Unload?
             if (this.Kernel != null)
             {
-                this.UnloadKernel();
+                this.UnloadKernel(this.KernelName);
             }
 
             string displayName = kernelName;
@@ -374,7 +406,7 @@ namespace AsynCUDA13.Runtime
             try
             {
                 // Load ptx code
-                byte[] ptxCode = ReadAllBytesWithRetry(ptxPath);
+                Byte[] ptxCode = ReadAllBytesWithRetry(ptxPath);
 
                 // Load kernel
                 this.Kernel = this.Context.LoadKernelPTX(ptxCode, displayName);
@@ -426,11 +458,11 @@ namespace AsynCUDA13.Runtime
         }
 
         /// <summary>
-        /// Compiles a single CUDA kernel from a file or a string.
+        /// Compiles a float CUDA kernel from a file or a string.
         /// </summary>
         /// <param name="filepath">The path to the .cu file, or a raw kernel string if the extension is not .cu.</param>
         /// <param name="silent">If true, suppresses logging during compilation.</param>
-        /// <returns>The path to the generated PTX file, or null if compilation failed.</returns>
+        /// <returns>The path to the generated PTX file, or build log (which is not a File that exists) if compilation failed. Returns null if CUDA was not initialized or not available.</returns>
         public string? CompileKernel(string filepath, bool silent = false)
         {
             if (this.Context == null)
@@ -448,7 +480,7 @@ namespace AsynCUDA13.Runtime
             // If file is not a .cu file, but raw kernel string, compile that
             if (Path.GetExtension(filepath) != ".cu")
             {
-                return this.CompileString(filepath, silent);
+                return this.Compilestring(filepath, silent);
             }
 
             string kernelName = Path.GetFileNameWithoutExtension(filepath);
@@ -466,12 +498,13 @@ namespace AsynCUDA13.Runtime
 
 
             CudaRuntimeCompiler rtc = new(kernelCode, kernelName);
+            string log = string.Empty;
 
             try
             {
                 // Compile kernel
                 rtc.Compile([]);
-                string log = rtc.GetLogAsString();
+                log = rtc.GetLogAsString();
 
                 if (log.Length > 0)
                 {
@@ -492,7 +525,7 @@ namespace AsynCUDA13.Runtime
                 }
 
                 // Get ptx code
-                byte[] ptxCode = rtc.GetPTX();
+                Byte[] ptxCode = rtc.GetPTX();
 
                 // Export ptx
                 string ptxPath = Path.Combine(KernelPath, "PTX", kernelName + ".ptx");
@@ -507,10 +540,10 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                File.WriteAllText(logpath, rtc.GetLogAsString());
+                File.WriteAllText(logpath, log);
                 StaticLogger.Log(ex);
 
-                return null;
+                return log;
             }
 
         }
@@ -518,10 +551,10 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Compiles a CUDA kernel from a raw string.
         /// </summary>
-        /// <param name="kernelString">The raw CUDA kernel source code.</param>
+        /// <param name="kernelstring">The raw CUDA kernel source code.</param>
         /// <param name="silent">If true, suppresses logging during compilation.</param>
-        /// <returns>The path to the generated PTX file, or null if compilation failed.</returns>
-        public string? CompileString(string kernelString, bool silent = false)
+        /// <returns>The path to the generated PTX file, or the build log if compilation failed. Returns null if CUDA was not available or initialized.</returns>
+        public string? Compilestring(string kernelstring, bool silent = false)
         {
             if (this.Context == null)
             {
@@ -535,7 +568,7 @@ namespace AsynCUDA13.Runtime
             // Set context for thread-affine CUDA operations
             this.Context.SetCurrent();
 
-            string kernelName = kernelString.Split("void ")[1].Split("(")[0];
+            string kernelName = kernelstring.Split("void ")[1].Split("(")[0];
 
             string logpath = Path.Combine(KernelPath, "Logs", kernelName + ".log");
 
@@ -546,7 +579,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Load kernel file
-            string kernelCode = kernelString;
+            string kernelCode = kernelstring;
 
             // Save also the kernel string as .c file
             string cPath = Path.Combine(KernelPath, "CU", kernelName + ".cu");
@@ -554,12 +587,13 @@ namespace AsynCUDA13.Runtime
 
 
             CudaRuntimeCompiler rtc = new(kernelCode, kernelName);
+            string log = string.Empty;
 
             try
             {
                 // Compile kernel
                 rtc.Compile([]);
-                string log = rtc.GetLogAsString();
+                log = rtc.GetLogAsString();
 
                 if (log.Length > 0)
                 {
@@ -582,7 +616,7 @@ namespace AsynCUDA13.Runtime
 
 
                 // Get ptx code
-                byte[] ptxCode = rtc.GetPTX();
+                Byte[] ptxCode = rtc.GetPTX();
 
                 // Export ptx
                 string ptxPath = Path.Combine(KernelPath, "PTX", kernelName + ".ptx");
@@ -597,23 +631,23 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                File.WriteAllText(logpath, rtc.GetLogAsString());
+                File.WriteAllText(logpath, log);
                 StaticLogger.Log(ex);
 
-                return null;
+                return log;
             }
         }
 
         /// <summary>
         /// Performs a preliminary check on a kernel string to ensure it follows expected patterns.
         /// </summary>
-        /// <param name="kernelString">The raw CUDA kernel source code to check.</param>
+        /// <param name="kernelstring">The raw CUDA kernel source code to check.</param>
         /// <param name="silent">If true, suppresses logging during the check.</param>
         /// <returns>The extracted kernel name if valid; otherwise, null.</returns>
-        public string? PrecompileKernelString(string kernelString, bool silent = false)
+        public string? PrecompileKernelstring(string kernelstring, bool silent = false)
         {
             // Check contains "extern c"
-            if (!kernelString.Contains("extern \"C\""))
+            if (!kernelstring.Contains("extern \"C\""))
             {
                 if (!silent)
                 {
@@ -623,7 +657,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check contains "__global__ "
-            if (!kernelString.Contains("__global__"))
+            if (!kernelstring.Contains("__global__"))
             {
                 if (!silent)
                 {
@@ -633,7 +667,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check contains "void "
-            if (!kernelString.Contains("void "))
+            if (!kernelstring.Contains("void "))
             {
                 if (!silent)
                 {
@@ -643,7 +677,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check contains int
-            if (!kernelString.Contains("int ") && !kernelString.Contains("long "))
+            if (!kernelstring.Contains("int ") && !kernelstring.Contains("long "))
             {
                 if (!silent)
                 {
@@ -653,8 +687,8 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check if every bracket is closed (even amount) for {} and () and []
-            int open = kernelString.Count(c => c == '{');
-            int close = kernelString.Count(c => c == '}');
+            int open = kernelstring.Count(c => c == '{');
+            int close = kernelstring.Count(c => c == '}');
             if (open != close)
             {
                 if (!silent)
@@ -663,8 +697,8 @@ namespace AsynCUDA13.Runtime
                 }
                 return null;
             }
-            open = kernelString.Count(c => c == '(');
-            close = kernelString.Count(c => c == ')');
+            open = kernelstring.Count(c => c == '(');
+            close = kernelstring.Count(c => c == ')');
             if (open != close)
             {
                 if (!silent)
@@ -673,8 +707,8 @@ namespace AsynCUDA13.Runtime
                 }
                 return null;
             }
-            open = kernelString.Count(c => c == '[');
-            close = kernelString.Count(c => c == ']');
+            open = kernelstring.Count(c => c == '[');
+            close = kernelstring.Count(c => c == ']');
             if (open != close)
             {
                 if (!silent)
@@ -685,7 +719,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Check if kernel contains "blockIdx.x" and "blockDim.x" and "threadIdx.x"
-            if (!kernelString.Contains("blockIdx.x") || !kernelString.Contains("blockDim.x") || !kernelString.Contains("threadIdx.x"))
+            if (!kernelstring.Contains("blockIdx.x") || !kernelstring.Contains("blockDim.x") || !kernelstring.Contains("threadIdx.x"))
             {
                 if (!silent)
                 {
@@ -694,12 +728,12 @@ namespace AsynCUDA13.Runtime
             }
 
             // Get name between "void " and "("
-            int start = kernelString.IndexOf("void ") + "void ".Length;
-            int end = kernelString.IndexOf("(", start);
-            string name = kernelString.Substring(start, end - start);
+            int start = kernelstring.IndexOf("void ") + "void ".Length;
+            int end = kernelstring.IndexOf("(", start);
+            string name = kernelstring.Substring(start, end - start);
 
             // Trim every line ends from empty spaces (split -> trim -> aggregate)
-            kernelString = kernelString.Split("\n").Select(x => x.TrimEnd()).Aggregate((x, y) => x + "\n" + y);
+            kernelstring = kernelstring.Split("\n").Select(x => x.TrimEnd()).Aggregate((x, y) => x + "\n" + y);
 
             // Log name
             if (!silent)
@@ -728,11 +762,11 @@ namespace AsynCUDA13.Runtime
             {
                 "int" => typeof(int),
                 "float" => typeof(float),
-                "double" => typeof(double),
-                "char" => typeof(char),
+                "double" => typeof(Double),
+                "char" => typeof(Char),
                 "bool" => typeof(bool),
                 "void" => typeof(void),
-                "byte" => typeof(byte),
+                "byte" => typeof(Byte),
                 _ => typeof(void)
             };
 
@@ -814,13 +848,13 @@ namespace AsynCUDA13.Runtime
                 return [];
             }
 
-            string argsString = match.Groups[2].Value;
-            if (string.IsNullOrWhiteSpace(argsString))
+            string argsstring = match.Groups[2].Value;
+            if (string.IsNullOrWhiteSpace(argsstring))
             {
                 return arguments;
             }
 
-            string[] args = argsString.Split(',').Select(x => x.Trim()).ToArray();
+            string[] args = argsstring.Split(',').Select(x => x.Trim()).ToArray();
 
             // Get loaded kernels function args
             for (int i = 0; i < args.Length; i++)

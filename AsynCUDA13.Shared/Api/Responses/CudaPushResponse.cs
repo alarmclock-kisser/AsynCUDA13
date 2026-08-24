@@ -9,6 +9,8 @@ namespace AsynCUDA13.Shared.Api.Responses
     {
         public CudaMemInfo? MemoryInfo { get; set; } = null;    // Failed if null
 
+        public bool Success { get; set; } = false;
+
         public int ElapsedMs { get; set; } = -1;
 
 

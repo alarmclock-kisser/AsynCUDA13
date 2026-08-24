@@ -1,4 +1,5 @@
 using AsynCUDA13.Api.Controllers;
+using AsynCUDA13.Api.Services;
 using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
@@ -16,17 +17,15 @@ namespace AsynCUDA13.Tests.Api
     public class CudaMemoryControllerTests : TestBase
     {
         private Mock<ICudaService> _mockCuda = null!;
-        private Mock<AudioCollection> _mockAudios = null!;
-        private Mock<ImageCollection> _mockImages = null!;
+        private Mock<IAssetProvider> _mockAssetProvider = null!;
         private CudaMemoryController _controller = null!;
 
         [TestInitialize]
         public void SetUp()
         {
             this._mockCuda = new Mock<ICudaService>();
-            this._mockAudios = new Mock<AudioCollection>();
-            this._mockImages = new Mock<ImageCollection>();
-            this._controller = new CudaMemoryController(this._mockCuda.Object, this._mockAudios.Object, this._mockImages.Object);
+            this._mockAssetProvider = new Mock<IAssetProvider>();
+            this._controller = new CudaMemoryController(this._mockCuda.object, this._mockAssetProvider.object);
         }
 
         // =====================================================================
@@ -44,11 +43,11 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(503);
 
             var problemDetails = Require(objectResult.Value as ProblemDetails);
-            problemDetails.Title?.ShouldContain("CUDA not available");
+            problemDetails.Title?.ShouldContain("CUDA not initialized");
             problemDetails.Status.ShouldBe(503);
         }
 
@@ -64,7 +63,7 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(404);
 
             var problemDetails = Require(objectResult.Value as ProblemDetails);
@@ -85,7 +84,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryList();
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
             var memoryList = objectResult.Value.ShouldBeAssignableTo<CudaMemInfo[]>();
@@ -99,7 +98,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             var mem1 = CreateFakeCudaMem(new IntPtr(0x1000), typeof(float), 10);
-            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(double), 20);
+            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(Double), 20);
             var mem3 = CreateFakeCudaMem(new IntPtr(0x3000), typeof(int), 30);
             this._mockCuda.Setup(c => c.Online).Returns(true);
             this._mockCuda.Setup(c => c.RegisteredMemory).Returns(new List<CudaMem> { mem1, mem2, mem3 });
@@ -108,7 +107,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryList();
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
             var memoryList = objectResult.Value.ShouldBeAssignableTo<CudaMemInfo[]>();
@@ -126,7 +125,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryList();
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(500);
 
             var problemDetails = Require(objectResult.Value as ProblemDetails);
@@ -148,7 +147,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryInfo("0x1234");
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -164,7 +163,7 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(404);
 
             var problemDetails = Require(objectResult.Value as ProblemDetails);
@@ -184,7 +183,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryInfo(cudaMem.IndexPointer.ToString());
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
             var memoryInfo = objectResult.Value.ShouldBeOfType<CudaMemInfo>();
@@ -204,7 +203,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryInfo(cudaMem.Id.ToString());
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
 
             var memoryInfo = objectResult.Value.ShouldBeOfType<CudaMemInfo>();
@@ -222,7 +221,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.GetMemoryInfo("0x1234");
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(500);
         }
 
@@ -241,7 +240,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.FreeMemory("0x1234");
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -256,7 +255,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.FreeMemory("0x1234");
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(404);
         }
 
@@ -269,12 +268,12 @@ namespace AsynCUDA13.Tests.Api
             this._mockCuda.Setup(c => c.Online).Returns(true);
             this._mockCuda.Setup(c => c.RegisteredMemory).Returns(new List<CudaMem> { cudaMem });
 
-            // Act — nicht-gültiger Pointer-String (nicht im registrierten Speicher)
+            // Act — nicht-gültiger Pointer-string (nicht im registrierten Speicher)
             var result = this._controller.FreeMemory("not-a-pointer");
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(400);
 
             var problemDetails = Require(objectResult.Value as ProblemDetails);
@@ -295,7 +294,7 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(404);
         }
 
@@ -313,7 +312,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.FreeMemory(fakePtr.ToString());
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
             objectResult.Value.ShouldBe("40");
 
@@ -334,7 +333,7 @@ namespace AsynCUDA13.Tests.Api
             var result = this._controller.FreeMemory(fakePtr.ToString());
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(500);
         }
 
@@ -353,7 +352,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.FreeAllMemoryAsync();
 
             // Assert
-            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(Require(result).Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -362,7 +361,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             var mem1 = CreateFakeCudaMem(new IntPtr(0x1000), typeof(float), 10);
-            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(double), 20);
+            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(Double), 20);
             this._mockCuda.Setup(c => c.Online).Returns(true);
             this._mockCuda.Setup(c => c.RegisteredMemory).Returns(new List<CudaMem> { mem1, mem2 });
             this._mockCuda.Setup(c => c.FreeMemoryAsync(mem1.IndexPointer)).ReturnsAsync(40L);
@@ -372,7 +371,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.FreeAllMemoryAsync();
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
             objectResult.Value.ShouldBe("200"); // 40 + 160
         }
@@ -388,7 +387,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.FreeAllMemoryAsync();
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(200);
             objectResult.Value.ShouldBe("0");
         }
@@ -406,7 +405,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.FreeAllMemoryAsync();
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(500);
         }
 
@@ -420,13 +419,13 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             this._mockCuda.Setup(c => c.Online).Returns(false);
-            var request = CudaRequestsBuilder.BuildCudaPushRequest("1,2,3,4,5", "System.Single");
+            var request = CudaRequestsBuilder.BuildCudaPushRequest("1,2,3,4,5", "System.float");
 
             // Act
             var result = await this._controller.PushAsync(request);
 
             // Assert
-            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -442,7 +441,7 @@ namespace AsynCUDA13.Tests.Api
             Assert.IsNotNull(result);
 
             // Assert
-            var objectResult = Require(result.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(400);
 
             var problemDetails = Require(objectResult.Value as ProblemDetails);
@@ -493,7 +492,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(503);
         }
 
@@ -508,7 +507,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(400);
         }
 
@@ -525,12 +524,12 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(404);
         }
 
         [TestMethod]
-        public async Task PullAsync_WhenOnlineAndMemoryFound_SingleElement_Returns200()
+        public async Task PullAsync_WhenOnlineAndMemoryFound_floatElement_Returns200()
         {
             // This test requires integration testing due to dynamic typing in the controller.
             Assert.Inconclusive("PullAsync test requires integration testing due to dynamic typing limitations in the controller.");
@@ -561,7 +560,7 @@ namespace AsynCUDA13.Tests.Api
             var result = await this._controller.PullAsync(request);
 
             // Assert
-            var objectResult = Require(result?.Result).ShouldBeAssignableTo<ObjectResult>();
+            var objectResult = Require(result?.Result).ShouldBeAssignableTo<objectResult>();
             objectResult.StatusCode.ShouldBe(500);
         }
 
@@ -573,7 +572,7 @@ namespace AsynCUDA13.Tests.Api
         private static CudaMem CreateFakeCudaMem(IntPtr pointer, Type elementType, int length)
         {
             var mem = new CudaMem(
-                pointer: new ManagedCuda.BasicTypes.CUdeviceptr { Pointer = (ulong) (uint) pointer },
+                pointer: new ManagedCuda.BasicTypes.CUdeviceptr { Pointer = (Ulong) (uint) pointer },
                 length: new IntPtr(length),
                 type: elementType
             );
@@ -582,7 +581,7 @@ namespace AsynCUDA13.Tests.Api
 
         private static CudaMem CreateFakeCudaMem(IntPtr[] pointers, IntPtr[] lengths, Type elementType)
         {
-            var devicePointers = pointers.Select(p => new ManagedCuda.BasicTypes.CUdeviceptr { Pointer = (ulong) (uint) p }).ToArray();
+            var devicePointers = pointers.Select(p => new ManagedCuda.BasicTypes.CUdeviceptr { Pointer = (Ulong) (uint) p }).ToArray();
             var mem = new CudaMem(devicePointers, lengths, elementType);
             return mem;
         }

@@ -10,7 +10,6 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new ImageData()
             {
                 Info = MediaInfosBuilder.BuildImageInfo(imageObj),
-                Pointer = imageObj.Pointer.ToString(),
                 MimeType = $"image/{format.ToLower()}",
                 Base64Data = imageObj.Base64Image(format, keepData)
             };
@@ -21,7 +20,6 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new AudioData()
             {
                 Info = MediaInfosBuilder.BuildAudioInfo(audioObj),
-                Pointer = audioObj.Pointer.ToString(),
                 AudioDataFloats = chunkSize <= 0 ? audioObj.Data : [],
                 AudioDataFloatChunks = chunkSize > 0 ? audioObj.GetChunks(chunkSize, overlap, keepData) : [],
             };
@@ -40,7 +38,6 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new ImageData()
             {
                 Info = MediaInfosBuilder.BuildImageInfo(image),
-                Pointer = image.Pointer.ToString(),
                 MimeType = $"image/{format.ToLower()}",
                 Base64Data = image.GetPreview(maxDimenions, format)
             };
@@ -60,7 +57,6 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new ImageData()
             {
                 Info = MediaInfosBuilder.BuildImageInfo(waveform),
-                Pointer = audio.Pointer.ToString(),
                 MimeType = $"image/{format.ToLower()}",
                 Base64Data = waveform.GetPreview(Math.Max(width, height), format)
             };

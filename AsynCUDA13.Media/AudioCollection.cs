@@ -144,7 +144,7 @@ namespace AsynCUDA13.Media
             {
                 for (int i = 0; i < e.BytesRecorded; i += 2)
                 {
-                    short sample = BitConverter.ToInt16(e.Buffer, i);
+                    Int16 sample = BitConverter.ToInt16(e.Buffer, i);
                     float sampleFloat = Math.Abs(sample / 32768f);
                     if (sampleFloat > peak)
                     {
@@ -213,23 +213,23 @@ namespace AsynCUDA13.Media
                         if (bytesPerSample == 1)
                         {
                             // 8-bit PCM unsigned
-                            byte b = e.Buffer[i];
+                            Byte b = e.Buffer[i];
                             sample = (b - 128) / 128f;
                         }
                         else if (bytesPerSample == 2)
                         {
-                            short s16 = BitConverter.ToInt16(e.Buffer, i);
+                            Int16 s16 = BitConverter.ToInt16(e.Buffer, i);
                             sample = s16 / 32768f;
                         }
                         else if (bytesPerSample == 4)
                         {
-                            int s32 = BitConverter.ToInt32(e.Buffer, i);
+                            int s32 = BitConverter.Toint(e.Buffer, i);
                             sample = s32 / 2147483648f;
                         }
                         else
                         {
                             // fallback: read 16-bit
-                            short s16 = BitConverter.ToInt16(e.Buffer, i);
+                            Int16 s16 = BitConverter.ToInt16(e.Buffer, i);
                             sample = s16 / 32768f;
                         }
 

@@ -2,6 +2,7 @@
   <Project Path="AsynCUDA13.Api/AsynCUDA13.Api.csproj" Id="58ab7ba6-b2c4-418b-bd58-7e9d4b550b77" />
   <Project Path="AsynCUDA13.Client/AsynCUDA13.Client.csproj" Id="78cd2fb4-bc71-44bd-bcea-d8dc88288576" />
   <Project Path="AsynCUDA13.Media/AsynCUDA13.Media.csproj" />
+  <Project Path="AsynCUDA13.OpenClBackend/AsynCUDA13.OpenClBackend.csproj" Id="c5b8fb0e-28b4-4f5a-b5aa-b059539998cb" />
   <Project Path="AsynCUDA13.Runtime/AsynCUDA13.Runtime.csproj" />
   <Project Path="AsynCUDA13.Shared/AsynCUDA13.Shared.csproj" />
   <Project Path="AsynCUDA13.Tests/AsynCUDA13.Tests.csproj" />
