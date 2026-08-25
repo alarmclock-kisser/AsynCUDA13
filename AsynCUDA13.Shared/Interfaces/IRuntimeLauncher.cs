@@ -9,7 +9,7 @@ namespace AsynCUDA13.Shared.Interfaces
     /// Executes compiled kernels against device memory.
     /// Provides a unified interface for both CUDA and OpenCL kernel execution.
     /// </summary>
-    public interface IRuntimeLauncher
+    public interface IRuntimeLauncher : IDisposable
     {
         /// <summary>
         /// Gets the name of the currently loaded kernel, or <c>null</c> if none is loaded.

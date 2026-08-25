@@ -84,6 +84,13 @@ namespace AsynCUDA13.Shared
         private static SynchronizationContext? UiContext;
 
         /// <summary>
+        /// Gets the UI synchronization context for updating the BindingList from the UI thread. If <paramref name="copy"/> is true, a copy of the synchronization context is returned; otherwise, the original context is returned. This method can be used to ensure that log entries are added to the BindingList in a thread-safe manner when updating the UI.
+        /// </summary>
+        /// <param name="copy">Whether to return a copy of the synchronization context.</param>
+        /// <returns>The UI synchronization context or a copy of it.</returns>
+        public static SynchronizationContext? GetUiContext(bool copy = true) => copy ? UiContext?.CreateCopy() : UiContext;
+
+        /// <summary>
         /// Sets the UI synchronization context for updating the BindingList from the UI thread. This method should be called from the UI thread during application startup to ensure that log entries are added to the BindingList in a thread-safe manner.
         /// </summary>
         /// <param name="context">The synchronization context of the UI thread.</param>

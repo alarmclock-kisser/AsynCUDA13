@@ -205,7 +205,7 @@ namespace AsynCUDA13.Media
 
             if (loadedGuids.Count == 0)
             {
-                var fallback = await this.PopEmptyAsync(add: true);
+                var fallback = await this.PopEmptyAsync(new Size(1024, 1024), "FallbackEmptyImage", true);
                 if (fallback != null)
                 {
                     loadedGuids.Add(fallback.Id);
@@ -272,22 +272,25 @@ namespace AsynCUDA13.Media
             GC.SuppressFinalize(this);
         }
 
-        public async Task<ImageObj?> LoadImageAsync(string filePath)
+        public async Task<ImageObj?> LoadImageAsync(string filePath, string? name = null)
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"LoadImage: File not found or path empty: {filePath}");
+                Console.WriteLine($"LoadImageAsync: File not found or path empty: {filePath}");
                 return null;
             }
 
             ImageObj obj;
-
             try
             {
                 obj = await Task.Run(() =>
                 {
                     return new ImageObj(filePath);
                 });
+                if (!string.IsNullOrEmpty(name))
+                {
+                    obj.Name = name;
+                }
             }
             catch (Exception ex)
             {
@@ -316,14 +319,13 @@ namespace AsynCUDA13.Media
             return null;
         }
 
-        public async Task<ImageObj?> PopEmptyAsync(Size? size = null, bool add = false)
+        public async Task<ImageObj?> PopEmptyAsync(Size? size = null, string? name = null, bool add = false)
         {
             size ??= new Size(1080, 1920);
             int number = this.images.Count + 1;
             int digits = (int) Math.Log10(number) + 1;
 
             ImageObj imgObj;
-
             try
             {
                 imgObj = await Task.Run(() =>
@@ -333,6 +335,10 @@ namespace AsynCUDA13.Media
                         return new ImageObj(new Byte[size.Value.Width * size.Value.Height * 4], size.Value.Width, size.Value.Height, $"EmptyImage_{number.ToString().PadLeft(digits, '0')}");
                     }
                 });
+                if (!string.IsNullOrEmpty(name))
+                {
+                    imgObj.Name = name;
+                }
             }
             catch (Exception ex)
             {

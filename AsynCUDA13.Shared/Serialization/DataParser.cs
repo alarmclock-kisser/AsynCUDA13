@@ -11,6 +11,9 @@ namespace AsynCUDA13.Shared.Serialization
 {
     public static class DataParser
     {
+        /// <summary>
+        /// Gets or sets the maximum number of parallel threads to use for parsing. The default value is clamped between 1 and 8, with a default of half the number of processor cores.
+        /// </summary>
         public static int ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
         public static async Task<object[]?> ParseAsync(SimdPayload1D payload, string elementType)
@@ -189,15 +192,18 @@ namespace AsynCUDA13.Shared.Serialization
             return results;
         }
 
-        public static object[] ParseArgumentValues(IEnumerable<string> args, RuntimeKernelInfo? kernelInfo)
+        // --------------------------------------------------------------------------------
+        // Argument Parsing (Convert string arguments to their corresponding type(name)s)
+        // --------------------------------------------------------------------------------
+        public static object[] ParseArgumentValues(IEnumerable<string>? args, RuntimeKernelInfo? kernelInfo)
         {
             if (kernelInfo == null)
             {
-                return args.Select(arg => (object) arg).ToArray();
+                return args?.Select(arg => (object) arg).ToArray() ?? [];
             }
 
             // Parse each argument based on the corresponding type in kernelInfo.ArgumentTypes
-            return args.Select((arg, index) =>
+            return args?.Select((arg, index) =>
             {
                 if (index >= kernelInfo.ArgumentTypes.Length)
                 {
@@ -223,10 +229,103 @@ namespace AsynCUDA13.Shared.Serialization
                 {
                     return (object) arg; // Fallback to string if conversion fails
                 }
-            }).ToArray();
+            }).ToArray() ?? [];
         }
 
+        public static object[] ParseArgumentValues(IEnumerable<string>? args, IEnumerable<Type> types)
+        {
+            var typeArray = types as Type[] ?? types.ToArray();
+            return args?.Select((arg, index) =>
+            {
+                if (index >= typeArray.Length)
+                {
+                    return (object) arg; // Fallback to string if no type info is available
+                }
+                Type t = typeArray[index];
+                try
+                {
+                    if (t.IsPointer)
+                    {
+                        return IntPtr.TryParse(arg, out var ptr) ? ptr : IntPtr.Zero;
+                    }
 
+                    // Convert the argument to the specified type
+                    return Convert.ChangeType(arg, t);
+                }
+                catch
+                {
+                    return (object) arg; // Fallback to string if conversion fails
+                }
+            }).ToArray() ?? [];
+        }
+
+        // --------------------------------------------------------------------------------
+        // Argument Parsing (Convert object arguments to their corresponding type(name)s)
+        // --------------------------------------------------------------------------------
+        public static object[] ParseArgumentValues(IEnumerable<object>? args, RuntimeKernelInfo? kernelInfo)
+        {
+            if (kernelInfo == null)
+            {
+                return args?.ToArray() ?? [];
+            }
+            // Parse each argument based on the corresponding type in kernelInfo.ArgumentTypes
+            return args?.Select((arg, index) =>
+            {
+                if (index >= kernelInfo.ArgumentTypes.Length)
+                {
+                    return arg; // Fallback to original object if no type info is available
+                }
+                string argType = kernelInfo.ArgumentTypes[index];
+                Type? t = Type.GetType(argType, throwOnError: false, ignoreCase: true);
+                if (t == null)
+                {
+                    return arg; // Fallback to original object if type resolution fails
+                }
+                try
+                {
+                    if (t.IsPointer)
+                    {
+                        return arg is IntPtr ptr ? ptr : IntPtr.Zero;
+                    }
+                    // Convert the argument to the specified type
+                    return Convert.ChangeType(arg, t);
+                }
+                catch
+                {
+                    return arg; // Fallback to original object if conversion fails
+                }
+            }).ToArray() ?? [];
+        }
+
+        public static object[] ParseArgumentValues(IEnumerable<object>? args, IEnumerable<Type> types)
+        {
+            var typeArray = types as Type[] ?? types.ToArray();
+            return args?.Select((arg, index) =>
+            {
+                if (index >= typeArray.Length)
+                {
+                    return arg; // Fallback to original object if no type info is available
+                }
+                Type t = typeArray[index];
+                try
+                {
+                    if (t.IsPointer)
+                    {
+                        return arg is IntPtr ptr ? ptr : IntPtr.Zero;
+                    }
+                    // Convert the argument to the specified type
+                    return Convert.ChangeType(arg, t);
+                }
+                catch
+                {
+                    return arg; // Fallback to original object if conversion fails
+                }
+            }).ToArray() ?? [];
+        }
+
+        // --------------------------------------------------------------------------------
+        // Kernel Name Extraction from Source Code
+        // --------------------------------------------------------------------------------
         public static string? ExtractKernelName(string kernelCode)
         {
             if (string.IsNullOrEmpty(kernelCode))
@@ -242,6 +341,14 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             return null;
+        }
+
+        // --------------------------------------------------------------------------------
+        // Argument Type Checking
+        // --------------------------------------------------------------------------------
+        public static bool AreAllArgumentsString(IEnumerable<object>? args)
+        {
+            return args != null && args.All(arg => arg is string);
         }
 
         // --------------------------------------------------------------------------------

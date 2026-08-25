@@ -29,6 +29,11 @@ namespace AsynCUDA13.Runtime
         /// <summary>The CUDA primary context used for compilation and kernel loading.</summary>
         private readonly PrimaryContext Context;
 
+        /// <summary>
+        /// The CUDA register that manages device memory and kernel execution.
+        /// </summary>
+        private readonly CudaRegister Register;
+
         /// <summary>The currently loaded CUDA kernel, or <c>null</c> if none is loaded.</summary>
         internal CudaKernel? Kernel = null;
 
@@ -212,9 +217,10 @@ namespace AsynCUDA13.Runtime
         /// Initializes a new instance of the <see cref="CudaCompiler"/> class.
         /// </summary>
         /// <param name="context">The CUDA primary context to use for compilation and kernel loading.</param>
-        public CudaCompiler(PrimaryContext context)
+        public CudaCompiler(PrimaryContext context, CudaRegister register)
         {
             this.Context = context;
+            this.Register = register;
 
             KernelPath = EnsureKernelDirectory();
             try
@@ -1098,40 +1104,81 @@ namespace AsynCUDA13.Runtime
         /// <param name="arguments">An array of additional arguments.</param>
         /// <param name="silent">If true, suppresses logging.</param>
         /// <returns>An array of objects ordered for kernel execution.</returns>
-        public object[] MergeArgumentsImage(IntPtr inputPointer, IntPtr outputPointer, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
+        public object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? arguments = null, bool silent = false)
         {
             // Get kernel argument definitions
             Dictionary<string, Type> args = this.GetArguments(null);
+            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments, args.Values) : arguments ?? [];
 
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
 
             int pointersCount = 0;
             int userArgIndex = 0;
+
             // Integrate invariables if name fits (contains)
             for (int i = 0; i < kernelArgs.Length; i++)
             {
+                // Get argument name and type
                 string name = args.ElementAt(i).Key;
                 Type type = args.ElementAt(i).Value;
 
-                if (pointersCount == 0 && type == typeof(IntPtr))
+                // Handle first pointer argument (input)
+                if (pointersCount == 0 && type.IsPointer)
                 {
-                    kernelArgs[i] = inputPointer;
+                    // If inputPointer is null, allocate a new buffer for the input data, throw if that failed somehow
+                    if (inputPointer == null || inputPointer.Equals(IntPtr.Zero))
+                    {
+                        inputPointer = this.Register.AllocateSingle<byte>(width * height * channels)?.IndexPointer;
+                        if (inputPointer == null || inputPointer.Equals(IntPtr.Zero))
+                        {
+                            throw new ArgumentException("Input pointer is null and could not be allocated.");
+                        }
+                    }
+
+                    // Verify that the input pointer is registered in OpenClRegister and compare its index pointer
+                    IntPtr? inPtr = this.Register[inputPointer.Value]?.IndexPointer;
+                    if (inPtr == null || inPtr.Value != inputPointer.Value)
+                    {
+                        throw new ArgumentException($"Input pointer {inputPointer} is not registered in OpenClRegister, or it returned another pointer (<{inPtr}> != <{inputPointer.Value}>)");
+                    }
+
+                    // Set the kernel arg to that input pointer and increment the pointer count
+                    kernelArgs[i] = inPtr.Value;
                     pointersCount++;
 
                     if (!silent)
                     {
-                        StaticLogger.Log($"In-pointer: <{inputPointer}>");
+                        StaticLogger.Log($"In-pointer: <{inPtr.Value}>");
                     }
                 }
-                else if (pointersCount == 1 && type == typeof(IntPtr))
+                // Handle second pointer argument (output)
+                else if (pointersCount == 1 && type.IsPointer)
                 {
-                    kernelArgs[i] = outputPointer;
+                    // If outputPointer is null, allocate a new buffer, throw if failed
+                    if (outputPointer == null || outputPointer.Equals(IntPtr.Zero))
+                    {
+                        outputPointer = this.Register.AllocateSingle<byte>(width * height * channels)?.IndexPointer;
+                        if (outputPointer == null || outputPointer.Equals(IntPtr.Zero))
+                        {
+                            throw new ArgumentException("Output pointer is null and could not be allocated.");
+                        }
+                    }
+
+                    // Verify that the output pointer is registered in OpenClRegister and compare its index pointer
+                    IntPtr? outPtr = this.Register[outputPointer.Value]?.IndexPointer;
+                    if (outPtr == null || outPtr.Value != outputPointer.Value)
+                    {
+                        throw new ArgumentException($"Output pointer {outputPointer} is not registered in OpenClRegister, or it returned another pointer (<{outPtr}> != <{outputPointer.Value}>)");
+                    }
+
+                    // Set the kernel arg to that output pointer and increment the pointer count
+                    kernelArgs[i] = outPtr.Value;
                     pointersCount++;
 
                     if (!silent)
                     {
-                        StaticLogger.Log($"Out-pointer: <{outputPointer}>");
+                        StaticLogger.Log($"Out-pointer: <{outPtr.Value}>");
                     }
                 }
                 else if (name.Contains("width") && type == typeof(int))
@@ -1178,7 +1225,7 @@ namespace AsynCUDA13.Runtime
                     if (userArgIndex < arguments.Length)
                     {
                         // If the argument is a string, try to parse it to the correct type
-                        if (arguments[userArgIndex] is string stringValue && type != typeof(IntPtr))
+                        if ((arguments[userArgIndex] is string stringValue) && !type.IsPointer)
                         {
                             try
                             {

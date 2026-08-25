@@ -17,14 +17,33 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     public sealed class OpenClService : IOpenClService, IDisposable
     {
+        /// <summary>
+        /// The OpenCL register instance used for managing memory objects (private, public as <see cref="IRuntimeRegister"/>)
+        /// </summary>
         private OpenClRegister? _register;
         public IRuntimeRegister Register => this._register ?? throw new InvalidOperationException("OpenClService: service is offline. Call Initialize(...) first.");
+        
+        /// <summary>
+        /// The OpenCL compiler instance used for compiling kernels (private, public as <see cref="IRuntimeCompiler"/>)
+        /// </summary>
         private OpenClCompiler? _compiler;
         public IRuntimeCompiler Compiler => this._compiler ?? throw new InvalidOperationException("OpenClService: service is offline. Call Initialize(...) first.");
+
+        /// <summary>
+        /// The OpenCL launcher instance used for executing kernels (private, public as <see cref="IRuntimeLauncher"/>)
+        /// </summary>
         private OpenClLauncher? _launcher;
         public IRuntimeLauncher Launcher => this._launcher ?? throw new InvalidOperationException("OpenClService: service is offline. Call Initialize(...) first.");
+
+        /// <summary>
+        /// The OpenCL Fourier instance used for FFT/IFFT operations (private, public as <see cref="IRuntimeFourier"/>)
+        /// </summary>
         private OpenClFourier? _fourier;
         public IRuntimeFourier Fourier => this._fourier ?? throw new InvalidOperationException("OpenClService: service is offline. Call Initialize(...) first.");
+
+        /// <summary>
+        /// A value indicating whether the service has been disposed.
+        /// </summary>
         private bool _disposed;
 
         /// <summary>
@@ -40,6 +59,9 @@ namespace AsynCUDA13.OpenClBackend
             device => this.GetDeviceProperties(device.Device, device.Index)
         );
 
+        /// <summary>
+        /// Gets a read-only collection of all available OpenCL devices on the machine, each identified by a flat <see cref="OpenClDevice.Index"/>.
+        /// </summary>
         public IReadOnlyList<OpenClDevice> AvailableDevices => TotalAvailableDevices;
 
         /// <summary>
@@ -186,7 +208,7 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             this._register = new OpenClRegister(context, queue, info.Device);
-            this._compiler = new OpenClCompiler(context, info.Device);
+            this._compiler = new OpenClCompiler(context, info.Device, this._register);
             this._launcher = new OpenClLauncher(this._register, this._compiler, queue);
             this._fourier = new OpenClFourier(this._register, this._launcher);
 
@@ -237,12 +259,15 @@ namespace AsynCUDA13.OpenClBackend
             this._register?.Dispose();
             this._register = null;
 
+            this._launcher?.Dispose();
+            this._launcher = null;
+
             this.SelectedDeviceId = -1;
             this.SelectedDevice = null;
         }
 
         /// <summary>
-        /// Sets the current OpenCL context and command queue for the calling thread, so that subsequent OpenCL calls
+        /// No-Op for OpenCL backend. Needed in CUDA, here for compatibility with the IRuntimeBackend interface.
         /// </summary>
         public void SetCurrent()
         {
@@ -250,12 +275,6 @@ namespace AsynCUDA13.OpenClBackend
             {
                 StaticLogger.LogError("SetCurrent: service is offline. Call Initialize(...) first.");
                 return;
-            }
-            
-            var syncCtx = SynchronizationContext.Current;
-            if (syncCtx == null)
-            {
-                StaticLogger.LogWarning("SetCurrent: no SynchronizationContext is set. The OpenCL context will be set for the current thread only.");
             }
         }
 

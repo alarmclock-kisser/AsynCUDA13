@@ -14,8 +14,19 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     internal sealed class OpenClLauncher : IRuntimeLauncher
     {
+        /// <summary>
+        /// The OpenCL register that tracks memory buffers and their associated metadata.
+        /// </summary>
         private readonly OpenClRegister _register;
+
+        /// <summary>
+        /// The OpenCL compiler that holds the compiled kernels to launch.
+        /// </summary>
         private readonly OpenClCompiler _compiler;
+
+        /// <summary>
+        /// The OpenCL command queue used to enqueue kernel executions and manage synchronization.
+        /// </summary>
         private readonly CLCommandQueue _queue;
 
         /// <summary>
@@ -35,11 +46,18 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         public IRuntimeLauncher Launcher => this;
 
+        /// <summary>
+        /// Gets the name of the currently loaded kernel, or <c>null</c> if none is loaded.
+        /// </summary>
+        public string? KernelName => this._compiler.KernelName;
 
-        public string? KernelName => null;
 
-
-        // Launch
+        /// <summary>
+        /// Executes a one-dimensional kernel by name with the supplied arguments and measures the execution time in milliseconds.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel to execute.</param>
+        /// <param name="arguments">The ordered kernel arguments.</param>
+        /// <returns>The execution time in milliseconds, or <c>null</c> if the execution failed.</returns>
         public int? Execute(string kernelName, params object[] arguments)
         {
             DateTime started = DateTime.Now;
@@ -48,7 +66,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 return null;
             }
-            return (int)(DateTime.Now - started).TotalMilliseconds;
+            return (int) (DateTime.Now - started).TotalMilliseconds;
         }
 
         /// <summary>
@@ -78,6 +96,7 @@ namespace AsynCUDA13.OpenClBackend
             CLKernel? kernel = this._compiler.GetClKernel(kernelName);
             if (kernel == null)
             {
+                StaticLogger.LogError($"Execute '{kernelName}': kernel not found.");
                 return false;
             }
 
@@ -114,27 +133,49 @@ namespace AsynCUDA13.OpenClBackend
                 return false;
             }
 
+            StaticLogger.LogSuccess($"Execute '{kernelName}': executed successfully.");
             return true;
         }
 
 
-        // Launch (async)
+        /// <summary>
+        /// Executes a one-dimensional kernel by name with the supplied arguments asynchronously and measures the execution time in milliseconds.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel to execute.</param>
+        /// <param name="arguments">The ordered kernel arguments.</param>
+        /// <returns>The execution time in milliseconds, or <c>null</c> if the execution failed.</returns>
         public async Task<int?> ExecuteAsync(string kernelName, params object[] arguments)
         {
             DateTime started = DateTime.Now;
             bool ok = await Task.Run(() => this.Execute(kernelName, 0, 0, arguments));
             if (!ok)
             {
+                await StaticLogger.LogAsync($"ExecuteAsync '{kernelName}': execution failed.");
                 return null;
             }
             return (int) (DateTime.Now - started).TotalMilliseconds;
         }
 
+        /// <summary>
+        /// Executes a one-dimensional kernel by name with the supplied arguments asynchronously.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel to execute.</param>
+        /// <param name="globalWorkSize">The global work size, or 0 to let the runtime choose.</param>
+        /// <param name="arguments">The ordered kernel arguments.</param>
+        /// <returns><c>true</c> if the kernel executed successfully; otherwise <c>false</c>.</returns>
         public async Task<bool> ExecuteAsync(string kernelName, long globalWorkSize = 0, params object[] arguments)
         {
             return await Task.Run(() => this.Execute(kernelName, globalWorkSize, 0, arguments));
         }
 
+        /// <summary>
+        /// Executes a one-dimensional kernel by name with the supplied arguments asynchronously, allowing specification of both global and local work sizes.
+        /// </summary>
+        /// <param name="kernelName">The name of the kernel to execute.</param>
+        /// <param name="globalWorkSize">The global work size, or 0 to let the runtime choose.</param>
+        /// <param name="localWorkSize">The local work size, or 0 to let the runtime choose.</param>
+        /// <param name="arguments">The ordered kernel arguments.</param>
+        /// <returns><c>true</c> if the kernel executed successfully; otherwise <c>false</c>.</returns>
         public async Task<bool> ExecuteAsync(string kernelName, long globalWorkSize = 0, long localWorkSize = 0, params object[] arguments)
         {
             return await Task.Run(() => this.Execute(kernelName, globalWorkSize, localWorkSize, arguments));
@@ -196,6 +237,11 @@ namespace AsynCUDA13.OpenClBackend
             return true;
         }
 
+        /// <summary>
+        /// Determines the global and local work sizes based on the provided arguments. It inspects each argument to find the maximum total size for the global work size and the minimum count for the local work size.
+        /// </summary>
+        /// <param name="arguments">The ordered kernel arguments.</param>
+        /// <returns>A tuple containing the global and local work sizes.</returns>
         public (long globalWorkSize, long localWorkSize) GetWorkSizes(params object[] arguments)
         {
             long globalWorkSize = 0;
@@ -245,6 +291,14 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             return (globalWorkSize, localWorkSize);
+        }
+
+
+
+        // IDisposable
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
         }
     }
 }

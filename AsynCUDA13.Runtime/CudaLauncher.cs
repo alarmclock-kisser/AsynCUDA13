@@ -16,7 +16,7 @@ namespace AsynCUDA13.Runtime
     /// validates their count and types, configures the launch grid/block dimensions and runs the kernel,
     /// supporting both linear (1D) workloads and image (2D) workloads.
     /// </summary>
-    internal class CudaLauncher : IRuntimeLauncher, IDisposable
+    internal class CudaLauncher : IRuntimeLauncher
     {
         // Fields
         /// <summary>The CUDA primary context the kernels are launched on.</summary>

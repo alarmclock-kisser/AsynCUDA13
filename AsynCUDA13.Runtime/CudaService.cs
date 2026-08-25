@@ -277,7 +277,7 @@ namespace AsynCUDA13.Runtime
                 // Initialize other objects
                 this._register = new CudaRegister(this._context);
                 this._fourier = new CudaFourier(this._context, this._register);
-                this._compiler = new CudaCompiler(this._context);
+                this._compiler = new CudaCompiler(this._context, this._register);
                 this._launcher = new CudaLauncher(this._context, this._register, this._fourier, this._compiler);
                 StaticLogger.Log($"CudaService: Initialized on device ID {deviceId} ({this.SelectedCudaDeviceProperties?.DeviceName})");
             }
