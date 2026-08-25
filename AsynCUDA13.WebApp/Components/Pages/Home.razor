@@ -10,7 +10,7 @@
                  Severity="@VM.InfoSeverity"
                  Visible="@VM.ShowInfoMessage" ShowCloseButton="@VM.ShowInfoCloseButton" />
 
-    @if (VM.IsCudaAvailable && VM.Devices != null && VM.Devices.Length > 0)
+    @if (VM.Devices?.Length > 0)
     {
         <RadzenCard>
             <div class="row mb-3">
@@ -19,18 +19,18 @@
                                     Data="@VM.Devices"
                                     TextProperty="DeviceName"
                                     Placeholder="@L["SelectDevicePlaceholder"]"
-                                    Disabled="@(VM.IsInitialized || VM.Devices == null || !(VM.Devices?.Length > 0))" />
+                                    Disabled="@(VM.IsBackendInitialized || VM.Devices == null || !(VM.Devices?.Length > 0))" />
                 </div>
                 <div class="col-md-6 text-end">
-                    <RadzenButton Text="@(VM.IsInitialized ? L["Dispose"] : L["Initialize"])" 
-                                    ButtonStyle="@(VM.IsInitialized ? ButtonStyle.Secondary : ButtonStyle.Success)"
+                    <RadzenButton Text="@(VM.IsBackendInitialized ? L["Dispose"] : L["Initialize"])" 
+                                    ButtonStyle="@(VM.IsBackendInitialized ? ButtonStyle.Secondary : ButtonStyle.Success)"
                                     Click="VM.HandleInitializeButton" 
-                                    Disabled="@(!VM.IsInitialized && (VM.SelectedDevice == null || VM.SelectedDevice.DeviceId == null))" />
+                                    Disabled="@(!VM.IsBackendInitialized && (VM.SelectedDevice == null || VM.SelectedDevice.DeviceId == null))" />
                 </div>
             </div>
         </RadzenCard>
 
-        @if (VM.IsInitialized && VM.ContextInfo?.DeviceInfo != null)
+        @if (VM.IsBackendInitialized && VM.ContextInfo?.DeviceInfo != null)
         {
             <h4>@L["CudaContextInfo"]</h4>
             <RadzenCard>
@@ -87,7 +87,7 @@
                     }
                     else
                     {
-                        <p class="text-muted">@L["NoCudaMemobjects"]</p>
+                        <p class="text-muted">@L["NoCudaMemObjects"]</p>
                     }
                 </RadzenAccordionItem>
             </RadzenAccordion>

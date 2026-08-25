@@ -9,7 +9,7 @@
                  Severity="@VM.InfoSeverity"
                  Visible="@VM.ShowInfoMessage" ShowCloseButton="@VM.ShowInfoCloseButton" />
 
-    @if (VM.IsCudaInitialized)
+    @if (VM.IsBackendInitialized)
     {
         <RadzenCard>
             <div class="rz-card-header">
@@ -110,7 +110,7 @@
 
         @if (VM.MemoryInfos.Length == 0)
         {
-            <p class="text-muted">@L["NoCudaMemobjects"]</p>
+            <p class="text-muted">@L["NoCudaMemObjects"]</p>
         }
     }
     else

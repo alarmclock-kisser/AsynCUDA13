@@ -22,6 +22,7 @@ namespace AsynCUDA13.Client
         private readonly SemaphoreSlim signalRConnectionLock = new(1, 1);
         private HubConnection? _hubConnection;
 
+
         private LogLevel _logLevel = LogLevel.Information;
         public LogLevel LogLevel
         {
@@ -35,12 +36,15 @@ namespace AsynCUDA13.Client
         public string BaseUrl { get; }
 
 
-        public event Action<DateTime, string>? LogWritten;
+        public string BackendType { get; private set; } = "N/A";
+        public bool? IsCudaAvailable { get; private set; } = null;
 
+
+        public event Action<DateTime, string>? LogWritten;
         public bool IsSignalRConnected => this._hubConnection?.State == HubConnectionState.Connected;
 
-        public readonly string BackendType = "N/A";
 
+        public bool Initialized { get; private set; }
         public ApiClient(string baseUrl, int logLevel = (int) LogLevel.Information)
         {
             this.BaseUrl = baseUrl;
@@ -55,8 +59,21 @@ namespace AsynCUDA13.Client
 
             if ((int) this.LogLevel >= 5)
             {
-                StaticLogger.Log($"ApiClient initialized with log level: {this.LogLevel}, URL='{this.BaseUrl}'");
+                StaticLogger.Log($"ApiClient created with log level: {this.LogLevel}, URL='{this.BaseUrl}'");
             }
+        }
+        public async Task InitializeAsync()
+        {
+            if (this.Initialized)
+            {
+                return;
+            }
+
+            BackendType = await internalClient.BackendAsync();
+            IsCudaAvailable = BackendType.Equals("CUDA", StringComparison.OrdinalIgnoreCase) ? CudaAvailabilityTester.IsCudaAvailable() : null;
+            this.Initialized = true;
+
+            await StaticLogger.LogAsync($"ApiClient initialized. BackendType='{BackendType}', IsCudaAvailable={IsCudaAvailable}");
         }
 
 
@@ -94,8 +111,6 @@ namespace AsynCUDA13.Client
                 this.signalRConnectionLock.Release();
             }
         }
-
-
         public async Task StopSignalRConnectionAsync()
         {
             await this.signalRConnectionLock.WaitAsync();
@@ -218,8 +233,8 @@ namespace AsynCUDA13.Client
         }
 
 
-        // CudaDeviceController
-        public async Task<RuntimeDeviceInfo[]> GetCudaDevicesAsync()
+        // BackendDeviceController
+        public async Task<RuntimeDeviceInfo[]> GetRuntimeDevicesAsync()
         {
             DateTime started = DateTime.Now;
             int count = 0;
@@ -238,12 +253,12 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetCudaDevicesAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await StaticLogger.LogAsync($"[ApiClient] : GetRuntimeDevicesAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
 
-        public async Task<RuntimeDeviceInfo?> GetCudaDeviceAsync(int deviceId)
+        public async Task<RuntimeDeviceInfo?> GetRuntimeDeviceAsync(int deviceId)
         {
             DateTime started = DateTime.Now;
             bool hasValue = false;
@@ -262,14 +277,14 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetCudaDeviceAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : GetRuntimeDeviceAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
 
 
-        // CudaContextController
-        public async Task<RuntimeContextInfo?> GetCudaContextInfoAsync()
+        // BackendContextController
+        public async Task<RuntimeContextInfo?> GetRuntimeContextInfoAsync()
         {
             DateTime started = DateTime.Now;
             bool hasValue = false;
@@ -288,12 +303,12 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetCudaContextInfoAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : GetRuntimeContextInfoAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
 
-        public async Task<RuntimeInitializeResponse?> InitializeCudaAsync(int deviceId = 0, string deviceName = "")
+        public async Task<RuntimeInitializeResponse?> InitializeRuntimeAsync(int deviceId = 0, string deviceName = "")
         {
             var request = new RuntimeInitializeRequest()
             {
@@ -319,12 +334,12 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : InitializeCudaAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : InitializeRuntimeAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
 
-        public async Task<RuntimeDisposeResponse?> DisposeCudaAsync(bool freeBuffers = false)
+        public async Task<RuntimeDisposeResponse?> DisposeRuntimeAsync(bool freeBuffers = false)
         {
             var request = new RuntimeDisposeRequest()
             {
@@ -348,13 +363,13 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : DisposeCudaAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : DisposeRuntimeAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
 
 
-        // CudaMemoryController
+        // BackendMemoryController
         public async Task<RuntimeMemInfo[]> GetMemoryListAsync()
         {
             DateTime started = DateTime.Now;
@@ -574,7 +589,7 @@ namespace AsynCUDA13.Client
         }
 
 
-        // Cuda Fourier Controller
+        // BackendFourierController
         public async Task<RuntimeFourierResponse?> PerformFourierTransformAsync(string indexPointerOrId, bool? inverse = null, bool keepBuffer = false)
         {
             var memInfo = await this.GetMemoryInfoAsync(indexPointerOrId);
@@ -639,7 +654,7 @@ namespace AsynCUDA13.Client
         }
 
 
-        // CudaKernelController
+        // BackendKernelController
         public async Task<RuntimeKernelInfo[]> GetKernelsAsync(bool filterCompiled = true)
         {
             DateTime started = DateTime.Now;
@@ -649,6 +664,14 @@ namespace AsynCUDA13.Client
                 var kernels = await this.internalClient.KernelsAsync(filterCompiled);
                 count = kernels.Count;
                 return kernels.ToArray();
+            }
+            catch (ApiException apiEx)
+            {
+                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
+                {
+                    return [];
+                }
+                return [];
             }
             catch (Exception ex)
             {

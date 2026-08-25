@@ -35,10 +35,14 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// </summary>
         protected RuntimeContextInfo? _contextInfo = null;
 
+        public string BackendType => this.Api.BackendType;
+        public bool? IsCudaAvailable => this.Api.IsCudaAvailable;
+        public bool I => this.Api.Initialized;
+
         /// <summary>
         /// Gets a value indicating whether CUDA is initialized and available for use. This property checks the Online status of the current CUDA context information. It returns true if CUDA is initialized and online, and false otherwise.
         /// </summary>
-        public bool IsCudaInitialized => this._contextInfo?.Online == true;
+        public bool IsBackendInitialized => this._contextInfo?.Online == true;
 
         /// <summary>
         /// Event that is triggered when the state of the view model changes. Subscribers can use this event to update their UI or perform other actions in response to state changes.
@@ -153,7 +157,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
             if (refreshContextInfo)
             {
-                this._contextInfo = this.Api.GetCudaContextInfoAsync().ConfigureAwait(true).GetAwaiter().GetResult();
+                this._contextInfo = this.Api.GetRuntimeContextInfoAsync().ConfigureAwait(true).GetAwaiter().GetResult();
             }
             this.StateChanged?.Invoke();
         }
@@ -165,9 +169,14 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <returns>A task that represents the asynchronous operation.</returns>
         protected async Task NotifyStateChangedAsync(bool refreshContextInfo = true)
         {
+            if (!this.Api.Initialized)
+            {
+                await this.Api.InitializeAsync();
+            }
+
             if (refreshContextInfo)
             {
-                this._contextInfo = await this.Api.GetCudaContextInfoAsync();
+                this._contextInfo = await this.Api.GetRuntimeContextInfoAsync();
             }
             this.StateChanged?.Invoke();
         }

@@ -47,7 +47,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         // Setup data
         public async Task LoadMemoryListAsync()
         {
-            this.MemoryInfos = this.IsCudaInitialized
+            this.MemoryInfos = this.IsBackendInitialized
                 ? await this.Api.GetMemoryListAsync()
                 : [];
             await this.LoadAssetsAsync();

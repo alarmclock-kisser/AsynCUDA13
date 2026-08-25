@@ -16,7 +16,7 @@
         </RadzenCard>
         <RadzenBody>
             <RadzenTextArea @bind-Value="VM.KernelCode" Rows="10" Placeholder="@L["EnterCudaKernelCode"]" />
-            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="() => VM.CompileKernelAsync(VM.KernelCode)" Disabled="@(!VM.IsCudaInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
+            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="() => VM.CompileKernelAsync(VM.KernelCode)" Disabled="@(!VM.IsBackendInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
         </RadzenBody>
     </RadzenCard>
 

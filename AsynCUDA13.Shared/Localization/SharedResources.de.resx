@@ -42,7 +42,7 @@
   <data name="VramStatus" xml:space="preserve"><value>VRAM-Status</value></data>
   <data name="AllocatedCudaMemobjects" xml:space="preserve"><value>Allokierte CUDA-Speicherobjekte</value></data>
   <data name="MemoryList" xml:space="preserve"><value>Speicherliste</value></data>
-  <data name="NoCudaMemobjects" xml:space="preserve"><value>Keine CUDA-Speicherobjekte vorhanden.</value></data>
+  <data name="NoCudaMemObjects" xml:space="preserve"><value>Keine CUDA-Speicherobjekte vorhanden.</value></data>
   <data name="PushOperations" xml:space="preserve"><value>Push-Operationen</value></data>
   <data name="PushHighResMediaToCuda" xml:space="preserve"><value>Medien vom Host nach CUDA übertragen</value></data>
   <data name="PushToCuda" xml:space="preserve"><value>Nach CUDA übertragen</value></data>

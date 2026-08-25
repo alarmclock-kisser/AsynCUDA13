@@ -13,10 +13,9 @@ namespace AsynCUDA13.WebApp.ViewModels
         public HomeViewModel(ApiClient apiClient, IJSRuntime js)
             : base(apiClient, js)
         {
-            this.IsCudaAvailable = CudaAvailabilityTester.IsCudaAvailable();
+
         }
 
-        public readonly bool IsCudaAvailable;
 
         public RuntimeContextInfo? ContextInfo
         {
@@ -38,17 +37,17 @@ namespace AsynCUDA13.WebApp.ViewModels
         public bool FreeBuffersAtDispose { get; set; } = false;
 
 
-        public bool IsInitialized => this.ContextInfo?.Online == true;
-
         public async Task LoadDevicesAsync()
         {
-            if (!this.IsCudaAvailable)
+            await this.NotifyStateChangedAsync(true);
+
+            if (this.Api.IsCudaAvailable == false)
             {
                 this.UpdateInfoMessage("CUDA is not available on this system. Please ensure that you have a compatible NVIDIA GPU and the necessary drivers installed.", "error", false, null, true);
                 return;
             }
 
-            this.Devices = await this.Api.GetCudaDevicesAsync();
+            this.Devices = await this.Api.GetRuntimeDevicesAsync();
             this.SelectedDevice = this.Devices?.FirstOrDefault(d => d.DeviceId == this.ContextInfo?.DeviceInfo?.DeviceId) ?? this.Devices?.FirstOrDefault();
 
             await this.NotifyStateChangedAsync(false);
@@ -56,14 +55,14 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task HandleInitializeButton()
         {
-            if (!this.IsCudaAvailable)
+            if (this.IsCudaAvailable == false)
             {
                 return;
             }
 
-            if (this.IsInitialized)
+            if (this.IsBackendInitialized)
             {
-                await this.DisposeCudaAsync();
+                await this.DisposeBackendAsync();
             }
             else
             {
@@ -80,7 +79,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task InitializeDeviceAsync(int deviceId, string deviceName)
         {
-            var response = await this.Api.InitializeCudaAsync(deviceId, deviceName);
+            var response = await this.Api.InitializeRuntimeAsync(deviceId, deviceName);
             if (response?.Success == true)
             {
                 if (this.ContextInfo?.DeviceInfo?.DeviceId.HasValue == true)
@@ -97,11 +96,11 @@ namespace AsynCUDA13.WebApp.ViewModels
             await this.NotifyStateChangedAsync();
         }
 
-        public async Task DisposeCudaAsync()
+        public async Task DisposeBackendAsync()
         {
             int? previousDeviceId = this.ContextInfo?.DeviceInfo?.DeviceId;
 
-            var response = await this.Api.DisposeCudaAsync(this.FreeBuffersAtDispose);
+            var response = await this.Api.DisposeRuntimeAsync(this.FreeBuffersAtDispose);
             if (response?.Success == true)
             {
                 await this.UpdateInfoMessageAsync("CUDA context disposed successfully.", "success", true, 3);
