@@ -115,7 +115,7 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="arguments">An array of additional arguments.</param>
         /// <param name="silent">If set to <c>true</c>, suppresses logging.</param>
         /// <returns>An array of objects ordered for kernel execution.</returns>
-        object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? arguments = null, bool silent = false);
+        object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? arguments = null);
 
 
 

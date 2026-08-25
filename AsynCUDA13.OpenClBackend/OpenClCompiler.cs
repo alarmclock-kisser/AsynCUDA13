@@ -27,27 +27,27 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// The OpenCL context used for compiling kernels.
         /// </summary>
-        private readonly CLContext _context;
+        private readonly CLContext Context;
 
         /// <summary>
         /// The OpenCL device used for compiling kernels.
         /// </summary>
-        private readonly CLDevice _device;
+        private readonly CLDevice Device;
 
         /// <summary>
         /// The OpenClRegister instance used for managing memory objects.
         /// </summary>
-        private readonly OpenClRegister _register;
+        private readonly OpenClRegister Register;
 
         /// <summary>
         /// The list of compiled OpenCL programs. Each program may contain one or more kernels.
         /// </summary>
-        private readonly List<CLProgram> _programs = [];
+        private readonly List<CLProgram> Programs = [];
 
         /// <summary>
         /// The dictionary of compiled kernels, keyed by kernel name. Each kernel is associated with its corresponding CLKernel object.
         /// </summary>
-        private readonly Dictionary<string, CLKernel> _kernels = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, CLKernel> ClKernels = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Indicates whether the compiler has been disposed. Once disposed, the compiler cannot be used to compile or retrieve kernels.
@@ -62,7 +62,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Gets the names of all successfully compiled kernels.
         /// </summary>
-        public IReadOnlyCollection<string> KernelNames => this._kernels.Keys;
+        public IReadOnlyCollection<string> KernelNames => this.ClKernels.Keys;
 
         /// <summary>
         /// Gets the IRuntimeCompiler interface for this instance.
@@ -79,7 +79,7 @@ namespace AsynCUDA13.OpenClBackend
         /// Gets the list of compiled kernel files.
         /// </summary>
         /// <returns>An array of file paths to compiled kernel files.</returns>
-        public string[] GetCompiledFiles() => this.GetClFiles().Select(s => this._kernels.ContainsKey(Path.GetFileNameWithoutExtension(s)) ? s : null).Where(s => s != null).Cast<string>().ToArray();
+        public string[] GetCompiledFiles() => this.GetClFiles().Select(s => this.ClKernels.ContainsKey(Path.GetFileNameWithoutExtension(s)) ? s : null).Where(s => s != null).Cast<string>().ToArray();
 
         /// <summary>
         /// Gets the source file of the kernel with the specified name. Returns null if the kernel name is not set or if the file does not exist.
@@ -174,10 +174,10 @@ namespace AsynCUDA13.OpenClBackend
                 kernel = Path.GetFileNameWithoutExtension(kernel);
             }
 
-            if (this._kernels.Keys.Any(k => string.Equals(k, kernel, StringComparison.OrdinalIgnoreCase)))
+            if (this.ClKernels.Keys.Any(k => string.Equals(k, kernel, StringComparison.OrdinalIgnoreCase)))
             {
-                this.Kernel = this._kernels.First(k => string.Equals(k.Key, kernel, StringComparison.OrdinalIgnoreCase)).Value;
-                this.KernelName = this._kernels.Keys.First(k => string.Equals(k, kernel, StringComparison.OrdinalIgnoreCase));
+                this.Kernel = this.ClKernels.First(k => string.Equals(k.Key, kernel, StringComparison.OrdinalIgnoreCase)).Value;
+                this.KernelName = this.ClKernels.Keys.First(k => string.Equals(k, kernel, StringComparison.OrdinalIgnoreCase));
                 return true;
             }
             else
@@ -199,7 +199,7 @@ namespace AsynCUDA13.OpenClBackend
                     try
                     {
                         this.CompileFile(kernelFile);
-                        return this._kernels.ContainsKey(kernel);
+                        return this.ClKernels.ContainsKey(kernel);
                     }
                     catch (Exception ex)
                     {
@@ -215,7 +215,7 @@ namespace AsynCUDA13.OpenClBackend
                 try
                 {
                     this.CompileFile(filePath);
-                    return this._kernels.ContainsKey(kernel);
+                    return this.ClKernels.ContainsKey(kernel);
                 }
                 catch (Exception ex)
                 {
@@ -240,9 +240,9 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="kernelDirectory">An optional explicit kernel directory; auto-resolved when omitted.</param>
         internal OpenClCompiler(CLContext context, CLDevice device, OpenClRegister register, bool compileAll = true)
         {
-            this._context = context;
-            this._device = device;
-            this._register = register;
+            this.Context = context;
+            this.Device = device;
+            this.Register = register;
 
             if (compileAll)
             {
@@ -327,7 +327,7 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            StaticLogger.LogSuccess($"OpenClCompiler: compiled {this._kernels.Count} kernel(s) from {files.Length} file(s).");
+            StaticLogger.LogSuccess($"OpenClCompiler: compiled {this.ClKernels.Count} kernel(s) from {files.Length} file(s).");
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace AsynCUDA13.OpenClBackend
                 return;
             }
 
-            CLProgram program = CL.CreateProgramWithSource(this._context, source, out CLResultCode createCode);
+            CLProgram program = CL.CreateProgramWithSource(this.Context, source, out CLResultCode createCode);
             if (createCode != CLResultCode.Success)
             {
                 StaticLogger.LogError($"OpenClCompiler: CreateProgramWithSource failed for '{Path.GetFileName(file)}' ({createCode}).");
@@ -354,7 +354,7 @@ namespace AsynCUDA13.OpenClBackend
             // OpenTK 4.9.x's delegate-based overload unconditionally marshals the callback delegate and throws
             // ArgumentNullException ("d") for a null callback; passing IntPtr.Zero performs a blocking build
             // without any notification callback, which is exactly what an in-memory compiler needs.
-            CLResultCode buildCode = CL.BuildProgram(program, 1, [this._device], string.Empty, IntPtr.Zero, IntPtr.Zero);
+            CLResultCode buildCode = CL.BuildProgram(program, 1, [this.Device], string.Empty, IntPtr.Zero, IntPtr.Zero);
             if (buildCode != CLResultCode.Success)
             {
                 string log = this.GetBuildLog(program);
@@ -363,7 +363,7 @@ namespace AsynCUDA13.OpenClBackend
                 return;
             }
 
-            this._programs.Add(program);
+            this.Programs.Add(program);
 
             foreach (string kernelName in ExtractKernelNames(source))
             {
@@ -374,7 +374,7 @@ namespace AsynCUDA13.OpenClBackend
                     continue;
                 }
 
-                this._kernels[kernelName] = kernel;
+                this.ClKernels[kernelName] = kernel;
             }
         }
 
@@ -391,19 +391,19 @@ namespace AsynCUDA13.OpenClBackend
             {
                 throw new ArgumentException("Kernel code cannot be null or whitespace.", nameof(kernelCode));
             }
-            CLProgram program = CL.CreateProgramWithSource(this._context, kernelCode, out CLResultCode createCode);
+            CLProgram program = CL.CreateProgramWithSource(this.Context, kernelCode, out CLResultCode createCode);
             if (createCode != CLResultCode.Success)
             {
                 throw new InvalidOperationException($"CreateProgramWithSource failed ({createCode}).");
             }
-            CLResultCode buildCode = CL.BuildProgram(program, 1, [this._device], string.Empty, IntPtr.Zero, IntPtr.Zero);
+            CLResultCode buildCode = CL.BuildProgram(program, 1, [this.Device], string.Empty, IntPtr.Zero, IntPtr.Zero);
             if (buildCode != CLResultCode.Success)
             {
                 string log = this.GetBuildLog(program);
                 CL.ReleaseProgram(program);
                 throw new InvalidOperationException($"BuildProgram failed ({buildCode}). Build log: {log}");
             }
-            this._programs.Add(program);
+            this.Programs.Add(program);
             foreach (string kernelName in ExtractKernelNames(kernelCode))
             {
                 CLKernel kernel = CL.CreateKernel(program, kernelName, out CLResultCode resultCode);
@@ -411,7 +411,7 @@ namespace AsynCUDA13.OpenClBackend
                 {
                     throw new InvalidOperationException($"CreateKernel '{kernelName}' failed ({kernelCode}).");
                 }
-                this._kernels[kernelName] = kernel;
+                this.ClKernels[kernelName] = kernel;
             }
             return string.Join(", ", ExtractKernelNames(kernelCode));
         }
@@ -533,7 +533,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             try
             {
-                if (CL.GetProgramBuildInfo(program, this._device, ProgramBuildInfo.Log, out Byte[] bytes) == CLResultCode.Success && bytes != null)
+                if (CL.GetProgramBuildInfo(program, this.Device, ProgramBuildInfo.Log, out Byte[] bytes) == CLResultCode.Success && bytes != null)
                 {
                     int length = bytes.Length;
                     if (length > 0 && bytes[length - 1] == 0)
@@ -595,14 +595,19 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         /// <param name="kernel">The kernel entry-point name or file path.</param>
         /// <returns>The compiled <see cref="CLKernel"/>, or <c>null</c> when no kernel with that name exists.</returns>
-        internal CLKernel? GetClKernel(string kernel)
+        internal CLKernel? GetClKernel(string? kernel)
         {
+            if (string.IsNullOrEmpty(kernel))
+            {
+                return this.Kernel;
+            }
+
             if (File.Exists(kernel))
             {
                 kernel = Path.GetFileNameWithoutExtension(kernel);
             }
 
-            if (this._kernels.TryGetValue(kernel, out CLKernel k))
+            if (this.ClKernels.TryGetValue(kernel, out CLKernel k))
             {
                 return k;
             }
@@ -621,7 +626,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (kernel.HasValue)
             {
-                foreach (CLProgram program in this._programs)
+                foreach (CLProgram program in this.Programs)
                 {
                     if (CL.GetProgramInfo(program, ProgramInfo.KernelNames, out byte[] kernelNames) == CLResultCode.Success)
                     {
@@ -635,7 +640,7 @@ namespace AsynCUDA13.OpenClBackend
             }
             if (!string.IsNullOrEmpty(name))
             {
-                foreach (CLProgram program in this._programs)
+                foreach (CLProgram program in this.Programs)
                 {
                     if (CL.GetProgramInfo(program, ProgramInfo.KernelNames, out byte[] kernelNames) == CLResultCode.Success)
                     {
@@ -664,7 +669,7 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         public bool HasKernel(string name)
         {
-            return this._kernels.ContainsKey(name);
+            return this.ClKernels.ContainsKey(name);
         }
 
         /// <summary>
@@ -676,13 +681,13 @@ namespace AsynCUDA13.OpenClBackend
         {
             var arguments = new Dictionary<string, Type>(StringComparer.Ordinal);
             kernel ??= this.KernelName;
-            if (string.IsNullOrWhiteSpace(kernel))
+            if (string.IsNullOrWhiteSpace(kernel) && this.Kernel == null)
             {
                 StaticLogger.LogWarning("OpenClCompiler: GetArguments called with null or empty kernel name, returning empty arguments dictionary.");
                 return arguments;
             }
 
-            CLKernel? clK = this.GetClKernel(kernel);
+            CLKernel? clK = this.GetClKernel(kernel) ?? this.Kernel;
             if (!clK.HasValue)
             {
                 return arguments;
@@ -725,7 +730,7 @@ namespace AsynCUDA13.OpenClBackend
                 catch
                 {
                 }
-                this._kernels.Remove(name ?? string.Empty);
+                this.ClKernels.Remove(name ?? string.Empty);
 
                 var clProgram = this.GetClProgram(name, clKernel);
                 if (clProgram != null)
@@ -737,7 +742,7 @@ namespace AsynCUDA13.OpenClBackend
                     catch
                     {
                     }
-                    this._programs.Remove(clProgram.Value);
+                    this.Programs.Remove(clProgram.Value);
                 }
             }
         }
@@ -753,7 +758,7 @@ namespace AsynCUDA13.OpenClBackend
                 return;
             }
 
-            foreach (CLKernel kernel in this._kernels.Values)
+            foreach (CLKernel kernel in this.ClKernels.Values)
             {
                 try
                 {
@@ -764,9 +769,9 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            this._kernels.Clear();
+            this.ClKernels.Clear();
 
-            foreach (CLProgram program in this._programs)
+            foreach (CLProgram program in this.Programs)
             {
                 try
                 {
@@ -777,7 +782,7 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            this._programs.Clear();
+            this.Programs.Clear();
             this._disposed = true;
         }
 
@@ -791,19 +796,39 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="height">The height of the image.</param>
         /// <param name="channels">The number of channels in the image.</param>
         /// <param name="bitdepth">The bit depth of the image.</param>
-        /// <param name="arguments">The user-supplied arguments for the kernel.</param>
-        /// <param name="silent">If set to <c>true</c>, suppresses logging of argument values.</param>
+        /// <param name="additionalArgs">The user-supplied arguments for the kernel.</param>
         /// <returns>An array of merged kernel arguments.</returns>
         /// <exception cref="ArgumentException">Thrown if an argument type does not match the expected type.</exception>
-        public object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? arguments = null, bool silent = false)
+        public object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? additionalArgs = null)
         {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(channels);
+
+            string? kernel = this.KernelName;
+            if (kernel == null)
+            {
+                StaticLogger.LogError("OpenClCompiler: MergeArgumentsImage called with no kernel loaded, returning empty arguments array.");
+                return [];
+            }
+
             // Get kernel argument definitions
             Dictionary<string, Type> args = this.GetArguments(null);
-            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments, args.Values) : arguments ?? [];
+            additionalArgs = DataParser.AreAllArgumentsString(additionalArgs) ? DataParser.ParseArgumentValues(additionalArgs, args.Values) : additionalArgs ?? [];
 
-            // Create array for kernel arguments
+            // If single pointer argument and input is null, use output pointer instead (for in-place operations)
+            int pointerArgumentCount = args.Values.Count(type => type.IsPointer);
+            if (pointerArgumentCount == 1 && IsNullPointer(inputPointer) && !IsNullPointer(outputPointer))
+            {
+                inputPointer = outputPointer;
+            }
+
+            // Calculate expected length of input data based on width, height, and channels as a fallback if when there is no reference input MemObj TotalLength to get
+            nint expectedLen = checked((nint)((long)width * height * channels));
+            nint? inputPtrLen = inputPointer.HasValue ? (nint) (this.Register[inputPointer.Value]?.TotalLength ?? expectedLen) : null;
+
+            // Create array for kernel arguments with pointers and index counters
             object[] kernelArgs = new object[args.Count];
-
             int pointersCount = 0;
             int userArgIndex = 0;
 
@@ -818,105 +843,83 @@ namespace AsynCUDA13.OpenClBackend
                 if (pointersCount == 0 && type.IsPointer)
                 {
                     // If inputPointer is null, allocate a new buffer for the input data, throw if that failed somehow
-                    if (inputPointer == null || inputPointer.Equals(IntPtr.Zero))
+                    if (IsNullPointer(inputPointer))
                     {
-                        inputPointer = this._register.AllocateSingle<byte>(width * height * channels)?.IndexPointer;
-                        if (inputPointer == null || inputPointer.Equals(IntPtr.Zero))
+                        inputPointer = this.Register.AllocateSingle<byte>(inputPtrLen ?? expectedLen)?.IndexPointer;
+                        if (IsNullPointer(inputPointer))
                         {
                             throw new ArgumentException("Input pointer is null and could not be allocated.");
                         }
                     }
 
                     // Verify that the input pointer is registered in OpenClRegister and compare its index pointer
-                    IntPtr? inPtr = this._register[inputPointer.Value]?.IndexPointer;
-                    if (inPtr == null || inPtr.Value != inputPointer.Value)
+                    IntPtr inPtr = this.Register[inputPointer!.Value]?.IndexPointer ?? IntPtr.Zero;
+                    if (IsNullPointer(inPtr) || inPtr != inputPointer.Value)
                     {
                         throw new ArgumentException($"Input pointer {inputPointer} is not registered in OpenClRegister, or it returned another pointer (<{inPtr}> != <{inputPointer.Value}>)");
                     }
 
                     // Set the kernel arg to that input pointer and increment the pointer count
-                    kernelArgs[i] = inPtr.Value;
+                    kernelArgs[i] = inPtr;
                     pointersCount++;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"In-pointer: <{inPtr.Value}>");
-                    }
+                    StaticLogger.Log($"In-pointer: <{inPtr}>");
                 }
                 // Handle second pointer argument (output)
                 else if (pointersCount == 1 && type.IsPointer)
                 {
                     // If outputPointer is null, allocate a new buffer, throw if failed
-                    if (outputPointer == null || outputPointer.Equals(IntPtr.Zero))
+                    if (IsNullPointer(outputPointer))
                     {
-                        outputPointer = this._register.AllocateSingle<byte>(width * height * channels)?.IndexPointer;
-                        if (outputPointer == null || outputPointer.Equals(IntPtr.Zero))
+                        outputPointer = this.Register.AllocateSingle<byte>(inputPtrLen ?? expectedLen)?.IndexPointer;
+                        if (IsNullPointer(outputPointer))
                         {
                             throw new ArgumentException("Output pointer is null and could not be allocated.");
                         }
                     }
 
                     // Verify that the output pointer is registered in OpenClRegister and compare its index pointer
-                    IntPtr? outPtr = this._register[outputPointer.Value]?.IndexPointer;
-                    if (outPtr == null || outPtr.Value != outputPointer.Value)
+                    IntPtr outPtr = this.Register[outputPointer!.Value]?.IndexPointer ?? IntPtr.Zero;
+                    if (IsNullPointer(outPtr) || outPtr != outputPointer.Value)
                     {
                         throw new ArgumentException($"Output pointer {outputPointer} is not registered in OpenClRegister, or it returned another pointer (<{outPtr}> != <{outputPointer.Value}>)");
                     }
 
                     // Set the kernel arg to that output pointer and increment the pointer count
-                    kernelArgs[i] = outPtr.Value;
+                    kernelArgs[i] = outPtr;
                     pointersCount++;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Out-pointer: <{outPtr.Value}>");
-                    }
+                    StaticLogger.Log($"Out-pointer: <{outPtr}>");
                 }
                 else if (name.Contains("width") && type == typeof(int))
                 {
                     kernelArgs[i] = width;
 
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Width: [{width}]");
-                    }
+                    StaticLogger.Log($"Width: {name}=[{width}]");
                 }
                 else if (name.Contains("height") && type == typeof(int))
                 {
                     kernelArgs[i] = height;
 
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Height: [{height}]");
-                    }
+                    StaticLogger.Log($"Height: {name}=[{height}]");
                 }
                 else if (name.Contains("chan") && type == typeof(int))
                 {
                     kernelArgs[i] = channels;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Channels: [{channels}]");
-                    }
+                    StaticLogger.Log($"Channels: {name}=[{channels}]");
                 }
                 else if (name.Contains("bit") && type == typeof(int))
                 {
                     kernelArgs[i] = bitdepth;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Bits: [{bitdepth}]");
-                    }
+                    StaticLogger.Log($"Bits: {name}=[{bitdepth}]");
                 }
                 else
                 {
                     // Every remaining slot is a user-supplied scalar. The caller passes these in the exact same
                     // order the kernel declares them (pointers and width/height/chan/bit excluded), so consume
                     // them sequentially instead of matching by name/index which mixed up the two lists before.
-                    if (userArgIndex < arguments.Length)
+                    if (userArgIndex < additionalArgs.Length)
                     {
                         // If the argument is a string, try to parse it to the correct type
-                        if ((arguments[userArgIndex] is string stringValue) && !type.IsPointer)
+                        if ((additionalArgs[userArgIndex] is string stringValue) && !type.IsPointer)
                         {
                             try
                             {
@@ -929,14 +932,19 @@ namespace AsynCUDA13.OpenClBackend
                         }
                         else
                         {
-                            kernelArgs[i] = arguments[userArgIndex];
+                            kernelArgs[i] = additionalArgs[userArgIndex];
                         }
                         userArgIndex++;
                     }
                     else
                     {
-                        kernelArgs[i] = 0;
+                        kernelArgs[i] = type.IsValueType ? Activator.CreateInstance(type) ?? 0U : 0U;
                     }
+                }
+
+                if (userArgIndex != additionalArgs.Length)
+                {
+                    StaticLogger.Log($"{additionalArgs.Length - userArgIndex} unused user arguments for kernel '{kernel}': {string.Join(", ", additionalArgs.Skip(userArgIndex))}");
                 }
             }
 
@@ -1056,6 +1064,11 @@ namespace AsynCUDA13.OpenClBackend
             };
 
             return isPointer ? baseType.MakePointerType() : baseType;
+        }
+
+        public static bool IsNullPointer(IntPtr? pointer)
+        {
+            return !pointer.HasValue || pointer.Value == IntPtr.Zero;
         }
     }
 }

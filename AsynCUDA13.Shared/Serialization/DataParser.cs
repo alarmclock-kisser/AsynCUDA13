@@ -374,5 +374,8 @@ namespace AsynCUDA13.Shared.Serialization
 
             return (base64.Length / 4) * 3 - padding;
         }
+
+
+
     }
 }

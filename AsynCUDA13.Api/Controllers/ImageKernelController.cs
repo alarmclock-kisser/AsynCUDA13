@@ -50,8 +50,8 @@ namespace AsynCUDA13.Api.Controllers
                 }
 
                 this.backend.SetCurrent();
-                this.backend.Compiler.LoadKernel(kernelName);
-                if (string.IsNullOrEmpty(this.backend.Compiler.KernelName))
+                bool loaded = this.backend.Compiler.LoadKernel(kernelName);
+                if (string.IsNullOrEmpty(this.backend.Compiler.KernelName) && !loaded)
                 {
                     var pd = new ProblemDetails
                     {
@@ -74,7 +74,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                var outputMem = await this.backend.Register.AllocateSingleAsync<Byte>((nint)mem.TotalLength);
+                var outputMem = await this.backend.Register.AllocateSingleAsync<byte>((nint)mem.TotalLength);
                 if (outputMem == null)
                 {
                     var pd = new ProblemDetails
@@ -88,7 +88,7 @@ namespace AsynCUDA13.Api.Controllers
 
                 object[] arguments = this.backend.Compiler.MergeArgumentsImage(mem.IndexPointer, outputMem.IndexPointer, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
 
-                var elapsedMs = await Task.Run(() => this.backend.Launcher.Execute(kernelName, arguments));
+                var elapsedMs = await this.backend.Launcher.ExecuteAsync(kernelName, arguments);
                 if (!elapsedMs.HasValue)
                 {
                     var pd = new ProblemDetails
@@ -102,11 +102,11 @@ namespace AsynCUDA13.Api.Controllers
 
                 if (overwriteImage)
                 {
-                    await imageObj.SetImageAsync(await this.backend.Register.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
+                    await imageObj.SetImageAsync(await this.backend.Register.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."));
                 }
                 else
                 {
-                    imageObj = new ImageObj(await this.backend.Register.PullDataAsync<Byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
+                    imageObj = new ImageObj(await this.backend.Register.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
                 }
 
                 return MediaDatasBuilder.BuildImageData(imageObj);

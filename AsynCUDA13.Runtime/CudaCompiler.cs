@@ -979,10 +979,13 @@ namespace AsynCUDA13.Runtime
         /// </summary>
         /// <param name="arguments">The array of values to merge.</param>
         /// <returns>An array of objects ordered for kernel execution.</returns>
-        public object[] MergeArgumentsRaw(object[] arguments)
+        public object[] MergeArgumentsRaw(object[]? arguments)
         {
             // Get kernel argument definitions
             Dictionary<string, Type> args = this.GetArguments(null);
+
+            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments, args.Values) : arguments ?? [];
+
             // Create array for kernel arguments
             object[] kernelArgs = new object[args.Count];
             // Integrate invariables if name fits (contains)
@@ -1093,26 +1096,47 @@ namespace AsynCUDA13.Runtime
         }
 
         /// <summary>
-        /// Merges image-specific parameters into a kernel argument array.
+        /// Merges the provided input and output pointers, image dimensions, channels, bit depth, and user-supplied arguments into a single array of kernel arguments for OpenCL execution.
         /// </summary>
-        /// <param name="inputPointer">The input image pointer.</param>
-        /// <param name="outputPointer">The output image pointer.</param>
-        /// <param name="width">The image width.</param>
-        /// <param name="height">The image height.</param>
-        /// <param name="channels">The number of image channels.</param>
-        /// <param name="bitdepth">The image bit depth.</param>
-        /// <param name="arguments">An array of additional arguments.</param>
-        /// <param name="silent">If true, suppresses logging.</param>
-        /// <returns>An array of objects ordered for kernel execution.</returns>
-        public object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? arguments = null, bool silent = false)
+        /// <param name="inputPointer">The pointer to the input image data.</param>
+        /// <param name="outputPointer">The pointer to the output image data.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="channels">The number of channels in the image.</param>
+        /// <param name="bitdepth">The bit depth of the image.</param>
+        /// <param name="additionalArgs">The user-supplied arguments for the kernel.</param>
+        /// <returns>An array of merged kernel arguments.</returns>
+        /// <exception cref="ArgumentException">Thrown if an argument type does not match the expected type.</exception>
+        public object[] MergeArgumentsImage(IntPtr? inputPointer, IntPtr? outputPointer, int width, int height, int channels = 4, int bitdepth = 32, object[]? additionalArgs = null)
         {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(channels);
+
+            string? kernel = this.KernelName;
+            if (kernel == null)
+            {
+                StaticLogger.LogError("OpenClCompiler: MergeArgumentsImage called with no kernel loaded, returning empty arguments array.");
+                return [];
+            }
+
             // Get kernel argument definitions
             Dictionary<string, Type> args = this.GetArguments(null);
-            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments, args.Values) : arguments ?? [];
+            additionalArgs = DataParser.AreAllArgumentsString(additionalArgs) ? DataParser.ParseArgumentValues(additionalArgs, args.Values) : additionalArgs ?? [];
 
-            // Create array for kernel arguments
+            // If single pointer argument and input is null, use output pointer instead (for in-place operations)
+            int pointerArgumentCount = args.Values.Count(type => type.IsPointer);
+            if (pointerArgumentCount == 1 && IsNullPointer(inputPointer) && !IsNullPointer(outputPointer))
+            {
+                inputPointer = outputPointer;
+            }
+
+            // Calculate expected length of input data based on width, height, and channels as a fallback if when there is no reference input MemObj TotalLength to get
+            nint expectedLen = checked((nint)((long)width * height * channels));
+            nint? inputPtrLen = inputPointer.HasValue ? (nint) (this.Register[inputPointer.Value]?.TotalLength ?? expectedLen) : null;
+
+            // Create array for kernel arguments with pointers and index counters
             object[] kernelArgs = new object[args.Count];
-
             int pointersCount = 0;
             int userArgIndex = 0;
 
@@ -1127,105 +1151,83 @@ namespace AsynCUDA13.Runtime
                 if (pointersCount == 0 && type.IsPointer)
                 {
                     // If inputPointer is null, allocate a new buffer for the input data, throw if that failed somehow
-                    if (inputPointer == null || inputPointer.Equals(IntPtr.Zero))
+                    if (IsNullPointer(inputPointer))
                     {
-                        inputPointer = this.Register.AllocateSingle<byte>(width * height * channels)?.IndexPointer;
-                        if (inputPointer == null || inputPointer.Equals(IntPtr.Zero))
+                        inputPointer = this.Register.AllocateSingle<byte>(inputPtrLen ?? expectedLen)?.IndexPointer;
+                        if (IsNullPointer(inputPointer))
                         {
                             throw new ArgumentException("Input pointer is null and could not be allocated.");
                         }
                     }
 
                     // Verify that the input pointer is registered in OpenClRegister and compare its index pointer
-                    IntPtr? inPtr = this.Register[inputPointer.Value]?.IndexPointer;
-                    if (inPtr == null || inPtr.Value != inputPointer.Value)
+                    IntPtr inPtr = this.Register[inputPointer!.Value]?.IndexPointer ?? IntPtr.Zero;
+                    if (IsNullPointer(inPtr) || inPtr != inputPointer.Value)
                     {
                         throw new ArgumentException($"Input pointer {inputPointer} is not registered in OpenClRegister, or it returned another pointer (<{inPtr}> != <{inputPointer.Value}>)");
                     }
 
                     // Set the kernel arg to that input pointer and increment the pointer count
-                    kernelArgs[i] = inPtr.Value;
+                    kernelArgs[i] = inPtr;
                     pointersCount++;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"In-pointer: <{inPtr.Value}>");
-                    }
+                    StaticLogger.Log($"In-pointer: <{inPtr}>");
                 }
                 // Handle second pointer argument (output)
                 else if (pointersCount == 1 && type.IsPointer)
                 {
                     // If outputPointer is null, allocate a new buffer, throw if failed
-                    if (outputPointer == null || outputPointer.Equals(IntPtr.Zero))
+                    if (IsNullPointer(outputPointer))
                     {
-                        outputPointer = this.Register.AllocateSingle<byte>(width * height * channels)?.IndexPointer;
-                        if (outputPointer == null || outputPointer.Equals(IntPtr.Zero))
+                        outputPointer = this.Register.AllocateSingle<byte>(inputPtrLen ?? expectedLen)?.IndexPointer;
+                        if (IsNullPointer(outputPointer))
                         {
                             throw new ArgumentException("Output pointer is null and could not be allocated.");
                         }
                     }
 
                     // Verify that the output pointer is registered in OpenClRegister and compare its index pointer
-                    IntPtr? outPtr = this.Register[outputPointer.Value]?.IndexPointer;
-                    if (outPtr == null || outPtr.Value != outputPointer.Value)
+                    IntPtr outPtr = this.Register[outputPointer!.Value]?.IndexPointer ?? IntPtr.Zero;
+                    if (IsNullPointer(outPtr) || outPtr != outputPointer.Value)
                     {
                         throw new ArgumentException($"Output pointer {outputPointer} is not registered in OpenClRegister, or it returned another pointer (<{outPtr}> != <{outputPointer.Value}>)");
                     }
 
                     // Set the kernel arg to that output pointer and increment the pointer count
-                    kernelArgs[i] = outPtr.Value;
+                    kernelArgs[i] = outPtr;
                     pointersCount++;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Out-pointer: <{outPtr.Value}>");
-                    }
+                    StaticLogger.Log($"Out-pointer: <{outPtr}>");
                 }
                 else if (name.Contains("width") && type == typeof(int))
                 {
                     kernelArgs[i] = width;
 
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Width: [{width}]");
-                    }
+                    StaticLogger.Log($"Width: {name}=[{width}]");
                 }
                 else if (name.Contains("height") && type == typeof(int))
                 {
                     kernelArgs[i] = height;
 
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Height: [{height}]");
-                    }
+                    StaticLogger.Log($"Height: {name}=[{height}]");
                 }
                 else if (name.Contains("chan") && type == typeof(int))
                 {
                     kernelArgs[i] = channels;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Channels: [{channels}]");
-                    }
+                    StaticLogger.Log($"Channels: {name}=[{channels}]");
                 }
                 else if (name.Contains("bit") && type == typeof(int))
                 {
                     kernelArgs[i] = bitdepth;
-
-                    if (!silent)
-                    {
-                        StaticLogger.Log($"Bits: [{bitdepth}]");
-                    }
+                    StaticLogger.Log($"Bits: {name}=[{bitdepth}]");
                 }
                 else
                 {
                     // Every remaining slot is a user-supplied scalar. The caller passes these in the exact same
                     // order the kernel declares them (pointers and width/height/chan/bit excluded), so consume
                     // them sequentially instead of matching by name/index which mixed up the two lists before.
-                    if (userArgIndex < arguments.Length)
+                    if (userArgIndex < additionalArgs.Length)
                     {
                         // If the argument is a string, try to parse it to the correct type
-                        if ((arguments[userArgIndex] is string stringValue) && !type.IsPointer)
+                        if ((additionalArgs[userArgIndex] is string stringValue) && !type.IsPointer)
                         {
                             try
                             {
@@ -1238,14 +1240,19 @@ namespace AsynCUDA13.Runtime
                         }
                         else
                         {
-                            kernelArgs[i] = arguments[userArgIndex];
+                            kernelArgs[i] = additionalArgs[userArgIndex];
                         }
                         userArgIndex++;
                     }
                     else
                     {
-                        kernelArgs[i] = 0;
+                        kernelArgs[i] = type.IsValueType ? Activator.CreateInstance(type) ?? 0U : 0U;
                     }
+                }
+
+                if (userArgIndex != additionalArgs.Length)
+                {
+                    StaticLogger.Log($"{additionalArgs.Length - userArgIndex} unused user arguments for kernel '{kernel}': {string.Join(", ", additionalArgs.Skip(userArgIndex))}");
                 }
             }
 
@@ -1256,47 +1263,13 @@ namespace AsynCUDA13.Runtime
             return kernelArgs;
         }
 
-        public object[] MergeArgumentsImage(CudaMem inputMem, CudaMem outputMem, int width, int height, int channels, int bitdepth, object[] arguments, bool silent = false)
+        internal object[] MergeArgumentsImage(CudaMem inputMem, CudaMem outputMem, int width, int height, int channels, int bitdepth, object[] arguments)
         {
-            return this.MergeArgumentsImage(inputMem.Pointers.FirstOrDefault(), outputMem.Pointers.FirstOrDefault(), width, height, channels, bitdepth, arguments, silent);
+            return this.MergeArgumentsImage(inputMem.IndexPointer, outputMem.IndexPointer, width, height, channels, bitdepth, arguments);
         }
 
 
-        public object[] ParseArgumentValues(IEnumerable<string> argumentValues)
-        {
-            var argDefinitions = this.GetArguments(null);
-            if (argDefinitions.Count != argumentValues.Count())
-            {
-                throw new ArgumentException($"Argument count mismatch: expected {argDefinitions.Count}, got {argumentValues.Count()}");
-            }
-
-            object[] args = new object[argDefinitions.Count];
-            for (int i = 0; i < argDefinitions.Count; i++)
-            {
-                string argName = argDefinitions.ElementAt(i).Key;
-                Type argType = argDefinitions.ElementAt(i).Value;
-                string argValueStr = argumentValues.ElementAt(i);
-
-                if (argType == typeof(IntPtr))
-                {
-                    args[i] = IntPtr.Zero;
-                    //args[i] = Activator.CreateInstance(argType, args[i]);
-                    continue;
-                }
-
-                try
-                {
-                    object parsedValue = Convert.ChangeType(argValueStr, argType);
-                    args[i] = parsedValue;
-                }
-                catch (Exception ex)
-                {
-                    throw new ArgumentException($"Failed to parse argument '{argName}' of type '{argType.Name}' with value '{argValueStr}': {ex.Message}", ex);
-                }
-            }
-
-            return args;
-        }
+    
 
 
 
@@ -1307,6 +1280,16 @@ namespace AsynCUDA13.Runtime
         {
             GC.SuppressFinalize(this);
         }
+
+
+
+
+        // Static helpers
+        public static bool IsNullPointer(IntPtr? pointer)
+        {
+            return !pointer.HasValue || pointer.Value == IntPtr.Zero;
+        }
+
 
     }
 }
