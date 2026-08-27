@@ -17,9 +17,14 @@ namespace AsynCUDA13.WebApp.ViewModels
         public RuntimeCompileResponse? LastCompileResponse { get; set; }
         public string? KernelCode { get; set; } = string.Empty;
 
-        public async Task LoadKernelsAsync(bool filterCompiled = true)
+        public bool FilterCompiled { get; set; } = true;
+
+
+
+
+        public async Task LoadKernelsAsync()
         {
-            this.Kernels = await this.Api.GetKernelsAsync(filterCompiled);
+            this.Kernels = await this.Api.GetKernelsAsync(this.FilterCompiled);
             await this.NotifyStateChangedAsync(true);
         }
 
@@ -35,16 +40,16 @@ namespace AsynCUDA13.WebApp.ViewModels
 
 
 
-        public async Task<RuntimeCompileResponse?> CompileKernelAsync(string? kernelCode)
+        public async Task  CompileKernelAsync()
         {
-            if (string.IsNullOrEmpty(kernelCode))
+            if (string.IsNullOrEmpty(this.KernelCode))
             {
-                return null;
+                return;
             }
 
-            this.LastCompileResponse = await this.Api.CompileKernelAsync(kernelCode);
+            this.LastCompileResponse = await this.Api.CompileKernelAsync(this.KernelCode);
             await this.NotifyStateChangedAsync();
-            return this.LastCompileResponse;
+            return;
         }
 
         public bool IsKernelCompiled(RuntimeKernelInfo kernel) => !string.IsNullOrEmpty(kernel.PtxPath);

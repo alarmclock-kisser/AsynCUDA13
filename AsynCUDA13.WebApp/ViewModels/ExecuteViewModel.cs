@@ -29,7 +29,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         public async Task LoadKernelsAsync()
         {
             this.CompiledKernels = await this.Api.GetKernelsAsync(true);
-            this.NotifyStateChanged();
+            await this.NotifyStateChangedAsync();
         }
 
         public void PrepareArguments(RuntimeKernelInfo? kernel)
@@ -81,7 +81,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 .ToArray();
         }
 
-        public async Task<string?> ExecuteKernelAsync(string[]? args = null)
+        public async Task<string?> ExecuteKernelAsync()
         {
             var kernel = this.GetSelectedKernel();
             if (kernel == null)
@@ -89,7 +89,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 return null;
             }
 
-            var response = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, args ?? this.ArgumentValues, false);
+            var response = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, this.ArgumentValues, false);
             return response?.ResultPointer?.ToString();
         }
     }

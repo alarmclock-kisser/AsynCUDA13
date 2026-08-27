@@ -49,7 +49,7 @@
             <RadzenButton Text="@L["Execute"]" 
                           ButtonStyle="ButtonStyle.Primary" 
                           Class="mt-3" 
-                          Click="ExecuteKernel" 
+                          Click="VM.ExecuteKernelAsync" 
                           Disabled="@(!VM.IsBackendInitialized || string.IsNullOrEmpty(VM.SelectedKernelName))" />
         </RadzenCard>
     </RadzenCard>
@@ -75,13 +75,5 @@
     {
         await VM.LoadKernelsAsync();
         await VM.LoadMemoryListAsync();
-    }
-
-    private async Task ExecuteKernel()
-    {
-        if (!string.IsNullOrEmpty(VM.SelectedKernelName))
-        {
-            await VM.ExecuteKernelAsync();
-        }
     }
 }

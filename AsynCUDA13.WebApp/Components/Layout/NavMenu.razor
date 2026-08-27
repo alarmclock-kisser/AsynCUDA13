@@ -6,7 +6,7 @@
     <div class="sidebar-brand">
         <RadzenButton Icon="menu" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                       Title="Seitenleiste ein-/ausblenden" Click="ToggleSidebar" />
-        <RadzenLink Text="AsynCUDA13" NavigateTo="/" />
+        <RadzenLink Text="@Title" NavigateTo="/" />
     </div>
 
     <nav class="sidebar-navigation" aria-label="Hauptnavigation">
@@ -19,7 +19,7 @@
 
     <section class="sidebar-log" aria-label="Log">
         <div class="sidebar-log-header">
-            <strong>Log</strong>
+            <strong>@LogSource Log</strong>
             <span>@LogLines.Count</span>
         </div>
         <div class="sidebar-log-actions">
@@ -50,6 +50,8 @@
     private bool FrontendLogs { get; set; } = false;
     private bool SignalRConnected => ApiClient.IsSignalRConnected;
     private bool resizeInitialized;
+    private string Title => this.ApiClient.BackendType.Equals("cuda", StringComparison.OrdinalIgnoreCase) ? "AsynCUDA13" : this.ApiClient.BackendType.Equals("opencl", StringComparison.OrdinalIgnoreCase) ? "AsynCL" : "AsynCPU";
+    private string LogSource => FrontendLogs ? "Client" : "Server";
 
     protected override async Task OnInitializedAsync()
     {

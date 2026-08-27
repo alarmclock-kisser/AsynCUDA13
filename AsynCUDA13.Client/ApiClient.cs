@@ -69,11 +69,11 @@ namespace AsynCUDA13.Client
                 return;
             }
 
-            BackendType = await internalClient.BackendAsync();
-            IsCudaAvailable = BackendType.Equals("CUDA", StringComparison.OrdinalIgnoreCase) ? CudaAvailabilityTester.IsCudaAvailable() : null;
+            this.BackendType = await this.internalClient.BackendAsync();
+            this.IsCudaAvailable = this.BackendType.Equals("CUDA", StringComparison.OrdinalIgnoreCase) ? CudaAvailabilityTester.IsCudaAvailable() : null;
             this.Initialized = true;
 
-            await StaticLogger.LogAsync($"ApiClient initialized. BackendType='{BackendType}', IsCudaAvailable={IsCudaAvailable}");
+            await StaticLogger.LogAsync($"ApiClient initialized. BackendType='{this.BackendType}', IsCudaAvailable={this.IsCudaAvailable}");
         }
 
 

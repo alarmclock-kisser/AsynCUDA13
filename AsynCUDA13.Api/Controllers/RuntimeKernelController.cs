@@ -119,8 +119,8 @@ namespace AsynCUDA13.Api.Controllers
             {
                 var pd = new ProblemDetails
                 {
-                    Title = "{this.RuntimeType} service offline",
-                    Detail = "The {this.RuntimeType} service is currently offline. Please ensure that the {this.RuntimeType} runtime is available and try again.",
+                    Title = $"${this.RuntimeType} service offline",
+                    Detail = $"The {this.RuntimeType} service is currently offline. Please ensure that the {this.RuntimeType} runtime is available and try again.",
                     Status = 503
                 };
                 return this.StatusCode(503, pd);
@@ -171,8 +171,8 @@ namespace AsynCUDA13.Api.Controllers
             {
                 var pd = new ProblemDetails
                 {
-                    Title = "{this.RuntimeType} service offline",
-                    Detail = "The {this.RuntimeType} service is currently offline. Please ensure that the {this.RuntimeType} runtime is available and try again.",
+                    Title = $"{this.RuntimeType} service offline",
+                    Detail = $"The {this.RuntimeType} service is currently offline. Please ensure that the {this.RuntimeType} runtime is available and try again.",
                     Status = 503
                 };
                 return this.StatusCode(503, pd);
