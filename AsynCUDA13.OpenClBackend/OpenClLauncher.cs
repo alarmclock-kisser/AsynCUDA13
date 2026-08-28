@@ -4,6 +4,7 @@ using OpenTK.Compute.OpenCL;
 using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Interfaces;
 using System.Runtime.CompilerServices;
+using AsynCUDA13.Shared.Serialization;
 
 namespace AsynCUDA13.OpenClBackend
 {
@@ -100,6 +101,8 @@ namespace AsynCUDA13.OpenClBackend
                 return false;
             }
 
+            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments.Cast<string>(), this._compiler.GetArguments(kernelName).Values) : arguments;
+
             if (globalWorkSize <= 0)
             {
                 (globalWorkSize, localWorkSize) = this.GetWorkSizes(arguments);
@@ -193,6 +196,19 @@ namespace AsynCUDA13.OpenClBackend
                 object arg = arguments[i];
                 CLResultCode code;
 
+                if (arg is IntPtr ptr)
+                {
+                    OpenClMem? mem = this._register[(nint) arg] as OpenClMem;
+                    if (mem != null)
+                    {
+                        arg = mem;
+                    }
+                    else
+                    {
+                        arg = ptr;
+                    }
+                }
+
                 switch (arg)
                 {
                     case OpenClMem mem:
@@ -219,6 +235,10 @@ namespace AsynCUDA13.OpenClBackend
                         break;
 
                     case long value:
+                        code = CL.SetKernelArg(kernel, i, in value);
+                        break;
+
+                    case nint value:
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
 
@@ -256,6 +276,10 @@ namespace AsynCUDA13.OpenClBackend
                     {
                         handle = mem.IndexPointer;
                     }
+                    else if (arg is OpenClMem clMem)
+                    {
+                        handle = clMem.IndexPointer;
+                    }
                     else if (arg is CLBuffer buffer)
                     {
                         handle = buffer.Handle;
@@ -264,13 +288,17 @@ namespace AsynCUDA13.OpenClBackend
                     {
                         handle = ptr;
                     }
+                    else if (arg is long longPtr)
+                    {
+                        handle = new IntPtr(longPtr);
+                    }
 
                     if (handle != IntPtr.Zero)
                     {
                         var verifiedMem = this._register[handle];
                         if (verifiedMem != null)
                         {
-                            long memSize = verifiedMem.TotalSize;
+                            long memSize = verifiedMem.TotalLength;
                             if (memSize > globalWorkSize)
                             {
                                 globalWorkSize = memSize;

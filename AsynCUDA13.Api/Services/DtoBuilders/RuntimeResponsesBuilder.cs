@@ -78,7 +78,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             {
                 Success = success,
                 KernelInfo = kernelInfo,
-                ResultPointer = resultPtr,
+                ResultPointer = resultPtr.ToString(),
                 ElapsedMs = elapsedMs
             };
         }

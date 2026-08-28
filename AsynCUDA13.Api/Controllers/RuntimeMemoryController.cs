@@ -73,8 +73,8 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "{this.RuntimeType} not initialized",
-                        Detail = "{this.RuntimeType} is not initialized.",
+                        Title = $"{this.RuntimeType} not initialized",
+                        Detail = $"{this.RuntimeType} is not initialized.",
                         Status = 503
                     });
                 }

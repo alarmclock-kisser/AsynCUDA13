@@ -51,6 +51,13 @@ namespace AsynCUDA13.WebApp.ViewModels
             await this.NotifyStateChangedAsync(false);
         }
 
+        public async Task OnSelectedKernelPointerChanged()
+        {
+            
+
+            await this.NotifyStateChangedAsync(false);
+        }
+
 
         public RuntimeMemInfo[] GetPointersForArgumentType(string argType)
         {
@@ -75,6 +82,8 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
 
             this.ExecuteResponse = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelInfo.FunctionName, this.ExecuteRequest.ArgumentValues, false);
+
+            await this.NotifyStateChangedAsync(true);
         }
     }
 }

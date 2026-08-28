@@ -199,9 +199,7 @@ namespace AsynCUDA13.OpenClBackend
             // CreateCommandQueue is deprecated since OpenCL 1.2, but it is the most broadly compatible
             // entry point: many CPU OpenCL runtimes only expose OpenCL 1.2, where CreateCommandQueue is the
             // canonical call. We keep it intentionally to maximize device coverage (including CPU-only systems).
-#pragma warning disable CS0618
-            CLCommandQueue queue = CL.CreateCommandQueue(context, info.Device, (CommandQueueProperty)0, out CLResultCode queueCode);
-#pragma warning restore CS0618
+            CLCommandQueue queue = CL.CreateCommandQueueWithProperties(context, info.Device, 0, out CLResultCode queueCode);
             if (queueCode != CLResultCode.Success)
             {
                 StaticLogger.LogError($"Initialize: CreateCommandQueue failed for '{info.DeviceName}' ({queueCode}).");

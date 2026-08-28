@@ -62,6 +62,16 @@ namespace AsynCUDA13.Api.Controllers
                 };
                 return this.StatusCode(503, pd);
             }
+            if (string.IsNullOrEmpty(request.KernelSource))
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Kernel compile request DTO had no KernelSource.",
+                    Detail = "Kernel source was null.",
+                    Status = 400
+                };
+                return this.StatusCode(400, pd);
+            }
 
             DateTime started = DateTime.Now;
             try
@@ -80,7 +90,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.BadRequest(pd);
                 }
 
-                var info = RuntimeInfosBuilder.BuildRuntimeKernelInfo(this.backend, request.KernelName);
+                var info = RuntimeInfosBuilder.BuildRuntimeKernelInfo(this.backend, Path.GetFileNameWithoutExtension(ptxPath));
                 var response = RuntimeResponsesBuilder.BuildCompileResponse(info, (int) (DateTime.Now - started).TotalMilliseconds);
                 if (response == null)
                 {
@@ -125,6 +135,16 @@ namespace AsynCUDA13.Api.Controllers
                 };
                 return this.StatusCode(503, pd);
             }
+            if (request.KernelInfo == null)
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Kernel execution request DTO had no KernelInfo.",
+                    Detail = "KernelInfo was null.",
+                    Status = 400
+                };
+                return this.StatusCode(400, pd);
+            }
 
             DateTime started = DateTime.Now;
             try
@@ -132,7 +152,7 @@ namespace AsynCUDA13.Api.Controllers
                 object[] args = DataParser.ParseArgumentValues(request.ArgumentValues, request.KernelInfo);
 
                 this.backend.SetCurrent();
-                var result = await Task.Run(() => this.backend.Launcher.Execute(request.KernelInfo.FunctionName, args));
+                var result = request.AsyncCall ? await this.backend.Launcher.ExecuteAsync(request.KernelInfo.FunctionName, args) : this.backend.Launcher.Execute(request.KernelInfo.FunctionName, args);
 
                 if (request.UnloadAfterExecution)
                 {
@@ -149,7 +169,7 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = RuntimeResponsesBuilder.BuildExecuteResponse(request.KernelInfo, result.HasValue, result ?? -1);
+                var response = RuntimeResponsesBuilder.BuildExecuteResponse(request.KernelInfo, result.HasValue, null, result ?? -1);
                 return this.Ok(response);
             }
             catch (Exception ex)
@@ -176,6 +196,16 @@ namespace AsynCUDA13.Api.Controllers
                     Status = 503
                 };
                 return this.StatusCode(503, pd);
+            }
+            if (request.KernelInfo == null)
+            {
+                var pd = new ProblemDetails
+                {
+                    Title = "Kernel execution request DTO had no KernelInfo.",
+                    Detail = "KernelInfo was null.",
+                    Status = 400
+                };
+                return this.StatusCode(400, pd);
             }
 
             DateTime started = DateTime.Now;

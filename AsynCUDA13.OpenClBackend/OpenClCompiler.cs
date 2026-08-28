@@ -15,7 +15,7 @@ namespace AsynCUDA13.OpenClBackend
     /// exposes the compiled kernels by name. No binaries are written to disk; the programs and kernels live
     /// only in memory for the lifetime of this compiler.
     /// </summary>
-    internal sealed class OpenClCompiler : IRuntimeCompiler, IDisposable
+    internal sealed partial class OpenClCompiler : IRuntimeCompiler, IDisposable
     {
         /// <summary>
         /// Matches the name of every <c>__kernel void</c> entry point in a kernel source file.
@@ -1092,23 +1092,24 @@ namespace AsynCUDA13.OpenClBackend
             {
                 return [];
             }
-            // Sucht nach Mustern wie: kernel void myKernel(const float* input, float* output)
-            // Dies ist eine vereinfachte Regex; echte C-Parser sind komplexer
-            var match = Regex.Match(sourceCode, @"kernel\s+void\s+\w+\s*\((.*?)\)", RegexOptions.Singleline);
+            var match = ArgNameRegex().Match(sourceCode);
             if (!match.Success)
             {
                 return [];
             }
 
             var argsString = match.Groups[1].Value;
-            var args = argsString.Split(',');
+            if (string.IsNullOrWhiteSpace(argsString)) return [];
 
-            return args.Select(a => {
-                // Entferne Typen, Qualifier (const, restrict) und das Komma
-                // Nimmt das letzte Wort vor dem Komma/Klammer als Namen
-                var parts = a.Trim().Split(' ');
-                return parts.Last().TrimEnd('*').Trim();
-            }).ToArray();
+            var args = argsString.Split(',');
+            return args.Select(a =>
+            {
+                var trimmedArg = a.Trim();
+                int lastSpaceIndex = trimmedArg.LastIndexOf(' ');
+                if (lastSpaceIndex == -1) return trimmedArg.TrimEnd('*').Trim();
+
+                return trimmedArg.Substring(lastSpaceIndex + 1).TrimEnd('*').Trim();
+            }).Where(n => !string.IsNullOrEmpty(n)).ToArray();
         }
 
         public static string[] ExtractArgumentTypes(string? sourceCode)
@@ -1117,20 +1118,30 @@ namespace AsynCUDA13.OpenClBackend
             {
                 return [];
             }
-            // Sucht nach Mustern wie: kernel void myKernel(const float* input, float* output)
-            var match = Regex.Match(sourceCode, @"kernel\s+void\s+\w+\s*\((.*?)\)", RegexOptions.Singleline);
+            var match = ArgTypeRegex().Match(sourceCode);
             if (!match.Success)
             {
                 return [];
             }
+
             var argsString = match.Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(argsString)) return [];
+
             var args = argsString.Split(',');
             return args.Select(a =>
             {
-                // Entferne Qualifier (const, restrict) und das Komma
-                var parts = a.Trim().Split(' ');
-                return string.Join(" ", parts.Take(parts.Length - 1)).Trim();
-            }).ToArray();
+                var trimmedArg = a.Trim();
+                int lastSpaceIndex = trimmedArg.LastIndexOf(' ');
+                if (lastSpaceIndex == -1) return trimmedArg;
+
+                return trimmedArg.Substring(0, lastSpaceIndex).Replace("unsigned ", "u").Trim();
+            }).Where(t => !string.IsNullOrEmpty(t)).ToArray();
         }
+
+
+        [GeneratedRegex(@"kernel\s+void\s+\w+\s*\((.*?)\)", RegexOptions.Singleline)]
+        private static partial Regex ArgNameRegex();
+        [GeneratedRegex(@"kernel\s+void\s+\w+\s*\((.*?)\)", RegexOptions.Singleline)]
+        private static partial Regex ArgTypeRegex();
     }
 }

@@ -95,11 +95,11 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             var infos = service.RegisteredMemory.Select(mem => new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
-                ElementType = mem.ElementType.ToString(),
+                ElementType = mem.ElementType.ToString().Split('.').Last(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
                 Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
                 Message = mem.Message
-            }).Where(mem => indexPointerOrId == null ? true : mem.Id == indexPointerOrId || (mem.Pointers.Contains(indexPointerOrId) && mem.IndexPointer == indexPointerOrId)).ToArray() ?? [];
+            }).Where(mem => indexPointerOrId == null || mem.Id == indexPointerOrId || (mem.Pointers.Contains(indexPointerOrId) && mem.IndexPointer == indexPointerOrId)).ToArray() ?? [];
 
             return infos;
         }
@@ -120,7 +120,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             var info = new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
-                ElementType = mem.ElementType.ToString(),
+                ElementType = mem.ElementType.ToString().Split('.').Last(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
                 Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
                 Message = mem.Message

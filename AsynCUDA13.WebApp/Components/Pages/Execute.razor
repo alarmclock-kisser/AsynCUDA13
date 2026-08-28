@@ -48,6 +48,7 @@
                                     Data="@VM.GetPointersForArgumentType(ptrType)"
                                     TextProperty="IndexPointer" ValueProperty="IndexPointer"
                                     ShowClear="true"
+                                    Change="@VM.OnSelectedKernelPointerChanged"
                                     Disabled="@(!VM.IsBackendInitialized)" />
                                 }
                                 else if (VM.SelectedKernelInfo.IsBooleanArgument(argName) == true)
