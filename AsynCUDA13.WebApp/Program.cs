@@ -58,6 +58,7 @@ namespace AsynCUDA13.WebApp
             builder.Services.AddScoped<MemoryViewModel>();
             builder.Services.AddScoped<CompilerViewModel>();
             builder.Services.AddScoped<ExecuteViewModel>();
+            builder.Services.AddScoped<FractalsViewModel>();
 
             // Set UI context for StaticLogger before building the app
             var syncContext = new SynchronizationContext();
