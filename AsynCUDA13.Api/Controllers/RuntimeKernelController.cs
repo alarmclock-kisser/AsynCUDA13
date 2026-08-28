@@ -202,15 +202,25 @@ namespace AsynCUDA13.Api.Controllers
 
                         var audioInfo = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
                         var imageInfo = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
-                        if (audioInfo != null && !string.IsNullOrEmpty(ptr))
+                        long? pointer = long.TryParse(ptr, out var ptrValue) ? ptrValue : null;
+                        Guid? assetId = this.assetProvider.GetAssetIdByPointer(pointer ?? 0);
+                        if (audioInfo != null && pointer.HasValue && assetId.HasValue)
                         {
-                            AudioObj? audio = this.assetProvider.CreateFromInfo(audioInfo);
-                            audio?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptrValue) ? ptrValue : 0;
+                            var audioRef = this.assetProvider.GetAudioInfo(assetId.Value);
+                            if (audioRef != null)
+                            {
+                                var audioObj = this.assetProvider.CreateFromInfo(audioRef);
+                                audioObj?.Pointer = pointer.Value;
+                            }
                         }
-                        if (imageInfo != null && !string.IsNullOrEmpty(ptr))
+                        if (imageInfo != null && pointer.HasValue && assetId.HasValue)
                         {
-                            ImageObj? image = this.assetProvider.CreateFromInfo(imageInfo);
-                            image?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptrValue) ? ptrValue : 0;
+                            var imageRef = this.assetProvider.GetImageInfo(assetId.Value);
+                            if (imageRef != null)
+                            {
+                                var imageObj = this.assetProvider.CreateFromInfo(imageRef);
+                                imageObj?.Pointer = pointer.Value;
+                            }
                         }
                     }
                 }
