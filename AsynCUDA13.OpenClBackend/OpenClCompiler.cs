@@ -1099,14 +1099,20 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             var argsString = match.Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(argsString)) return [];
+            if (string.IsNullOrWhiteSpace(argsString))
+            {
+                return [];
+            }
 
             var args = argsString.Split(',');
             return args.Select(a =>
             {
                 var trimmedArg = a.Trim();
                 int lastSpaceIndex = trimmedArg.LastIndexOf(' ');
-                if (lastSpaceIndex == -1) return trimmedArg.TrimEnd('*').Trim();
+                if (lastSpaceIndex == -1)
+                {
+                    return trimmedArg.TrimEnd('*').Trim();
+                }
 
                 return trimmedArg.Substring(lastSpaceIndex + 1).TrimEnd('*').Trim();
             }).Where(n => !string.IsNullOrEmpty(n)).ToArray();
@@ -1125,14 +1131,20 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             var argsString = match.Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(argsString)) return [];
+            if (string.IsNullOrWhiteSpace(argsString))
+            {
+                return [];
+            }
 
             var args = argsString.Split(',');
             return args.Select(a =>
             {
                 var trimmedArg = a.Trim();
                 int lastSpaceIndex = trimmedArg.LastIndexOf(' ');
-                if (lastSpaceIndex == -1) return trimmedArg;
+                if (lastSpaceIndex == -1)
+                {
+                    return trimmedArg;
+                }
 
                 return trimmedArg.Substring(0, lastSpaceIndex).Replace("unsigned ", "u").Trim();
             }).Where(t => !string.IsNullOrEmpty(t)).ToArray();

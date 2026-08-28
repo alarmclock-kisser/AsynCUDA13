@@ -16,6 +16,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Width = imageObj.Width,
                 Height = imageObj.Height,
                 Channels = imageObj.Channels,
+                BitDepth = imageObj.Bitdepth,
                 OriginalSizeMb = imageObj.SizeMb
             };
         }

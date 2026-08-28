@@ -20,7 +20,7 @@
                             Data="@VM.CompiledKernels"
                             TextProperty="FunctionName" ValueProperty="FunctionName"
                             ShowClear="true"
-                            Change="@VM.OnSelectedKernelChanged"
+                            Change="@VM.OnSelectedKernelChangedAsync"
                             Disabled="@(!VM.IsBackendInitialized)" />
 
             <RadzenCard Class="mt-3">
@@ -48,7 +48,7 @@
                                     Data="@VM.GetPointersForArgumentType(ptrType)"
                                     TextProperty="IndexPointer" ValueProperty="IndexPointer"
                                     ShowClear="true"
-                                    Change="@VM.OnSelectedKernelPointerChanged"
+                                    Change="@(() => VM.OnSelectedKernelPointerChangedAsync(VM.ExecuteRequest[index]))"
                                     Disabled="@(!VM.IsBackendInitialized)" />
                                 }
                                 else if (VM.SelectedKernelInfo.IsBooleanArgument(argName) == true)

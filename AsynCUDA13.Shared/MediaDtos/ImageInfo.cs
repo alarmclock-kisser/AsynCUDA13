@@ -21,6 +21,8 @@ namespace AsynCUDA13.Shared.MediaDtos
         public int Width { get; set; }
         public int Height { get; set; }
         public int Channels { get; set; } = 4;
+        public int BitDepth { get; set; } = 32;
+        public int BitsPerChannel => this.BitDepth / this.Channels;
 
         public float OriginalSizeMb { get; set; }
 

@@ -1,6 +1,7 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
+using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.Shared.RuntimeDtos;
 using Microsoft.JSInterop;
 
@@ -41,7 +42,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             await this.NotifyStateChangedAsync();
         }
 
-        public async Task OnSelectedKernelChanged()
+        public async Task OnSelectedKernelChangedAsync()
         {
             if (this.SelectedKernelInfo == null)
             {
@@ -51,9 +52,20 @@ namespace AsynCUDA13.WebApp.ViewModels
             await this.NotifyStateChangedAsync(false);
         }
 
-        public async Task OnSelectedKernelPointerChanged()
+        public async Task OnSelectedKernelPointerChangedAsync(string? pointerArg = null)
         {
-            
+            if (!string.IsNullOrEmpty(pointerArg))
+            {
+                var assetId = this.Api.GetAssetIdForIndexPointerAsync(pointerArg);
+                if ((await this.Api.GetImageInfosAsync()).FirstOrDefault(i => !string.IsNullOrEmpty(i.Pointer) && i.Pointer.Equals(pointerArg)) is ImageInfo imageInfo)
+                {
+                    this.ExecuteRequest.UpdateImageArgs(imageInfo);
+                }
+                else if ((await this.Api.GetAudioInfosAsync()).FirstOrDefault(i => !string.IsNullOrEmpty(i.Pointer) && i.Pointer.Equals(pointerArg)) is AudioInfo audioInfo)
+                {
+                    this.ExecuteRequest.UpdateAudioArgs(audioInfo);
+                }
+            }
 
             await this.NotifyStateChangedAsync(false);
         }

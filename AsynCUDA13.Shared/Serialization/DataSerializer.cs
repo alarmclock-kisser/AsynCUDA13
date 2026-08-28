@@ -10,6 +10,9 @@ namespace AsynCUDA13.Shared.Serialization
 {
     public static class DataSerializer
     {
+        public static readonly Type[] ArgumentFieldTypes = [typeof(int), typeof(float), typeof(string)];
+
+
         public static int ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
         // --------------------------------------------------------------------------------

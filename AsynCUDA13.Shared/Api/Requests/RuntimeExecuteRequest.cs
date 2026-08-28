@@ -1,4 +1,6 @@
+using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.Shared.RuntimeDtos;
+using AsynCUDA13.Shared.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -74,5 +76,101 @@ namespace AsynCUDA13.Shared.Api.Requests
 
         public bool AsyncCall { get; set; } = true;
         public bool UnloadAfterExecution { get; set; } = false;
+
+
+
+        public void UpdateImageArgs(ImageInfo imageInfo)
+        {
+            if (this.KernelInfo == null || this.KernelInfo.ArgumentsCount == null)
+            {
+                return;
+            }
+
+            // 1. Felder filtern, die in den erlaubten Typen sind
+            var argFields = imageInfo.GetType().GetFields()
+                .Where(f => DataSerializer.ArgumentFieldTypes.Contains(f.FieldType))
+                .ToList();
+            var argProperties = imageInfo.GetType().GetProperties()
+                .Where(p => DataSerializer.ArgumentFieldTypes.Contains(p.PropertyType))
+                .ToList();
+
+            // 2. Namen in ein HashSet für schnellen Zugriff (ohne "Pointer")
+            var args = new HashSet<string>(
+                argFields.Select(f => f.Name).Concat(argProperties.Select(p => p.Name)).Where(n => !n.Equals("Pointer")),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            // 3. Über die Kernel-Argumente iterieren
+            for (int i = 0; i < this.KernelInfo.ArgumentsCount; i++)
+            {
+                string argName = this.KernelInfo.ArgumentNames[i];
+
+                // Prüfen: Ist der Name im DTO vorhanden UND ist der aktuelle Wert der Default-Wert?
+                if (args.Contains(argName) && this.ArgumentValues[i].Equals(this.KernelInfo.GetDefaultValue(i)))
+                {
+                    // Das Feld finden, das exakt diesen Namen hat
+                    var field = argFields.FirstOrDefault(f => string.Equals(f.Name, argName, StringComparison.OrdinalIgnoreCase));
+                    var property = argProperties.FirstOrDefault(p => string.Equals(p.Name, argName, StringComparison.OrdinalIgnoreCase));
+
+                    if (field != null)
+                    {
+                        var value = field.GetValue(imageInfo)?.ToString();
+                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
+                    }
+                    else if (property != null)
+                    {
+                        var value = property.GetValue(imageInfo)?.ToString();
+                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
+                    }
+                }
+            }
+        }
+
+        public void UpdateAudioArgs(AudioInfo audioInfo)
+        {
+            if (this.KernelInfo == null || this.KernelInfo.ArgumentsCount == null)
+            {
+                return;
+            }
+
+            // 1. Felder filtern, die in den erlaubten Typen sind
+            var argFields = audioInfo.GetType().GetFields()
+                .Where(f => DataSerializer.ArgumentFieldTypes.Contains(f.FieldType))
+                .ToList();
+            var argProperties = audioInfo.GetType().GetProperties()
+                .Where(p => DataSerializer.ArgumentFieldTypes.Contains(p.PropertyType))
+                .ToList();
+
+            // 2. Namen in ein HashSet für schnellen Zugriff (ohne "Pointer")
+            var args = new HashSet<string>(
+                argFields.Select(f => f.Name).Concat(argProperties.Select(p => p.Name)).Where(n => !n.Equals("Pointer")),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            // 3. Über die Kernel-Argumente iterieren
+            for (int i = 0; i < this.KernelInfo.ArgumentsCount; i++)
+            {
+                string argName = this.KernelInfo.ArgumentNames[i];
+
+                // Prüfen: Ist der Name im DTO vorhanden UND ist der aktuelle Wert der Default-Wert?
+                if (args.Contains(argName) && this.ArgumentValues[i].Equals(this.KernelInfo.GetDefaultValue(i)))
+                {
+                    // Das Feld finden, das exakt diesen Namen hat
+                    var field = argFields.FirstOrDefault(f => string.Equals(f.Name, argName, StringComparison.OrdinalIgnoreCase));
+                    var property = argProperties.FirstOrDefault(p => string.Equals(p.Name, argName, StringComparison.OrdinalIgnoreCase));
+
+                    if (field != null)
+                    {
+                        var value = field.GetValue(audioInfo)?.ToString();
+                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
+                    }
+                    else if (property != null)
+                    {
+                        var value = property.GetValue(audioInfo)?.ToString();
+                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
+                    }
+                }
+            }
+        }
     }
 }
