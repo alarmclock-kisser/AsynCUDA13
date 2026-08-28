@@ -37,7 +37,11 @@
                             <table class="table table-sm"><tbody><tr>
                                 <th>@L["GuidId"]</th><td>@image.Id.ToString()</td><th>@L["Size"]</th><td>@image.OriginalSizeMb.ToString("F2") MB</td>
                                 <th>@L["Width"]</th><td>@image.Width.ToString() px</td><th>@L["Height"]</th><td>@image.Height.ToString() px</td>
-                                <th>@L["OnHost"]</th><td>@(!image.OnGpu ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(image.OnGpu ? $"cuda:" + (VM.ContextInfo?.DeviceInfo?.DeviceId?.ToString() ?? "*") : L["No"])</td>
+                                <th>@L["OnHost"]</th><td>@(!image.OnGpu ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(image.OnGpu ? ($"{VM.ContextInfo?.RuntimeType.ToLower() ?? "dev"}: " + (VM.ContextInfo?.DeviceInfo?.DeviceId.ToString() ?? "*")) : L["No"])</td>
+                                @if (image.OnGpu)
+                                {
+                                    <th>@L["Pointer"]</th><td>@(image.Pointer?.ToString() ?? "???")</td>
+                                }
                             </tr></tbody></table>
                         </div>
                     </div>
@@ -78,7 +82,11 @@
                             <table class="table table-sm"><tbody><tr>
                                 <th>@L["GuidId"]</th><td>@audio.Id.ToString()</td><th>@L["Duration"]</th><td>@audio.DurationSeconds.ToString("F2") s</td>
                                 <th>@L["SampleRate"]</th><td>@audio.SampleRate.ToString() Hz</td><th>@L["Channels"]</th><td>@audio.Channels.ToString()</td><th>@L["BitDepth"]</th><td>@audio.BitDepth.ToString() bit</td>
-                                <th>@L["OnHost"]</th><td>@(audio.OnGpu == false ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.OnGpu ? $"cuda:{VM.ContextInfo?.DeviceInfo?.DeviceId.ToString() ?? "*"}" : L["No"])</td>
+                                <th>@L["OnHost"]</th><td>@(audio.OnGpu == false ? L["Yes"] : L["No"])</td><th>@L["OnCuda"]</th><td>@(audio.OnGpu ? ($"{VM.ContextInfo?.RuntimeType.ToLower() ?? "dev"}: " + (VM.ContextInfo?.DeviceInfo?.DeviceId.ToString() ?? "*")) : L["No"])</td>
+                                @if (audio.OnGpu)
+                                {
+                                    <th>@L["Pointer"]</th><td>@(audio.Pointer?.ToString() ?? "???")</td>
+                                }
                             </tr></tbody></table>
                         </div>
                     </div>

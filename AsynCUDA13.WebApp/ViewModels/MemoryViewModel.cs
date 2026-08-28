@@ -4,6 +4,7 @@ using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.WebApp.Components.Dialogs;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
@@ -33,8 +34,8 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public bool? AssetOnHost { get; set; } = null;  // true = on host, false = not on host, null = none selected
         public bool? AssetOnGpu { get; set; } = null;  // true = on GPU, false = not on GPU, null = none selected
-        public bool AssetPushable => this.SelectedAssetId.HasValue && this.AssetOnHost.HasValue && this.AssetOnHost.Value;  // true = can push to GPU (is on host), false = cannot push to GPU (is on GPU or none selected)
-        public bool AssetPullable => this.SelectedAssetId.HasValue && this.AssetOnGpu.HasValue && this.AssetOnGpu.Value;  // true = can pull from GPU (is on GPU), false = cannot pull from GPU (is on host or none selected)
+        public bool AssetPushable => this.SelectedAssetId.HasValue && this.AssetOnHost == true;  // true = can push to GPU (is on host), false = cannot push to GPU (is on GPU or none selected)
+        public bool AssetPullable => this.SelectedAssetId.HasValue && this.AssetOnGpu == true;  // true = can pull from GPU (is on GPU), false = cannot pull from GPU (is on host or none selected)
 
         public string? SelectedIndexPointer { get; set; }
         public int ChunkSize { get; set; } = 0;
@@ -42,6 +43,8 @@ namespace AsynCUDA13.WebApp.ViewModels
         public string ImageFormat { get; set; } = "JPEG";
         public bool KeepData { get; set; } = false;
         public bool KeepBuffer { get; set; } = false;
+        public RuntimePushResponse? PushResult { get; private set; }
+        public RuntimePullResponse? PullResult { get; private set; }
 
 
         // Setup data
@@ -58,6 +61,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             this.ImageInfos = await this.Api.GetImageInfosAsync();
             this.AudioInfos = await this.Api.GetAudioInfosAsync();
             this.AssetDropDownItems = await this.GetAssetDropDownItemsAsync();
+            await this.OnSelectedAssetChangedAsync();
             await this.NotifyStateChangedAsync(true);
         }
 
@@ -80,54 +84,56 @@ namespace AsynCUDA13.WebApp.ViewModels
                 return;
             }
 
-            this.ChunkSize = 0;
-            this.Overlap = 0.5f;
-            this.KeepData = false;
-            await this.OpenDialogAsync(null);
-            await this.NotifyStateChangedAsync(false);
+            var request = new RuntimePushRequest
+            {
+                AssetId = this.SelectedAssetId,
+                _elementType = this.SelectedAssetIsAudio ? "System.Single" : "System.Byte",
+            };
+
+            await this.OpenDialogAsync(request, this.HandlePushResultAsync);
         }
 
-        public async Task ClosePushDialogAsync()
+        private async Task HandlePushResultAsync()
         {
-            this.ShowDialog = false;
-            this.SelectedAssetId = null;
-
-            await this.CloseDialogAsync();
-            var dialog = this.Dialog as CudaPushDialog;
+            // Sync values from dialog back to VM
+            var dialog = this.Dialog as RuntimePushDialog;
             this.ChunkSize = dialog?.ChunkSizeValue ?? 0;
             this.Overlap = dialog?.OverlapValue ?? 0.5f;
             this.ImageFormat = dialog?.ImageFormatValue ?? "JPEG";
             this.KeepData = dialog?.KeepDataValue ?? false;
+
+            // If a result was set, it means the user clicked "Push"
+            if (this.Dialog?.DialogResultSuccessfullySet == true)
+            {
+                await this.HandlePushAsync();
+            }
+            else
+            {
+                this.SelectedAssetId = null;
+            }
 
             await this.LoadMemoryListAsync();
         }
         
 
         // Handlers
-        public async Task HandlePushAsync(Guid? assetId = null)
+        public async Task HandlePushAsync()
         {
-            assetId ??= this.SelectedAssetId;
-            if (assetId == null || assetId.Equals(Guid.Empty))
+            if (this.SelectedAssetId == null || this.SelectedAssetId.Equals(Guid.Empty))
             {
                 return;
-            }
+            };
 
-            int chunkSize = this.ChunkSize;
-            float overlap = this.Overlap;
-            bool keepData = this.KeepData;
+            await this.PushAssetAsync(this.SelectedAssetId.Value.ToString());
 
-            var result = await this.PushAssetAsync(assetId.Value.ToString(), keepData);
-
-            if (!string.IsNullOrEmpty(result))
+            if (!string.IsNullOrEmpty(this.PushResult?.MemoryInfo?.IndexPointer))
             {
-                await this.PutInfoMessageAsync($"Asset pushed successfully. IndexPointer: {result}", "success", true, 3);
+                await this.PutInfoMessageAsync($"Asset pushed successfully. IndexPointer: <{this.PushResult.MemoryInfo.IndexPointer}>", "success", true, 3);
             }
             else
             {
                 await this.PutInfoMessageAsync("Failed to push asset.", "error", true, 5);
             }
-
-            await this.ClosePushDialogAsync();
         }
 
         public async Task HandlePullAsync(string? assetIdOrPtr = null)
@@ -140,36 +146,34 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
 
             await this.PullAssetAsync(assetIdOrPtr);
-            await this.PutInfoMessageAsync($"Memory pulled successfully for asset / index pointer: {assetIdOrPtr}", "success", true, 3);
         }
 
-        public async Task<string?> FreeMemoryAsync(string? indexPointerOrId = null)
+        public async Task FreeMemoryAsync(string? indexPointerOrId = null)
         {
             indexPointerOrId ??= this.SelectedAssetId?.ToString() ?? this.SelectedIndexPointer;
             if (string.IsNullOrEmpty(indexPointerOrId))
             {
                 await this.PutInfoMessageAsync("No index pointer or asset ID selected for freeing memory.", "error", true, 5);
-                return null;
+                return;
             }
 
             var result = await this.Api.FreeMemoryAsync(indexPointerOrId);
+            if (string.IsNullOrEmpty(result))
+            {
+                await this.PutInfoMessageAsync($"Failed to free memory for index pointer or asset ID: {indexPointerOrId}", "error", true, 5);
+                return;
+            }
+            else
+            {
+                await this.PutInfoMessageAsync($"{this.FormatSize(result)} freed successfully for index pointer or asset ID: {indexPointerOrId}", "success", true, 3);
+            }
+
             await this.LoadMemoryListAsync();
-            return result;
         }
 
 
 
         // Helpers (public, sync)
-        public bool? IsAssetOnHost(Guid? assetId = null)
-        {
-            assetId ??= this.SelectedAssetId;
-            if (assetId == null || assetId.Equals(Guid.Empty))
-            {
-                return null;
-            }
-            return this.MemoryInfos.Any(m => m.Id.Equals(assetId.Value));
-        }
-
         public string FormatSize(string? bytes)
         {
             return long.TryParse(bytes, out var parsedBytes)
@@ -203,34 +207,47 @@ namespace AsynCUDA13.WebApp.ViewModels
                 .Concat(this.AudioInfos.AsParallel().Where(a => !requireOnHost || !a.OnGpu).Select(a => new KeyValuePair<Guid, AssetItem>(a.Id, new AssetItem(a.Id, a.Name, a.CreatedAt, true))))
             );
 
+            if (assetItems.IsEmpty)
+            {
+                this.SelectedAssetId = null;
+            }
+
             return assetItems.Values.OrderByDescending(a => orderLatestFirst ? a.CreatedAt : DateTime.MinValue).ToList();
         }
 
-        private async Task<string?> PullAssetAsync(string indexPointerOrId, bool? freeBuffer = null)
+        private async Task PullAssetAsync(string indexPointerOrId)
         {
-            var response = await this.Api.PullAsync(indexPointerOrId, true, freeBuffer ?? !this.KeepBuffer);
-            if (response == null || !response.Success)
+            this.PullResult = await this.Api.PullAsync(indexPointerOrId, true, !this.KeepBuffer);
+            if (this.PullResult == null || !this.PullResult.Success)
             {
                 await this.PutInfoMessageAsync($"Failed to pull memory for index pointer or asset ID: {indexPointerOrId}", "error", true, 5);
-                return null;
+                return;
             }
 
+            await this.PutInfoMessageAsync($"Successfully pulled <{this.PullResult.MemoryInfoReference?.IndexPointer ?? "???"}> for asset with: [{indexPointerOrId}]", "success", true, 3);
+
             await this.LoadMemoryListAsync();
-            return response?.MemoryInfoReference?.IndexPointer;
         }
 
-        private async Task<string?> PushAssetAsync(string assetIdOrName, bool? keepData = null)
+        private async Task PushAssetAsync(string assetIdOrName)
         {
             bool? isAudio = await this.Api.IsAssetAudioAsync(assetIdOrName);
             if (isAudio == null)
             {
                 await this.PutInfoMessageAsync($"Asset '{assetIdOrName}' not found.", "error", true, 5);
-                return null;
+                return;
             }
 
-            var result = await this.Api.PushAsync(assetIdOrName, true, isAudio == true ? this.ChunkSize : 0, this.Overlap, isAudio == true ? "wav" : this.ImageFormat, keepData ?? this.KeepData);
+            this.PushResult = await this.Api.PushAsync(assetIdOrName, true, isAudio == true ? this.ChunkSize : 0, this.Overlap, isAudio == true ? "wav" : this.ImageFormat, this.KeepData);
+            if (this.PushResult == null || !this.PushResult.Success)
+            {
+                await this.PutInfoMessageAsync($"Failed to push asset '{assetIdOrName}' to {this._contextInfo?.DeviceInfo?.DeviceEntry ?? "DEVICE"}.", "error", true, 5);
+                return;
+            }
+
+            await this.PutInfoMessageAsync($"Successfully pushed asset '{assetIdOrName}' to {this._contextInfo?.DeviceInfo?.DeviceEntry ?? "DEVICE"}. IndexPointer: <{this.PushResult.MemoryInfo?.IndexPointer ?? "???"}>", "success", true, 3);
+
             await this.LoadMemoryListAsync();
-            return result?.MemoryInfo?.IndexPointer;
         }
 
         private async Task<bool?> IsAssetOnHostAsync(Guid? assetId = null)

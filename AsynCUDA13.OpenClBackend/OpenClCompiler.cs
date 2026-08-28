@@ -138,6 +138,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <returns>The function name of the kernel, or <c>null</c> if not found.</returns>
         public string? GetFunctionName(string? kernel)
         {
+            kernel ??= this.KernelName;
             if (string.IsNullOrWhiteSpace(kernel))
             {
                 return null;
@@ -146,6 +147,12 @@ namespace AsynCUDA13.OpenClBackend
             // If the kernel is a file path, read its content
             if (File.Exists(kernel) && string.Equals(Path.GetExtension(kernel), ".cl", StringComparison.OrdinalIgnoreCase))
             {
+                string kernelName = Path.GetFileNameWithoutExtension(kernel);
+                if (this.ClKernels.ContainsKey(kernelName))
+                {
+                    return this.ClKernels.First(k => string.Equals(k.Key, kernelName, StringComparison.OrdinalIgnoreCase)).Key;
+                }
+
                 kernel = File.ReadAllText(kernel);
             }
 

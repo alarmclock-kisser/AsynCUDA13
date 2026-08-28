@@ -42,10 +42,10 @@ namespace AsynCUDA13.Shared.Serialization
             Int32 elementSize = Unsafe.SizeOf<T>();
             Int32 alignment = 3 / GreatCommonDivisor(3, elementSize); // Z. B. 3 Elemente bei float/int, 3 bei double
 
-            Int32 itemsPerChunk = (Int32) Math.Ceiling((Double) totalItems / degreeOfParallelism);
+            Int32 itemsPerChunk = (Int32) Math.Ceiling((double) totalItems / degreeOfParallelism);
             itemsPerChunk = ((itemsPerChunk + alignment - 1) / alignment) * alignment;
 
-            Int32 actualChunkCount = (Int32) Math.Ceiling((Double) totalItems / itemsPerChunk);
+            Int32 actualChunkCount = (Int32) Math.Ceiling((double) totalItems / itemsPerChunk);
             string[] sectorResults = new string[actualChunkCount];
 
             // Non-blocking Ausführung auf dem ThreadPool

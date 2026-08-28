@@ -11,7 +11,7 @@ namespace AsynCUDA13.Shared.Api.Responses
 
         public bool Success { get; set; } = false;  // True if execution succeeded
 
-        public required RuntimeKernelInfo? KernelInfo { get; set; }
+        public RuntimeKernelInfo? KernelInfo { get; set; } = null;
 
         public int ElapsedMs { get; set; } = -1;  // -1 if failed
     }

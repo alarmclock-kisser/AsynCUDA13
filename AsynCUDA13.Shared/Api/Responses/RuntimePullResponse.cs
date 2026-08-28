@@ -8,7 +8,7 @@ namespace AsynCUDA13.Shared.Api.Responses
 {
     public class RuntimePullResponse
     {
-        public required RuntimeMemInfo MemoryInfoReference { get; set; }   // Get reference DTO before pull or free of buffer(s)
+        public RuntimeMemInfo? MemoryInfoReference { get; set; } = null;
 
 
         public ISimdPayload? Payload { get; set; } = null;  // ServerSided or failed if null

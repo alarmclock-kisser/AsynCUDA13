@@ -17,6 +17,8 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     public sealed class OpenClService : IOpenClService, IDisposable
     {
+        public string RuntimeType => "OpenCL";
+
         /// <summary>
         /// The OpenCL register instance used for managing memory objects (private, public as <see cref="IRuntimeRegister"/>)
         /// </summary>

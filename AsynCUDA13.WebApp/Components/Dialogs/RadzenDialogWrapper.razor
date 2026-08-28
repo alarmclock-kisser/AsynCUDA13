@@ -3,12 +3,12 @@
 
 @if (Visible)
 {
-    <div class="rz-dialog-wrapper rz-dialog-mask"
-         style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 1) !important; z-index: 20000; display: flex; align-items: center; justify-content: center;"
+    <div class="rz-dialog-wrapper"
+         style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.8) !important; z-index: 20000; display: flex; align-items: center; justify-content: center; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
          @onclick="OnBackdropClick">
 
         <div class="rz-dialog @Class"
-             style="width: @Width; height: @Height; max-width: 95vw; max-height: 95vh; display: flex; flex-direction: column; background-color: #1e1e22 !important; color: #ffffff !important; border: 1px solid #3a3a3e !important; box-shadow: 0 10px 40px rgba(0,0,0,0.8) !important; opacity: 1 !important; @Style"
+             style="width: @Width; height: @Height; max-width: 95vw; max-height: 95vh; display: flex; flex-direction: column; background-color: #1e1e22 !important; color: #ffffff !important; border: 1px solid #3a3a3e !important; box-shadow: 0 10px 40px rgba(0,0,0,0.8) !important; opacity: 1 !important; z-index: 20001; filter: none !important; backdrop-filter: none !important; @Style"
              @onclick:stopPropagation="true">
 
             <div class="rz-dialog-titlebar" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background-color: #26262b !important; border-bottom: 1px solid #3a3a3e !important;">

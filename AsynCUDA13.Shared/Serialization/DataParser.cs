@@ -111,7 +111,7 @@ namespace AsynCUDA13.Shared.Serialization
                 // Slice-Größe muss zwingend durch 4 teilbar sein.
                 int rawChunkChars = base64Data.Length / degreeOfParallelism;
                 int chunkChars = Math.Max(4, (rawChunkChars / 4) * 4);
-                int chunkCount = (int) Math.Ceiling((Double) base64Data.Length / chunkChars);
+                int chunkCount = (int) Math.Ceiling((double) base64Data.Length / chunkChars);
 
                 Parallel.For(0, chunkCount, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, chunkIdx =>
                 {

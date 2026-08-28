@@ -98,7 +98,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             var mem1 = CreateFakeCudaMem(new IntPtr(0x1000), typeof(float), 10);
-            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(Double), 20);
+            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(double), 20);
             var mem3 = CreateFakeCudaMem(new IntPtr(0x3000), typeof(int), 30);
             this._mockCuda.Setup(c => c.Online).Returns(true);
             this._mockCuda.Setup(c => c.RegisteredMemory).Returns(new List<CudaMem> { mem1, mem2, mem3 });
@@ -361,7 +361,7 @@ namespace AsynCUDA13.Tests.Api
         {
             // Arrange
             var mem1 = CreateFakeCudaMem(new IntPtr(0x1000), typeof(float), 10);
-            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(Double), 20);
+            var mem2 = CreateFakeCudaMem(new IntPtr(0x2000), typeof(double), 20);
             this._mockCuda.Setup(c => c.Online).Returns(true);
             this._mockCuda.Setup(c => c.RegisteredMemory).Returns(new List<CudaMem> { mem1, mem2 });
             this._mockCuda.Setup(c => c.FreeMemoryAsync(mem1.IndexPointer)).ReturnsAsync(40L);

@@ -12,6 +12,8 @@ namespace AsynCUDA13.Shared.Interfaces
     /// </summary>
     public interface IRuntimeService : IDisposable
     {
+        string RuntimeType { get; }
+
         /// <summary>
         /// Gets a value indicating whether the backend has an initialized device context.
         /// </summary>

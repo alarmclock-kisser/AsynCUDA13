@@ -4,37 +4,6 @@ using Radzen.Blazor;
 namespace AsynCUDA13.WebApp.Components.Dialogs
 {
     /// <summary>
-    /// Schnittstelle für Dialog-Komponenten, die von RadzenDialog verwendet werden.
-    /// </summary>
-    public interface IRadzenDialog<T, TResult> where T : class
-    {
-        Type TInput { get; }
-        Type TOutput { get; }
-
-        T? DialogRequest { get; }
-
-        TResult? DialogResult { get; }
-        bool? DialogResultSuccessfullySet { get; }
-
-        bool Visible { get; set; }
-        EventCallback<bool> VisibleChanged { get; set; }
-
-        string Title { get; set; }
-        string Width { get; set; }
-        string Height { get; set; }
-        bool ShowCloseButton { get; set; }
-        string Class { get; set; }
-        string Style { get; set; }
-
-        Task OpenDialogAsync(T? request= null, bool createRequestIfNull = true);
-        Task CloseDialogAsync();
-        void ResetDialogResult();
-
-        EventCallback<T> OnOpen { get; set; }
-        EventCallback<TResult> OnClose { get; set; }
-    }
-
-    /// <summary>
     /// Basisklasse für Dialog-Komponenten, die von RadzenDialog verwendet werden.
     /// </summary>
     /// <typeparam name="TRequest">Der Typ des Ergebnisses des Dialogs</typeparam>
@@ -45,9 +14,9 @@ namespace AsynCUDA13.WebApp.Components.Dialogs
 
         public TRequest? DialogRequest { get; set; }
 
-        public TResult? DialogResult { get; private set; } = null;
+        public TResult? DialogResult { get; set; } = null;
 
-        public bool? DialogResultSuccessfullySet { get; private set; } = null;
+        public bool? DialogResultSuccessfullySet { get; set; } = null;
 
         // Sichtbarkeit des Dialogs
         [Parameter]
@@ -93,7 +62,7 @@ namespace AsynCUDA13.WebApp.Components.Dialogs
 
         public DialogComponentBase(TRequest? dialogInput = null, Func<TRequest>? openEvent = null, Func<TResult>? closeEvent = null)
         {
-            this.DialogRequest = dialogInput == null ? null : dialogInput;
+            this.DialogRequest = dialogInput ?? null;
             this.OnOpen = new EventCallback<TRequest>(this, openEvent);
             this.OnClose = new EventCallback<TResult>(this, closeEvent);
         }
@@ -105,12 +74,13 @@ namespace AsynCUDA13.WebApp.Components.Dialogs
             await this.VisibleChanged.InvokeAsync(this.Visible);
         }
 
-        public async Task OpenDialogAsync(TRequest? request= null, bool createRequestIfNull = true)
+        public async Task OpenDialogAsync(TRequest? request= null, TResult? response = null)
         {
-            this.DialogRequest = request == null && createRequestIfNull ? Activator.CreateInstance<TRequest>() : request;
-            this.Visible = true;
+            this.DialogRequest = request;
+            this.DialogResult = response;
             await this.VisibleChanged.InvokeAsync(this.Visible);
             await this.OnOpen.InvokeAsync();
+            this.StateHasChanged();
         }
 
         public async Task CloseDialogAsync()
@@ -123,6 +93,7 @@ namespace AsynCUDA13.WebApp.Components.Dialogs
             this.Visible = false;
             await this.VisibleChanged.InvokeAsync(this.Visible);
             await this.OnClose.InvokeAsync();
+            this.StateHasChanged();
         }
 
         protected bool SetDialogResult(TResult? result)

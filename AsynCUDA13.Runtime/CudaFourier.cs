@@ -272,7 +272,7 @@ namespace AsynCUDA13.Runtime
                 return result;
             }
 
-            Double scale = 1.0 / count;
+            double scale = 1.0 / count;
             if (typeof(T) == typeof(float))
             {
                 float fscale = (float) scale;
@@ -281,11 +281,11 @@ namespace AsynCUDA13.Runtime
                     result[i] = (T) (object) ((float) (object) result[i] * fscale);
                 }
             }
-            else if (typeof(T) == typeof(Double))
+            else if (typeof(T) == typeof(double))
             {
                 for (int i = 0; i < result.Length; i++)
                 {
-                    result[i] = (T) (object) ((Double) (object) result[i] * scale);
+                    result[i] = (T) (object) ((double) (object) result[i] * scale);
                 }
             }
 
@@ -634,7 +634,7 @@ namespace AsynCUDA13.Runtime
                     continue;
                 }
 
-                Double scale = 1.0 / src.Length;
+                double scale = 1.0 / src.Length;
                 T[] dst = new T[src.Length];
                 if (typeof(T) == typeof(float))
                 {
@@ -644,11 +644,11 @@ namespace AsynCUDA13.Runtime
                         dst[j] = (T) (object) ((float) (object) src[j] * fscale);
                     }
                 }
-                else if (typeof(T) == typeof(Double))
+                else if (typeof(T) == typeof(double))
                 {
                     for (int j = 0; j < src.Length; j++)
                     {
-                        dst[j] = (T) (object) ((Double) (object) src[j] * scale);
+                        dst[j] = (T) (object) ((double) (object) src[j] * scale);
                     }
                 }
                 else

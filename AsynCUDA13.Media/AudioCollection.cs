@@ -21,7 +21,22 @@ namespace AsynCUDA13.Media
         private CancellationTokenSource? recordingCts;
 
 
-        public AudioObj? this[Guid id] => this.Audios.FirstOrDefault(a => a.Id == id);
+        public AudioObj? this[Guid id]
+        {
+            get => this.Audios.FirstOrDefault(a => a.Id == id);
+            set
+            {
+                if (value == null)
+                {
+                    this.RemoveAudio(id);
+                }
+                else
+                {
+                    this[id]?.Dispose();
+                    this[id] = value;
+                }
+            }
+        }
         public AudioObj? this[int index] => (index >= 0 && index < this.Audios.Count) ? this.Audios[index] : null;
         public AudioObj? this[string name, bool fuzzyMatch = true] => fuzzyMatch ? this.Audios.FirstOrDefault(a => a.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) : this.Audios.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
 

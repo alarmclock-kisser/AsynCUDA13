@@ -69,7 +69,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                bool inverse = request.Inverse ?? inputMem.ElementType == typeof(float) || inputMem.ElementType == typeof(Double);
+                bool inverse = request.Inverse ?? inputMem.ElementType == typeof(float) || inputMem.ElementType == typeof(double);
 
                 var resultMemPtr = request.AsyncCall ?
                     (inverse ? await this.backend.Fourier.PerformIfftAsync(inputMem.IndexPointer, request.KeepInputBuffer) : await this.backend.Fourier.PerformFftAsync(inputMem.IndexPointer, request.KeepInputBuffer)) :
@@ -104,9 +104,9 @@ namespace AsynCUDA13.Api.Controllers
                     {
                         payload = outputMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.backend.Register.PullDataAsync<float>(outputMem.IndexPointer) ?? []) : await DataSerializer.SerializeAsync(await this.backend.Register.PullChunksAsync<float>(outputMem.IndexPointer) ?? []);
                     }
-                    else if (outputMem.ElementType == typeof(Double))
+                    else if (outputMem.ElementType == typeof(double))
                     {
-                        payload = outputMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.backend.Register.PullDataAsync<Double>(outputMem.IndexPointer) ?? []) : await DataSerializer.SerializeAsync(await this.backend.Register.PullChunksAsync<Double>(outputMem.IndexPointer) ?? []);
+                        payload = outputMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.backend.Register.PullDataAsync<double>(outputMem.IndexPointer) ?? []) : await DataSerializer.SerializeAsync(await this.backend.Register.PullChunksAsync<double>(outputMem.IndexPointer) ?? []);
                     }
                     else if (outputMem.ElementType == typeof(float2))
                     {
@@ -229,9 +229,9 @@ namespace AsynCUDA13.Api.Controllers
                     {
                         payload = resultMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.backend.Register.PullDataAsync<float>(resultMem.IndexPointer, keepDataOrBuffer) ?? []) : await DataSerializer.SerializeAsync(await this.backend.Register.PullChunksAsync<float>(resultMem.IndexPointer, keepDataOrBuffer) ?? []);
                     }
-                    else if (resultMem.ElementType == typeof(Double))
+                    else if (resultMem.ElementType == typeof(double))
                     {
-                        payload = resultMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.backend.Register.PullDataAsync<Double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []) : await DataSerializer.SerializeAsync(await this.backend.Register.PullChunksAsync<Double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []);
+                        payload = resultMem.Count <= 1 ? await DataSerializer.SerializeAsync(await this.backend.Register.PullDataAsync<double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []) : await DataSerializer.SerializeAsync(await this.backend.Register.PullChunksAsync<double>(resultMem.IndexPointer, keepDataOrBuffer) ?? []);
                     }
                     else if (resultMem.ElementType == typeof(float2))
                     {

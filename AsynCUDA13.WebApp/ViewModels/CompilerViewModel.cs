@@ -2,6 +2,7 @@ using AsynCUDA13.Client;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.RuntimeDtos;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace AsynCUDA13.WebApp.ViewModels
@@ -30,26 +31,38 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         public async Task OpenCompileDialogAsync()
         {
-            await this.NotifyStateChangedAsync(false);
-        }
-
-        public async Task CloseCompileDialogAsync()
-        {
-            await this.NotifyStateChangedAsync();
-        }
-
-
-
-        public async Task  CompileKernelAsync()
-        {
             if (string.IsNullOrEmpty(this.KernelCode))
+            {
+                await this.UpdateInfoMessageAsync("Kernel code is empty. Please provide valid kernel code.", "warning", true, 5, true);
+                return;
+            }
+
+            if (this.Dialog == null)
             {
                 return;
             }
 
+            // Wire up the close event for cleanup
+            this.Dialog.OnClose = EventCallback.Factory.Create<RuntimeCompileResponse>(this, this.HandleCompileResultAsync);
+
+            await this.HandleCompileKernelAsync();
+        }
+
+        public async Task HandleCompileKernelAsync()
+        {
+            if (string.IsNullOrEmpty(this.KernelCode))
+            {
+                await this.UpdateInfoMessageAsync("Kernel code is empty. Please provide valid kernel code.", "warning", true, 5, true);
+                return;
+            }
+
             this.LastCompileResponse = await this.Api.CompileKernelAsync(this.KernelCode);
-            await this.NotifyStateChangedAsync();
-            return;
+            await this.OpenDialogAsync(this.LastCompileResponse, this.HandleCompileResultAsync);
+        }
+
+        private async Task HandleCompileResultAsync()
+        {
+            await this.LoadKernelsAsync();
         }
 
         public bool IsKernelCompiled(RuntimeKernelInfo kernel) => !string.IsNullOrEmpty(kernel.PtxPath);

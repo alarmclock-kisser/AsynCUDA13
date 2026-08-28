@@ -6,9 +6,9 @@ namespace AsynCUDA13.Shared.Api.Requests
 {
     public class RuntimeCompileRequest
     {
-        public required string KernelName { get; set; }  // FileName und zugleich Funktionsname des Kernels
+        public string? KernelName { get; set; } = null;  // FileName und zugleich Funktionsname des Kernels
 
-        public required string KernelSource { get; set; }  // .cu file path or raw kernel code string
+        public string KernelSource { get; set; } = string.Empty;
 
         public bool Silent { get; set; } = false;  // Suppress logging during compilation
 

@@ -26,7 +26,7 @@ namespace AsynCUDA13.Media
         public int SampleRate { get; set; } = 0;
         public int Channels { get; set; } = 0;
         public int BitDepth { get; set; } = 0;
-        public TimeSpan Duration => (this.SampleRate > 0 && this.Channels > 0) ? TimeSpan.FromSeconds((Double) this.Length / this.Channels / this.SampleRate) : TimeSpan.Zero;
+        public TimeSpan Duration => (this.SampleRate > 0 && this.Channels > 0) ? TimeSpan.FromSeconds((double) this.Length / this.Channels / this.SampleRate) : TimeSpan.Zero;
 
 
         public int ChunkSize { get; set; } = 0;

@@ -10,11 +10,13 @@ namespace AsynCUDA13.Shared.Localization
     {
         private readonly IStringLocalizer<SharedResources> _localizer;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        public string Runtime { get; set; } = "CPU"; // "cuda" or "opencl", default is "CPU"
 
-        public LanguageService(IStringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor)
+        public LanguageService(IStringLocalizer<SharedResources> localizer, IHttpContextAccessor httpContextAccessor, string runtime = "cuda")
         {
             this._localizer = localizer;
             this._httpContextAccessor = httpContextAccessor;
+            this.Runtime = runtime;
         }
 
         public string this[string key]
@@ -22,7 +24,7 @@ namespace AsynCUDA13.Shared.Localization
             get
             {
                 var LocalizedString = this._localizer[key];
-                return LocalizedString.Value;
+                return this.Runtime.Equals("cuda", StringComparison.OrdinalIgnoreCase) ? LocalizedString.Value : this.Runtime.Equals("opencl", StringComparison.OrdinalIgnoreCase) ? LocalizedString.Value.Replace("cuda", "OpenCL", StringComparison.OrdinalIgnoreCase) : LocalizedString.Value.Replace("cuda", this.Runtime, StringComparison.OrdinalIgnoreCase);
             }
         }
 

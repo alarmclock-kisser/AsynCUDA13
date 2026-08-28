@@ -835,7 +835,7 @@ namespace AsynCUDA13.Runtime
             {
                 "int" => typeof(int),
                 "float" => typeof(float),
-                "double" => typeof(Double),
+                "double" => typeof(double),
                 "char" => typeof(Char),
                 "bool" => typeof(bool),
                 "void" => typeof(void),

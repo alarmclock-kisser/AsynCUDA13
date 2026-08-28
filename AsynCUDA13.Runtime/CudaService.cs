@@ -21,6 +21,7 @@ namespace AsynCUDA13.Runtime
     /// </summary>
     public class CudaService : ICudaService, IDisposable
     {
+        public string RuntimeType => "CUDA";
         // Static CUDA properties
         /// <summary>Gets the number of CUDA-capable devices available on the system.</summary>
         public static int DeviceCount => CudaContext.GetDeviceCount();

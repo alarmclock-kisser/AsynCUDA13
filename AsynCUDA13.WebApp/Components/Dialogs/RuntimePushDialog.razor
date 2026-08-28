@@ -31,6 +31,7 @@
                 else
                 {
                     <RadzenDropDown @bind-Value="ImageFormatValue"
+                                    TValue="string"
                                     Data="@(new[] { "JPEG", "PNG", "BMP" })"
                                     Placeholder="@L["SelectImageFormat"]" />
                 }
@@ -38,7 +39,7 @@
 
             <div class="col-12">
                 <RadzenLabel Text="@L["KeepData"]" />
-                <RadzenCheckBox @bind-Value="KeepDataValue" />
+                <RadzenCheckBox @bind-Value="KeepDataValue" TValue="bool" />
             </div>
         </div>
         <div class="dialog-actions">
@@ -54,9 +55,6 @@
 
     [Parameter]
     public string? AssetName { get; set; }
-
-    [Parameter]
-    public EventCallback<(int, float, bool)> OnPush { get; set; }
 
     [Parameter]
     public int ChunkSizeValue { get; set; } = 8192;
@@ -80,6 +78,15 @@
     private async Task PushAssetAsync()
     {
         UpdateActualChunkSize();
-        await OnPush.InvokeAsync((_actualChunkSize, OverlapValue, KeepDataValue));
+
+        if (DialogResult == null)
+        {
+            DialogResult = new RuntimePushResponse();
+        }
+
+        // We use the DialogResult to signal success and potentially pass back the final calculated values
+        // if the response DTO supports it. For now, we just mark it as successfully set.
+        SetDialogResult(DialogResult);
+        await CloseDialogAsync();
     }
 }

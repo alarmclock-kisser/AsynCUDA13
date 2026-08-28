@@ -2,6 +2,7 @@
 using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
+using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
@@ -391,7 +392,7 @@ namespace AsynCUDA13.Api.Controllers
             {
                 Guid.TryParse(assetIdOrName, out var guid);
                 var audio = this.assetProvider.GetAudio(guid) ?? this.assetProvider.GetAudio(assetIdOrName);
-                var image = audio == null ? (this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName)) : null;
+                var image = this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName);
 
                 if (audio == null && image == null)
                 {
@@ -420,6 +421,7 @@ namespace AsynCUDA13.Api.Controllers
                         }
                         // Direktes Pushen des float[] Arrays in den VRAM
                         mem = await this.backend.Register.PushDataAsync(audio.Data);
+                        audio.Pointer = mem?.IndexPointer ?? 0;
                     }
                     else
                     {
@@ -435,11 +437,7 @@ namespace AsynCUDA13.Api.Controllers
                         }
                         // Direktes Pushen der float[][] Chunks in den VRAM
                         mem = await this.backend.Register.PushChunksAsync(chunks);
-                    }
-
-                    if (mem != null)
-                    {
-                        audio.Pointer = mem.IndexPointer;
+                        audio.Pointer = mem?.IndexPointer ?? 0;
                     }
                 }
                 else if (image != null)
@@ -456,18 +454,14 @@ namespace AsynCUDA13.Api.Controllers
                     }
                     // Direktes Pushen des byte[] Bild-Puffers in den VRAM
                     mem = await this.backend.Register.PushDataAsync(imageBytes);
-
-                    if (mem != null)
-                    {
-                        image.Pointer = mem.IndexPointer;
-                    }
+                    image.Pointer = mem?.IndexPointer ?? 0;
                 }
 
                 if (mem == null)
                 {
                     return this.StatusCode(500, new ProblemDetails
                     {
-                        Title = "{this.RuntimeType} push failed",
+                        Title = $"{this.RuntimeType} push failed",
                         Detail = $"Failed to push asset '{assetIdOrName}' to {this.RuntimeType} VRAM.",
                         Status = 500
                     });
@@ -507,8 +501,8 @@ namespace AsynCUDA13.Api.Controllers
             {
                 return this.StatusCode(503, new ProblemDetails
                 {
-                    Title = "{this.RuntimeType} not initialized",
-                    Detail = "{this.RuntimeType} is not initialized.",
+                    Title = $"{this.RuntimeType} not initialized",
+                    Detail = $"{this.RuntimeType} is not initialized.",
                     Status = 503
                 });
             }
@@ -518,7 +512,7 @@ namespace AsynCUDA13.Api.Controllers
             {
                 Guid.TryParse(assetIdOrName, out var guid);
                 var audio = this.assetProvider.GetAudio(guid) ?? this.assetProvider.GetAudio(assetIdOrName);
-                var image = audio == null ? (this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName)) : null;
+                var image = this.assetProvider.GetImage(guid) ?? this.assetProvider.GetImage(assetIdOrName);
 
                 if (audio == null && image == null)
                 {
@@ -530,7 +524,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                IntPtr ptr = audio != null ? (nint) audio.Pointer : (nint) image!.Pointer;
+                IntPtr ptr = audio != null ? (nint) audio.Pointer : image != null ? (nint) image.Pointer : IntPtr.Zero;
                 if (ptr == IntPtr.Zero)
                 {
                     return this.StatusCode(400, new ProblemDetails
@@ -541,9 +535,9 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                IRuntimeMem? cudaMem = this.backend[ptr];
+                IRuntimeMem? mem = this.backend[ptr];
                 RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr.ToString());
-                if (cudaMem == null || memInfo == null)
+                if (mem == null || memInfo == null)
                 {
                     return this.StatusCode(404, new ProblemDetails
                     {
@@ -555,7 +549,7 @@ namespace AsynCUDA13.Api.Controllers
 
                 if (audio != null)
                 {
-                    if (cudaMem != null && cudaMem.Count > 1)
+                    if (mem.Count > 1)
                     {
                         // Direktes Pulling der Chunks aus dem VRAM in den Audio-Puffer
                         float[][] chunks = (await this.backend.Register.PullChunksAsync<float>(ptr, keepBuffer))?.ToArray() ?? [];
@@ -563,7 +557,7 @@ namespace AsynCUDA13.Api.Controllers
                         {
                             return this.StatusCode(500, new ProblemDetails { Title = $"{this.RuntimeType} pull failed", Detail = "Failed to pull audio chunks from CUDA.", Status = 500 });
                         }
-                        await audio.AggregateChunksAsync(chunks, (int) cudaMem.IndexLength);
+                        await audio.AggregateChunksAsync(chunks, (int) mem.IndexLength);
                     }
                     else
                     {
@@ -578,7 +572,7 @@ namespace AsynCUDA13.Api.Controllers
 
                     if (!keepBuffer)
                     {
-                        audio.Pointer = IntPtr.Zero;
+                        audio.Pointer = 0;
                     }
                 }
                 else if (image != null)
@@ -593,7 +587,7 @@ namespace AsynCUDA13.Api.Controllers
 
                     if (!keepBuffer)
                     {
-                        image.Pointer = IntPtr.Zero;
+                        image.Pointer = 0;
                     }
                 }
 
@@ -604,6 +598,19 @@ namespace AsynCUDA13.Api.Controllers
                     ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds,
                     Success = true
                 };
+
+                if (!keepBuffer)
+                {
+                    try
+                    {
+                        long freed = this.backend.FreeMemory(ptr);
+                        await StaticLogger.LogAsync($"Freed {freed} bytes of {this.RuntimeType} memory for asset '{assetIdOrName}' after pull operation.");
+                    }
+                    catch (Exception ex)
+                    {
+                        await StaticLogger.LogAsync(ex);
+                    }
+                }
 
                 return this.Ok(response);
             }

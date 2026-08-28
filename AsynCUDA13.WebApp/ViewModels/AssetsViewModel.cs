@@ -1,5 +1,7 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Api.Requests;
+using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.WebApp.Components;
@@ -11,7 +13,7 @@ using Radzen;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public class AssetsViewModel : ViewModelBase<string, string>
+    public class AssetsViewModel : ViewModelBase<RuntimePullRequest, RuntimePullResponse>
     {
         public AssetsViewModel(ApiClient apiClient, IJSRuntime js, int maxUploadKb = 65536)
             : base(apiClient, js, maxUploadKb)
@@ -35,6 +37,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             this.AudiosInfos = await this.Api.GetAudioInfosAsync();
 
             await this.LoadPreviewsAsync();
+            await this.NotifyStateChangedAsync(true);
         }
 
         public async Task LoadPreviewsAsync()

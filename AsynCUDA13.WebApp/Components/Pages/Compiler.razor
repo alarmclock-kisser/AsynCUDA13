@@ -16,11 +16,11 @@
         </RadzenCard>
         <RadzenBody>
             <RadzenTextArea @bind-Value="VM.KernelCode" Rows="10" Placeholder="@L["EnterCudaKernelCode"]" />
-            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click="@(async () => await VM.CompileKernelAsync())" Disabled="@(!VM.IsBackendInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
+            <RadzenButton Text="@L["Compile"]" ButtonStyle="ButtonStyle.Success" Class="mt-2" Click=@VM.OpenCompileDialogAsync" Disabled="@(!VM.IsBackendInitialized || string.IsNullOrWhiteSpace(VM.KernelCode))" />
         </RadzenBody>
     </RadzenCard>
 
-    <CudaCompileDialog @ref="VM.Dialog" @bind-Visible="@VM.ShowDialog" />
+    <RuntimeCompileDialog @ref="VM.Dialog" />
 
     <RadzenPickList Data="@VM.Kernels" TItem="RuntimeKernelInfo">
         <Template Context="context">

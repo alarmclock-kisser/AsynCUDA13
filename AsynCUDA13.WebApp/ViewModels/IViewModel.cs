@@ -1,6 +1,7 @@
 ﻿using AsynCUDA13.Client;
 using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.WebApp.Components.Dialogs;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 using System.ComponentModel;
@@ -13,7 +14,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         event Action? StateChanged;
     }
 
-    public abstract class ViewModelBase<TRequest, TResponse> : IViewModel where TRequest : class where TResponse : class
+    public abstract class ViewModelBase<TRequest, TResponse> : IViewModel where TRequest : class, new() where TResponse : class, new()
     {
         /// <summary>
         /// The API client used for making requests to the backend.
@@ -64,11 +65,6 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
         }
 
-        /// <summary>
-        /// Gets or sets the RadzenDialog component associated with this view model.
-        /// Set via @ref from the hosting .razor page after render.
-        /// Null if no dialog is associated with this view model.
-        /// </summary>
         public IRadzenDialog<TRequest, TResponse>? Dialog { get; set; }
 
         /// <summary>
@@ -129,7 +125,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <summary>
         /// Gets the countdown in seconds until the information message is automatically hidden. If the HideInfoMessageAt property is set to a future time, this property returns the number of seconds remaining until that time. If HideInfoMessageAt is null or in the past, this property returns null.
         /// </summary>
-        public Double? InfoMessageTimerCountdown => this.HideInfoMessageAt.HasValue ? (this.HideInfoMessageAt.Value - DateTime.Now).TotalSeconds : null;
+        public double? InfoMessageTimerCountdown => this.HideInfoMessageAt.HasValue ? (this.HideInfoMessageAt.Value - DateTime.Now).TotalSeconds : null;
 
         protected ViewModelBase(ApiClient api, IJSRuntime js, int maxUploadKb = 65536)
         {
@@ -189,7 +185,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <param name="showCloseButton">Whether to show a close button for the message.</param>
         /// <param name="secondsVisible">The number of seconds the message should be visible. Null means the message will remain visible until manually closed or new message is set.</param>
         /// <param name="notifyStateChanged">Whether to notify subscribers that the state has changed.</param>
-        protected void UpdateInfoMessage(string? message, string severity = "info", bool showCloseButton = true, Double? secondsVisible = null, bool notifyStateChanged = false)
+        protected void UpdateInfoMessage(string? message, string severity = "info", bool showCloseButton = true, double? secondsVisible = null, bool notifyStateChanged = false)
         {
             this.InfoSeverity = severity switch
             {
@@ -224,7 +220,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <param name="secondsVisible">The number of seconds the message should be visible. Null means the message will remain visible until manually closed or new message is set.</param>
         /// <param name="notifyStateChanged">Whether to notify subscribers that the state has changed.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        protected async Task UpdateInfoMessageAsync(string? message, string severity = "info", bool showCloseButton = true, Double? secondsVisible = null, bool notifyStateChanged = false)
+        protected async Task UpdateInfoMessageAsync(string? message, string severity = "info", bool showCloseButton = true, double? secondsVisible = null, bool notifyStateChanged = false)
         {
             this.InfoSeverity = severity switch
             {
@@ -258,7 +254,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// <param name="showCloseButton">Whether to show a close button for the message.</param>
         /// <param name="secondsVisible">The number of seconds the message should be visible. Null means the message will remain visible until manually closed or new message is set.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        public async Task PutInfoMessageAsync(string message, string severity = "info", bool showCloseButton = true, Double? secondsVisible = null)
+        public async Task PutInfoMessageAsync(string message, string severity = "info", bool showCloseButton = true, double? secondsVisible = null)
         {
             await this.UpdateInfoMessageAsync(message, severity, showCloseButton, secondsVisible, true);
         }
@@ -268,17 +264,44 @@ namespace AsynCUDA13.WebApp.ViewModels
         /// </summary>
         /// <param name="request">The request object to pass to the dialog. If null, a new request may be created depending on the createRequestIfNull parameter.</param>
         /// <param name="createRequestIfNull">Whether to create a new request object if the request parameter is null.</param>
+        /// <param name="response">The response object to pass to the dialog. If null, a new response may be created depending on the createResponseIfNull parameter.</param>
+        /// <param name="createResponseIfNull">Whether to create a new response object if the response parameter is null.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        protected async Task OpenDialogAsync(TRequest? request = null, bool createRequestIfNull = true)
+        protected async Task OpenDialogAsync(TRequest? request = null, Func<Task>? onClose = null)
         {
             if (this.Dialog is not null)
             {
-                await this.Dialog.OpenDialogAsync(request, createRequestIfNull);
+                this.ShowDialog = true;
+                if (onClose != null)
+                {
+                    this.Dialog.OnClose = EventCallback.Factory.Create<TResponse>(this, onClose);
+                }
+                await this.Dialog.OpenDialogAsync(request);
             }
             else
             {
-                await this.UpdateInfoMessageAsync("No dialog is attached to this view model.", "error", true, 5, true);
+                await this.PutInfoMessageAsync("No dialog is attached to this view model.", "error", true, 5);
             }
+
+            await this.NotifyStateChangedAsync(false);
+        }
+
+        protected async Task OpenDialogAsync(TResponse? response = null, Func<Task>? onOpen = null)
+        {
+            if (this.Dialog is not null)
+            {
+                this.ShowDialog = true;
+                if (onOpen != null)
+                {
+                    this.Dialog.OnOpen = EventCallback.Factory.Create<TRequest>(this, onOpen);
+                }
+                await this.Dialog.OpenDialogAsync(null, response);
+            }
+            else
+            {
+                await this.PutInfoMessageAsync("No dialog is attached to this view model.", "error", true, 5);
+            }
+            await this.NotifyStateChangedAsync(false);
         }
 
         /// <summary>
@@ -289,6 +312,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
             if (this.Dialog is not null)
             {
+                this.ShowDialog = false;
                 await this.Dialog.CloseDialogAsync();
             }
             else

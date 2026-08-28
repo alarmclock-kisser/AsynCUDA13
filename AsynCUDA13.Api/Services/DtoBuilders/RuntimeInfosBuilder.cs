@@ -43,6 +43,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 return info;
             }
 
+            info.RuntimeType = service.RuntimeType;
             info.DeviceName = service.SelectedDeviceName ?? service.TotalAvailableDeviceProperties.ElementAtOrDefault(index.Value).Value.FirstOrDefault(kv => kv.Key.Contains("Name", StringComparison.OrdinalIgnoreCase)).Value ?? "N/A";
             info.Properties = selectedProperties;
 
@@ -53,44 +54,17 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
         {
             if (!service.GetType().IsAssignableTo(typeof(ICudaService)) && !service.GetType().IsAssignableTo(typeof(IOpenClService)))
             {
-                throw new ArgumentException("service must be a type that implements IRuntimeService and is either ICudaService or IOpenClService.");
+                throw new ArgumentException("IRuntimeService service must be a type that implements IRuntimeService and is either ICudaService or IOpenClService.");
             }
 
-            if (service.GetType().IsAssignableTo(typeof(ICudaService)))
+            return (service.TotalAvailableDeviceProperties.Select((props, index) => new RuntimeDeviceInfo
             {
-                if (!CudaAvailabilityTester.IsCudaAvailable())
-                {
-                    return [];
-                }
+                RuntimeType = service.RuntimeType,
+                DeviceId = index,
+                DeviceName = props.Value.FirstOrDefault(kv => kv.Key.Contains("Name", StringComparison.OrdinalIgnoreCase)).Value,
+                Properties = props.Value
 
-                return (service is ICudaService ? service.TotalAvailableDeviceProperties.Select((props, index) => new RuntimeDeviceInfo
-                {
-                    DeviceId = index,
-                    DeviceName = props.Value.FirstOrDefault(kv => kv.Key.Contains("Name", StringComparison.OrdinalIgnoreCase)).Value,
-                    Properties = props.Value
-
-                }).ToArray() ?? [] : []);
-            }
-            else if (service.GetType().IsAssignableTo(typeof(IOpenClService)))
-            {
-                var openClService = service as IOpenClService;
-                if (openClService == null)
-                {
-                    return [];
-                }
-
-                var devices = openClService.TotalAvailableDeviceProperties;
-                return devices.Select((props, index) => new RuntimeDeviceInfo
-                {
-                    DeviceId = index,
-                    DeviceName = props.Value.FirstOrDefault(kv => kv.Key.Contains("Name", StringComparison.OrdinalIgnoreCase)).Value,
-                    Properties = props.Value
-                }).ToArray() ?? [];
-            }
-            else
-            {
-                return [];
-            }
+            }).ToArray() ?? []);
         }
 
         public static RuntimeUsageInfo? BuildRuntimeUsageInfo(IRuntimeService service)

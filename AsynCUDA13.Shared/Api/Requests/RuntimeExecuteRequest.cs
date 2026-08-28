@@ -7,7 +7,7 @@ namespace AsynCUDA13.Shared.Api.Requests
 {
     public class RuntimeExecuteRequest
     {
-        public required RuntimeKernelInfo KernelInfo { get; set; }
+        public RuntimeKernelInfo? KernelInfo { get; set; } = null;
 
         public IEnumerable<string> ArgumentValues { get; set; } = [];   // Arg values ToString() and in correct order
 

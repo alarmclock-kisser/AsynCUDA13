@@ -33,7 +33,7 @@ namespace AsynCUDA13.Media
         public bool OnHost => this.Pointer == nint.Zero && this.Img != null;
         public bool OnDevice => this.Pointer != nint.Zero && this.Img == null;
 
-        public Double ElapsedProcessingTime { get; set; } = 0.0;
+        public double ElapsedProcessingTime { get; set; } = 0.0;
         public float ScalingFactor { get; set; }
 
         private readonly object lockObj = new();
@@ -404,6 +404,35 @@ namespace AsynCUDA13.Media
             };
             previewImage.Save(ms, encoder);
             return Convert.ToBase64String(ms.ToArray());
+        }
+
+        public void Update(ImageObj reference, bool disposeReference = true)
+        {
+            this.Id = reference.Id;
+            this.CreatedAt = reference.CreatedAt;
+            this.Name = reference.Name;
+            this.Filepath = reference.Filepath;
+            this.Width = reference.Width;
+            this.Height = reference.Height;
+            this.Channels = reference.Channels;
+            this.Bitdepth = reference.Bitdepth;
+            this.Pointer = reference.Pointer;
+            this.Meta = reference.Meta;
+            if (reference.Img != null)
+            {
+                this.Img?.Dispose();
+                this.Img = reference.Img.CloneAs<Rgba32>();
+            }
+            else
+            {
+                this.Img?.Dispose();
+                this.Img = null;
+            }
+
+            if (disposeReference)
+            {
+                reference.Dispose();
+            }
         }
     }
 }

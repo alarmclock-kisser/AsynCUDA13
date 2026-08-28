@@ -33,24 +33,24 @@
                                     Disabled="@(!VM.AssetDropDownItems.Any())"
                                     Change="@VM.OnSelectedAssetChangedAsync" />
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-4 d-flex align-items-center gap-3">
                     <RadzenButton Text="@L["PushToCuda"]"
                                     ButtonStyle="ButtonStyle.Success"
                                     Click="@VM.OpenPushDialogAsync"
                                     Disabled="@(!VM.AssetPushable)" />
+                    <RadzenCheckBox @bind-Value="VM.KeepData" Name="KeepData" TValue="bool" Label="@L["KeepData"]" />
+                    <RadzenCheckBox @bind-Value="VM.KeepBuffer" Name="KeepBuffer" TValue="bool" Label="@L["KeepBuffer"]" />
                 </div>
             </div>
         </RadzenCard>
 
-        <CudaPushDialog @ref="VM.Dialog" @bind-Visible="@VM.ShowDialog"
+        <RuntimePushDialog @ref="VM.Dialog"
                         AssetName="@VM.SelectedAssetName"
                         IsAudio="@VM.SelectedAssetIsAudio"
                         ChunkSizeValue="@VM.ChunkSize"
                         OverlapValue="@VM.Overlap"
                         KeepDataValue="@VM.KeepData"
-                        ImageFormatValue="@VM.ImageFormat"
-                        OnPush="@(async () => await VM.HandlePushAsync())"
-                        OnClose="VM.ClosePushDialogAsync" />
+                        ImageFormatValue="@VM.ImageFormat" />
 
         <h4 class="mt-4">@L["MemoryList"]</h4>
         <RadzenAccordion Multiple="true">

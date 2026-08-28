@@ -1,5 +1,6 @@
 using AsynCUDA13.Client;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Client;
 using AsynCUDA13.Shared.Localization;
 using AsynCUDA13.WebApp.Components;
 using AsynCUDA13.WebApp.ViewModels;
@@ -39,12 +40,19 @@ namespace AsynCUDA13.WebApp
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddSingleton<LanguageService>();
 
-            // ApiClient (floatton, liest ApiBaseUrl aus appsettings.json)
+            // ApiClientConfiguration (Singleton, liest ApiBaseUrl aus appsettings.json)
             string apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl") ?? "https://localhost:7186";
             int apiClientLogLevel = builder.Configuration.GetValue<int>("ApiClientLogLevel", 4); // Default to LogLevel.Warning if not specified
-            builder.Services.AddSingleton<ApiClient>(_ => new ApiClient(apiBaseUrl, apiClientLogLevel));
+            builder.Services.AddSingleton<ApiClientConfiguration>(sp => new()
+            {
+                ApiBaseUrl = apiBaseUrl,
+                LogLevel = apiClientLogLevel
+            });
 
-            // ViewModels (floatton)
+            // ApiClient (Singleton)
+            builder.Services.AddSingleton<ApiClient>();
+
+            // ViewModels (Scoped)
             builder.Services.AddScoped<HomeViewModel>();
             builder.Services.AddScoped<AssetsViewModel>();
             builder.Services.AddScoped<MemoryViewModel>();
