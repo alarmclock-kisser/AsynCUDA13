@@ -15,14 +15,7 @@ namespace AsynCUDA13.Media
 
         public IReadOnlyCollection<ImageObj> Images => this.images.Values.ToList();
 
-        public ImageObj? this[Guid guid]
-        {
-            get
-            {
-                this.images.TryGetValue(guid, out ImageObj? imgObj);
-                return imgObj;
-            }
-        }
+        public ImageObj? this[Guid guid] => this.images.TryGetValue(guid, out ImageObj? imageObj) ? imageObj : null;
 
         public ImageObj? this[string name]
         {
@@ -96,6 +89,38 @@ namespace AsynCUDA13.Media
             }
 
             return added;
+        }
+
+        public ImageObj? CreateFromInfo(Shared.MediaDtos.ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        {
+            long pointer = long.TryParse(info.Pointer, out var ptr) ? ptr : 0;
+            ImageObj obj = new(info.Width, info.Height)
+            {
+                Bitdepth = info.BitDepth,
+                Channels = info.Channels,
+                CreatedAt = info.CreatedAt,
+                Filepath = info.FilePath,
+                Name = info.Name,
+                Height = info.Height,
+                Width = info.Width,
+                Pointer = ptr,
+                Meta = info.Meta
+            };
+
+            if (tryAdd)
+            {
+                if (this.images.TryAdd(obj.Id, obj))
+                {
+                    return obj;
+                }
+                else if (disposeIfFailedToAdd)
+                {
+                    obj.Dispose();
+                    return null;
+                }
+            }
+
+            return obj;
         }
 
         public bool Remove(Guid guid)

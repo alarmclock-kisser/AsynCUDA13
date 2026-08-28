@@ -206,15 +206,14 @@ namespace AsynCUDA13.Api.Controllers
         public async Task<ActionResult<RuntimePushResponse>?> PushAsync(RuntimePushRequest request)
         {
             var response = new RuntimePushResponse();
-
             try
             {
                 if (!this.backend.Online)
                 {
                     return this.StatusCode(503, new ProblemDetails
                     {
-                        Title = "{this.RuntimeType} not initialized",
-                        Detail = "{this.RuntimeType} is not initialized.",
+                        Title = $"{this.RuntimeType} not initialized",
+                        Detail = $"{this.RuntimeType} is not initialized.",
                         Status = 503
                     });
                 }
@@ -243,7 +242,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                CudaMem? mem = request.Payload is SimdPayload1D pd1 ? await this.backend.Register.PushDataAsync(data) :
+                IRuntimeMem? mem = request.Payload is SimdPayload1D pd1 ? await this.backend.Register.PushDataAsync(data) :
                               request.Payload is SimdPayload2D pd2 ? await this.backend.Register.PushChunksAsync(data) :
                               throw new ArgumentException("Unsupported payload type.");
                 if (mem == null)
@@ -255,6 +254,7 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 500
                     });
                 }
+                mem.AssetReferenceId = request.AssetId;
 
                 RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, mem.IndexPointer.ToString());
                 if (memInfo == null)
@@ -316,10 +316,24 @@ namespace AsynCUDA13.Api.Controllers
                 {
                     return this.StatusCode(404, new ProblemDetails
                     {
-                        Title = "{this.RuntimeType} memory not found",
+                        Title = $"{this.RuntimeType} memory not found",
                         Detail = $"No {this.RuntimeType} memory object found for index/pointer/ID: {request.IndexPointerOrId}.",
                         Status = 404
                     });
+                }
+
+                if (request.EnsureReferencedAssetsUpdatedOrCreated && memInfo.AssetReferenceId.HasValue)
+                {
+                    var audio = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
+                    var image = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
+                    if (audio != null)
+                    {
+                        this.assetProvider.CreateFromInfo(audio);
+                    }
+                    if (image != null)
+                    {
+                        this.assetProvider.CreateFromInfo(image);
+                    }
                 }
 
                 // Get Type T
@@ -353,7 +367,7 @@ namespace AsynCUDA13.Api.Controllers
                     t,
                     data,
                     true,
-                    isChunked) as ISimdPayload ?? throw new InvalidOperationException("Failed to serialize {this.RuntimeType} pull data.");
+                    isChunked) as ISimdPayload ?? throw new InvalidOperationException($"Failed to serialize {this.RuntimeType} pull data.");
 
                 response.ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds;
                 response.Success = true;
@@ -439,6 +453,7 @@ namespace AsynCUDA13.Api.Controllers
                         mem = await this.backend.Register.PushChunksAsync(chunks);
                         audio.Pointer = mem?.IndexPointer ?? 0;
                     }
+                    mem?.AssetReferenceId = audio.Id;
                 }
                 else if (image != null)
                 {
@@ -454,6 +469,7 @@ namespace AsynCUDA13.Api.Controllers
                     }
                     // Direktes Pushen des byte[] Bild-Puffers in den VRAM
                     mem = await this.backend.Register.PushDataAsync(imageBytes);
+                    mem?.AssetReferenceId = image.Id;
                     image.Pointer = mem?.IndexPointer ?? 0;
                 }
 

@@ -75,19 +75,6 @@ namespace AsynCUDA13.OpenClBackend
         Task<float[]?> IfftAsync(Vector2[] data, int originalLength = -1);
 
         /// <summary>
-        /// Executes an image kernel over an uploaded byte image buffer.
-        /// </summary>
-        /// <param name="kernelName">The image kernel to run.</param>
-        /// <param name="indexPointer">The native handle of the image device buffer.</param>
-        /// <param name="arguments">The additional scalar arguments in kernel order (after channels).</param>
-        /// <param name="width">The image width in pixels.</param>
-        /// <param name="height">The image height in pixels.</param>
-        /// <param name="channels">The number of channels per pixel.</param>
-        /// <param name="dualBuffer">Whether the kernel expects a separate input and output buffer.</param>
-        /// <returns>The input <paramref name="indexPointer"/> on success; otherwise <c>null</c>.</returns>
-        IntPtr? ExecuteImageKernel(string kernelName, IntPtr indexPointer, object[] arguments, int width, int height, int channels, bool dualBuffer);
-
-        /// <summary>
         /// Downloads the buffer described by the given native handle back to the host.
         /// </summary>
         /// <typeparam name="T">The unmanaged element type of the data.</typeparam>

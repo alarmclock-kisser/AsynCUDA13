@@ -106,7 +106,8 @@ namespace AsynCUDA13.OpenClBackend
                 return response;
             }
 
-            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments.Cast<string>(), this._compiler.GetArguments(kernelName).Values) : arguments;
+            var argDefinition = this._compiler.GetArguments(kernelName);
+            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments.Cast<string>(), argDefinition.Values) : arguments;
 
             if (globalWorkSize <= 0)
             {
@@ -119,7 +120,7 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            var allocated = this.SetArguments(kernel.Value, kernelName, arguments);
+            var allocated = this.SetArguments(kernel.Value, kernelName, arguments, argDefinition.Values.ToArray());
             if (allocated == null)
             {
                 StaticLogger.Log("Error setting arguments, aborting.");
@@ -144,6 +145,7 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             response.ResultPointers = allocated.Select(p => p.ToString()).ToArray();
+            response.Success = true;
             StaticLogger.LogSuccess($"Execute '{kernelName}': executed successfully.");
             return response;
         }
@@ -198,14 +200,15 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Binds each argument to its kernel index, handling buffers and unmanaged scalars.
         /// </summary>
-        private IntPtr[]? SetArguments(CLKernel kernel, string kernelName, object[] arguments)
+        private IntPtr[]? SetArguments(CLKernel kernel, string kernelName, object[] arguments, Type[] argumentTypes)
         {
             List<IntPtr> newAllocated = [];
-            int maxStride = 1;
-            Type? lastMemType = null;
+            nint[] maxDim = [];
+            Type? lastMemType = null; 
             for (uint i = 0; i < arguments.Length; i++)
             {
                 object arg = arguments[i];
+                Type t = argumentTypes[i];
                 CLResultCode code;
 
                 if (arg is IntPtr ptr)
@@ -214,17 +217,17 @@ namespace AsynCUDA13.OpenClBackend
                     if (mem != null)
                     {
                         arg = mem;
-                        maxStride = mem.Count;
+                        maxDim = mem.PointerLengths.Select(l => (nint)l).ToArray();
                         lastMemType = mem.ElementType;
                     }
-                    else if (lastMemType != null)
+                    else if (maxDim.Length > 0)
                     {
-                        var pullMethod = maxStride <= 1
-                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateSingle), [typeof(IntPtr), typeof(bool)])
-                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateGroup), [typeof(IntPtr), typeof(bool)]);
+                        bool isSingle = maxDim.Length <= 1;
+                        var allocMethod = isSingle
+                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateSingle), [typeof(IntPtr)])
+                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateGroup), [typeof(IntPtr[])]);
 
-                        mem = pullMethod?.MakeGenericMethod(lastMemType).Invoke(this, arguments) as OpenClMem;
-                        
+                        mem = allocMethod?.MakeGenericMethod(t).Invoke(this, isSingle ? [maxDim.FirstOrDefault()] : maxDim.Cast<object>().ToArray()) as OpenClMem;
                         if (mem != null)
                         {
                             arg = mem;
@@ -234,8 +237,6 @@ namespace AsynCUDA13.OpenClBackend
                         {
                             arg = IntPtr.Zero;
                         }
-                         
-                        
                     }
                     else
                     {

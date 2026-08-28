@@ -9,7 +9,7 @@ namespace AsynCUDA13.Media
     public class ImageObj : IDisposable
     {
         public Guid Id { get; private set; }
-        public DateTime CreatedAt { get; private set; } = DateTime.Now;
+        public DateTime CreatedAt { get; init; } = DateTime.Now;
 
         public string Filepath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -404,35 +404,6 @@ namespace AsynCUDA13.Media
             };
             previewImage.Save(ms, encoder);
             return Convert.ToBase64String(ms.ToArray());
-        }
-
-        public void Update(ImageObj reference, bool disposeReference = true)
-        {
-            this.Id = reference.Id;
-            this.CreatedAt = reference.CreatedAt;
-            this.Name = reference.Name;
-            this.Filepath = reference.Filepath;
-            this.Width = reference.Width;
-            this.Height = reference.Height;
-            this.Channels = reference.Channels;
-            this.Bitdepth = reference.Bitdepth;
-            this.Pointer = reference.Pointer;
-            this.Meta = reference.Meta;
-            if (reference.Img != null)
-            {
-                this.Img?.Dispose();
-                this.Img = reference.Img.CloneAs<Rgba32>();
-            }
-            else
-            {
-                this.Img?.Dispose();
-                this.Img = null;
-            }
-
-            if (disposeReference)
-            {
-                reference.Dispose();
-            }
         }
     }
 }

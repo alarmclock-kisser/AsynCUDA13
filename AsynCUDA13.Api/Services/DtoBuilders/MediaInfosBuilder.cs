@@ -10,6 +10,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new ImageInfo()
             {
                 Id = imageObj.Id,
+                FilePath = imageObj.Filepath,
                 CreatedAt = imageObj.CreatedAt,
                 Name = imageObj.Name,
                 Pointer = imageObj.Pointer.ToString(),
@@ -17,7 +18,8 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Height = imageObj.Height,
                 Channels = imageObj.Channels,
                 BitDepth = imageObj.Bitdepth,
-                OriginalSizeMb = imageObj.SizeMb
+                OriginalSizeMb = imageObj.SizeMb,
+                Meta = imageObj.Meta
             };
         }
 
@@ -26,9 +28,12 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new AudioInfo()
             {
                 Id = audioObj.Id,
+                FilePath = audioObj.FilePath,
                 CreatedAt = audioObj.CreatedAt,
                 Name = audioObj.Name,
                 Pointer = audioObj.Pointer.ToString(),
+                ChunkSize = audioObj.ChunkSize,
+                Overlap = audioObj.Overlap,
                 Length = audioObj.Length.ToString(),
                 SampleRate = audioObj.SampleRate,
                 Channels = audioObj.Channels,

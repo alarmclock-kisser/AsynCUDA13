@@ -10,7 +10,7 @@ namespace AsynCUDA13.Shared.Api.Requests
         public bool AsyncCall { get; set; } = true; // async pull
         public bool FreeAfterPull { get; set; } = false;  // free buffer after pull
 
-
+        public bool EnsureReferencedAssetsUpdatedOrCreated { get; set; } = true;
 
     }
 }

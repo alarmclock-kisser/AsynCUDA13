@@ -66,6 +66,11 @@ namespace AsynCUDA13.Shared.Interfaces
         string Message { get; set; }
 
         /// <summary>
+        /// Gets or sets an optional asset reference Id for reverse assignment MemoryObj -> Asset by its Id
+        /// </summary>
+        Guid? AssetReferenceId { get; set; }
+
+        /// <summary>
         /// Disposes of the memory object, releasing any associated resources. Returns the total number of bytes that were freed as a result of the disposal.
         /// </summary>
         /// <returns>The total number of bytes that were freed as a result of the disposal.</returns>

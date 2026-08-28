@@ -14,6 +14,7 @@ namespace AsynCUDA13.Shared.MediaDtos
         public Guid Id { get; set; }
         public DateTime CreatedAt { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
 
         public string MediaType { get; set; } = "audio";
 
@@ -28,6 +29,9 @@ namespace AsynCUDA13.Shared.MediaDtos
 
 
         public string? Pointer { get; set; } = null;
+
+        public int ChunkSize { get; set; } = 0;
+        public float Overlap { get; set; } = 0.5f;
 
         public Boolean OnGpu => !string.IsNullOrEmpty(this.Pointer) && !this.Pointer.Equals("null", StringComparison.OrdinalIgnoreCase) && !this.Pointer.Equals(IntPtr.Zero.ToString(), StringComparison.OrdinalIgnoreCase);
 

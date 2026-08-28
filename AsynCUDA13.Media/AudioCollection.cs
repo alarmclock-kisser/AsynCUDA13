@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NAudio.Wave;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.MediaDtos;
 
 namespace AsynCUDA13.Media
 {
@@ -16,29 +17,15 @@ namespace AsynCUDA13.Media
     {
         public static string ExportDirectory { get; set; } = Path.GetFullPath(Environment.GetEnvironmentVariable("SHARPAI_AUDIO_EXPORT_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "SharpAI_AudioExports"));
 
-        public readonly BindingList<AudioObj> Audios = [];
+        private readonly ConcurrentDictionary<Guid, AudioObj> _audios = [];
+        public IReadOnlyCollection<AudioObj> Audios => this._audios.Values.ToList();
 
         private CancellationTokenSource? recordingCts;
 
 
-        public AudioObj? this[Guid id]
-        {
-            get => this.Audios.FirstOrDefault(a => a.Id == id);
-            set
-            {
-                if (value == null)
-                {
-                    this.RemoveAudio(id);
-                }
-                else
-                {
-                    this[id]?.Dispose();
-                    this[id] = value;
-                }
-            }
-        }
-        public AudioObj? this[int index] => (index >= 0 && index < this.Audios.Count) ? this.Audios[index] : null;
-        public AudioObj? this[string name, bool fuzzyMatch = true] => fuzzyMatch ? this.Audios.FirstOrDefault(a => a.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) : this.Audios.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
+        public AudioObj? this[Guid id] => this._audios.TryGetValue(id, out AudioObj? audioObj) ? audioObj : null;
+        public AudioObj? this[int index] => (index >= 0 && index < this._audios.Count) ? this._audios.Values.ElementAt(index) : null;
+        public AudioObj? this[string name, bool fuzzyMatch = true] => fuzzyMatch ? this._audios.Values.FirstOrDefault(a => a.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) : this._audios.Values.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
 
         public bool IsRecording => this.recordingCts != null && this.recordingCts?.IsCancellationRequested == false;
 
@@ -73,8 +60,7 @@ namespace AsynCUDA13.Media
         // Add & Import
         public bool AddAudio(AudioObj audioObj)
         {
-            this.Audios.Add(audioObj);
-            return true;
+            return this._audios.TryAdd(audioObj.Id, audioObj);
         }
 
         public AudioObj? ImportAudio(string filePath)
@@ -121,6 +107,40 @@ namespace AsynCUDA13.Media
                     return null;
                 }
             });
+        }
+
+        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        {
+            long length = long.TryParse(info.Length, out var len) ? len : 0;
+            long pointer = long.TryParse(info.Pointer, out var ptr) ? ptr : 0;
+            AudioObj obj = new()
+            {
+                BitDepth = info.BitDepth,
+                Channels = info.Channels,
+                ChunkSize = info.ChunkSize,
+                Length = length,
+                Data = info.OnGpu ? [] : new float[length],
+                FilePath = info.FilePath,
+                Name = info.Name,
+                Overlap = info.Overlap,
+                SampleRate = info.SampleRate,
+                Pointer = ptr
+            };
+            
+            if (tryAdd)
+            {
+                if (this._audios.TryAdd(obj.Id, obj))
+                {
+                    return obj;
+                }
+                else if (disposeIfFailedToAdd)
+                {
+                    obj.Dispose();
+                    return null;
+                }
+            }
+
+            return obj;
         }
 
 
@@ -330,42 +350,42 @@ namespace AsynCUDA13.Media
 
 
 
-        public bool RemoveAudio(AudioObj audioObj)
+        public bool RemoveAudio(AudioObj audioObj, bool disposeRemoved = true)
         {
-            if (this.Audios.Contains(audioObj))
+            if (this._audios.TryRemove(audioObj.Id, out var removed))
             {
-                this.Audios.Remove(audioObj);
-                return true;
-            }
-
-            return false;
-        }
-
-        public bool RemoveAudio(Guid audioId)
-        {
-            var audioObj = this.Audios.FirstOrDefault(a => a.Id == audioId);
-            if (audioObj != null)
-            {
-                this.Audios.Remove(audioObj);
+                if (disposeRemoved)
+                {
+                    removed.Dispose();
+                }   
                 return true;
             }
             return false;
         }
 
-        public bool RemoveAudio(string name, bool fuzzyMatch = false)
+        public bool RemoveAudio(Guid audioId, bool disposeRemoved = true)
         {
-            AudioObj? audioObj;
-            if (fuzzyMatch)
-            {
-                audioObj = this.Audios.FirstOrDefault(a => a.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
-            }
-            else
-            {
-                audioObj = this.Audios.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
-            }
+            var audioObj = this._audios[audioId];
             if (audioObj != null)
             {
-                this.Audios.Remove(audioObj);
+                if (disposeRemoved)
+                {
+                    audioObj.Dispose();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public bool RemoveAudio(string name, bool fuzzyMatch = false, bool disposeRemoved = true)
+        {
+            AudioObj? audioObj = this[name, fuzzyMatch];
+            if (audioObj != null)
+            {
+                if (disposeRemoved)
+                {
+                    audioObj.Dispose();
+                }
                 return true;
             }
             return false;
@@ -374,28 +394,29 @@ namespace AsynCUDA13.Media
 
         public int ClearAudios()
         {
-            int count = this.Audios.Count;
-            foreach (var audio in this.Audios)
+            int count = this._audios.Count;
+            foreach (var audio in this._audios.Values)
             {
                 audio.Dispose();
             }
+            this._audios.Clear();
             return count;
         }
 
         public async Task ClearAudiosAsync()
         {
-            var disposeTasks = this.Audios.Select(a => Task.Run(() => a.Dispose())).ToArray();
+            var disposeTasks = this._audios.Values.Select(a => Task.Run(() => a.Dispose())).ToArray();
             await Task.WhenAll(disposeTasks);
-            this.Audios.Clear();
+            this._audios.Clear();
         }
 
         public async ValueTask DisposeAsync()
         {
-            var disposeTasks = this.Audios.Select(a => Task.Run(() => a.Dispose())).ToArray();
+            var disposeTasks = this._audios.Values.Select(a => Task.Run(() => a.Dispose())).ToArray();
 
             await Task.WhenAll(disposeTasks);
 
-            this.Audios.Clear();
+            this._audios.Clear();
 
             GC.SuppressFinalize(this);
         }

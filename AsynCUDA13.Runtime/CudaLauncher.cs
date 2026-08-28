@@ -8,6 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.Api.Responses;
+using AsynCUDA13.Shared.Serialization;
+using System.Security.AccessControl;
 
 namespace AsynCUDA13.Runtime
 {
@@ -329,20 +332,22 @@ namespace AsynCUDA13.Runtime
 
 
         // IRuntimeLauncher API
-        public int? Execute(string kernelName, params object[] arguments)
+        public RuntimeExecuteResponse? Execute(string kernelName, params object[] arguments)
         {
             return this.ExecuteGenericKernel(kernelName, arguments);
         }
 
-        public async Task<int?> ExecuteAsync(string kernelName, params object[] arguments)
+        public async Task<RuntimeExecuteResponse?> ExecuteAsync(string kernelName, params object[] arguments)
         {
             return await this.ExecuteGenericKernelAsync(kernelName, arguments);
         }
 
 
         // Generic async EXEC
-        public async Task<int?> ExecuteGenericKernelAsync(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
+        public async Task<RuntimeExecuteResponse?> ExecuteGenericKernelAsync(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
         {
+            var response = new RuntimeExecuteResponse();
+
             // Set context first for thread-affine CUDA operations
             this.Context.SetCurrent();
 
@@ -365,9 +370,12 @@ namespace AsynCUDA13.Runtime
                 return null;
             }
 
+
             // Verify arguments match Kernel signature
-            Type[] argTypes = arguments.Select(a => a?.GetType() ?? typeof(object)).ToArray();
             Type[] argTypesSignature = this.Compiler.GetArguments(null).Values.ToArray();
+            arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments.Cast<string>(), argTypesSignature) : arguments;
+            Type[] argTypes = arguments.Select(a => a?.GetType() ?? typeof(object)).ToArray();
+
             if (argTypes.Length != argTypesSignature.Length)
             {
                 await StaticLogger.LogAsync($"Kernel argument count does not match signature '{kernelName ?? "N/A"}': expected {argTypesSignature.Length}, got {argTypes.Length}.");
@@ -434,9 +442,11 @@ namespace AsynCUDA13.Runtime
                     this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
                 }
 
+                var nullPtrArgs = arguments.Select((a, i) => a is IntPtr && a.Equals(IntPtr.Zero));
+
                 object[] kernelArguments = arguments.Select((argument, index) =>
-                    argTypesSignature[index] == typeof(IntPtr) && argument is IntPtr pointer
-                        ? new CUdeviceptr(pointer)
+                    argTypesSignature[index].IsPointer && argument is IntPtr pointer
+                        ? pointer.Equals(IntPtr.Zero) ? this.Register : new CUdeviceptr(pointer)
                         : argument).ToArray();
 
                 // EXEC. Use the synchronous launch here so the configured grid and block dimensions
@@ -457,13 +467,15 @@ namespace AsynCUDA13.Runtime
                 }
             }
 
-            int elapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
-            await StaticLogger.LogAsync($"Kernel executed '{this.KernelName ?? "N/A"}' in {elapsedMs} ms");
-            return elapsedMs;
+            response.ElapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
+            await StaticLogger.LogAsync($"Kernel executed '{this.KernelName ?? "N/A"}' in {response.ElapsedMs} ms");
+            return response;
         }
 
-        public int? ExecuteGenericKernel(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
+        public RuntimeExecuteResponse? ExecuteGenericKernel(string? kernelName, object[] arguments, bool unloadWhenExecuted = false)
         {
+            var response = new RuntimeExecuteResponse();
+
             // Set context first for thread-affine CUDA operations
             this.Context.SetCurrent();
 
@@ -555,14 +567,16 @@ namespace AsynCUDA13.Runtime
                     this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
                 }
 
-                object[] kernelArguments = arguments.Select((argument, index) =>
-                    argTypesSignature[index] == typeof(IntPtr) && argument is IntPtr pointer
-                        ? new CUdeviceptr(pointer)
-                        : argument).ToArray();
+                response.ResultPointers = this.SetArgumentValues(ref arguments, argTypes)?.Select(np => np.ToString()).ToArray() ?? null;
+                if (response.ResultPointers == null)
+                {
+                    StaticLogger.LogError("SetArgumentValues() returned null which means that at least one arg could not been set or pointer(s) null.");
+                    return response;
+                }
 
                 // EXEC. Use the synchronous launch here so the configured grid and block dimensions
                 // are applied by the same path as the dedicated image launcher before the output is read.
-                this.Kernel.Run(kernelArguments);
+                this.Kernel.Run(arguments);
                 this.Context.Synchronize();
             }
             catch (Exception ex)
@@ -578,47 +592,62 @@ namespace AsynCUDA13.Runtime
                 }
             }
 
-            int elapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
-            StaticLogger.Log($"Kernel executed '{this.KernelName ?? "N/A"}' in {elapsedMs} ms");
-            return elapsedMs;
+            response.ElapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
+            StaticLogger.Log($"Kernel executed '{this.KernelName ?? "N/A"}' in {response.ElapsedMs} ms");
+            return response;
         }
 
 
-        // Methods (async)
-        /// <summary>
-        /// Asynchronously executes a kernel over a one-dimensional (linear) data buffer by running
-        /// <see cref="ExecuteLinearKernel"/> on a background thread.
-        /// </summary>
-        /// <param name="kernelName">The kernel to load when none is currently loaded.</param>
-        /// <param name="pointer">The native handle of the input/output device buffer.</param>
-        /// <param name="arguments">The non-pointer scalar arguments expected by the kernel, in order.</param>
-        /// <param name="length">The number of elements to process.</param>
-        /// <returns>A task producing the input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
-        public async Task<IntPtr?> ExecuteLinearKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, IntPtr length)
+        internal IntPtr[]? SetArgumentValues(ref object[] arguments, Type[] argumentTypes)
         {
-            this.Context.SetCurrent();
-            return await Task.Run(() => this.ExecuteLinearKernel(kernelName, pointer, arguments, length));
+            List<IntPtr> newAllocated = [];
+            int? count = arguments.Length == argumentTypes.Length ? arguments.Length : null;
+            if (count == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                object arg = arguments[i];
+                Type t = argumentTypes[i];
+
+                int maxStride = 1;
+                CudaMem? mem = null;
+
+                if (arg is IntPtr ptr)
+                {
+                    if (ptr != IntPtr.Zero)
+                    {
+                        mem = this.Register[ptr] as CudaMem;
+                        arguments[i] = new CUdeviceptr(ptr);
+                    }
+                    else
+                    {
+                        if (t.IsPointer)
+                        {
+                            t = t.MakeGenericType();
+                            var allocMethod = maxStride <= 1
+                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateSingle), [typeof(IntPtr), typeof(bool)])
+                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateGroup), [typeof(IntPtr[]), typeof(bool)]);
+
+                            mem = allocMethod?.MakeGenericMethod(t).Invoke(this, mem?.PointerLengths.Cast<object>().ToArray()) as CudaMem;
+                            if (mem != null)
+                            {
+                                newAllocated.AddRange(mem.Pointers);
+                                arguments[i] = new CUdeviceptr(mem.IndexPointer);
+                            }
+                            else
+                            {
+                                newAllocated.Add(IntPtr.Zero);
+                            }
+                        }
+                    }                    
+                }
+            }
+
+            return newAllocated.ToArray();
         }
-
-        /// <summary>
-        /// Asynchronously executes a kernel over a two-dimensional image buffer by running
-        /// <see cref="ExecuteImageKernel"/> on a background thread.
-        /// </summary>
-        /// <param name="kernelName">The kernel to load when none is currently loaded.</param>
-        /// <param name="pointer">The native handle of the image device buffer (used as both input and output).</param>
-        /// <param name="arguments">The additional scalar arguments expected by the kernel, in order.</param>
-        /// <param name="width">The image width in pixels.</param>
-        /// <param name="height">The image height in pixels.</param>
-        /// <param name="channels">The number of channels per pixel (default 4).</param>
-        /// <param name="bitdepth">The bit depth per channel (default 8).</param>
-        /// <returns>A task producing the input <paramref name="pointer"/> on success; otherwise <c>null</c>.</returns>
-        public async Task<IntPtr?> ExecuteImageKernelAsync(string? kernelName, IntPtr pointer, object[] arguments, int width, int height, int channels = 4, int bitdepth = 8)
-        {
-            this.Context.SetCurrent();
-            return await Task.Run(() => this.ExecuteImageKernel(kernelName, pointer, arguments, width, height, channels, bitdepth));
-        }
-
-
 
 
         // Dispose

@@ -94,6 +94,14 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
 
             this.ExecuteResponse = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelInfo.FunctionName, this.ExecuteRequest.ArgumentValues, false);
+            if (this.ExecuteResponse == null || !this.ExecuteResponse.Success || this.ExecuteResponse.ResultPointers == null)
+            {
+                await this.PutInfoMessageAsync("Execute response DTO was null or not successful or its ResultPointers were null.", "error", true, 5);
+            }
+            else
+            {
+                await this.PutInfoMessageAsync($"Successfully executed Kernel, created [{this.ExecuteResponse.ResultPointers?.Length}] result pointers within {this.ExecuteResponse.ElapsedMs} ms.", "success", true, 4);
+            }
 
             await this.NotifyStateChangedAsync(true);
         }

@@ -22,6 +22,11 @@ namespace AsynCUDA13.OpenClBackend
         public Guid Id { get; } = Guid.NewGuid();
 
         /// <summary>
+        /// Gets or sets an optional Asset-reference ID to reverse assign a MemObj to an Asset by its Id
+        /// </summary>
+        public Guid? AssetReferenceId { get; set; } = null;
+
+        /// <summary>
         /// Gets the OpenCL buffer handles for every buffer described by this instance.
         /// </summary>
         public CLBuffer[] Buffers { get; private set; } = [];

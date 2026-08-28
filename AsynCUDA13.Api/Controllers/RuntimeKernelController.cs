@@ -1,4 +1,5 @@
-﻿using AsynCUDA13.Api.Services.DtoBuilders;
+﻿using AsynCUDA13.Api.Services;
+using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
@@ -6,16 +7,18 @@ using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.Shared.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography.Xml;
 
 namespace AsynCUDA13.Api.Controllers
 {
     public class RuntimeKernelController : ApiControllerBase
     {
+        private readonly IAssetProvider assetProvider;
 
-        public RuntimeKernelController(IRuntimeService runtime)
+        public RuntimeKernelController(IRuntimeService runtime,IAssetProvider assets)
             : base(runtime)
         {
-
+            this.assetProvider = assets;
         }
 
         [HttpGet("kernels")]
@@ -179,6 +182,29 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
+                if (request.CreateResultPointerReferenceAssets)
+                {
+                    foreach (var ptr in result.ResultPointers ?? [])
+                    {
+                        RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr);
+                        if (memInfo == null || memInfo.AssetReferenceId == null)
+                        {
+                            continue;
+                        }
+
+                        var audio = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
+                        var image = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
+                        if (audio != null)
+                        {
+                            this.assetProvider.CreateFromInfo(audio);
+                        }
+                        if (image != null)
+                        {
+                            this.assetProvider.CreateFromInfo(image);
+                        }
+                    }
+                }
+
                 result.KernelInfo = request.KernelInfo;
                 
                 return this.Ok(result);
@@ -248,10 +274,10 @@ namespace AsynCUDA13.Api.Controllers
                     return this.BadRequest(pd);
                 }
 
-                IntPtr length = (IntPtr) mem.TotalLength;
+                IntPtr length = checked((IntPtr) mem.TotalLength);
 
                 this.backend.SetCurrent();
-                var result = await Task.Run(() => this.backend.Launcher.Execute(request.KernelInfo.FunctionName, pointer.Value, args, length));
+                var result = request.AsyncCall ? await this.backend.Launcher.ExecuteAsync(request.KernelInfo.FunctionName, args) : this.backend.Launcher.Execute(request.KernelInfo.FunctionName, pointer.Value, args, length);
                 if (result == null)
                 {
                     var pd = new ProblemDetails
@@ -275,6 +301,29 @@ namespace AsynCUDA13.Api.Controllers
                             Status = 500
                         };
                         return this.StatusCode(500, pd);
+                    }
+                }
+
+                if (request.CreateResultPointerReferenceAssets)
+                {
+                    foreach (var ptr in result.ResultPointers ?? [])
+                    {
+                        RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr);
+                        if (memInfo == null || memInfo.AssetReferenceId == null)
+                        {
+                            continue;
+                        }
+
+                        var audio = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
+                        var image = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
+                        if (audio != null)
+                        {
+                            this.assetProvider.CreateFromInfo(audio);
+                        }
+                        if (image != null)
+                        {
+                            this.assetProvider.CreateFromInfo(image);
+                        }
                     }
                 }
 

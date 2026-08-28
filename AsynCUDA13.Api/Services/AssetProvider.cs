@@ -44,5 +44,35 @@ namespace AsynCUDA13.Api.Services
         {
             return MediaInfosBuilder.BuildAudioInfo(audio);
         }
+
+        public ImageInfo? GetImageInfo(Guid imageId)
+        {
+            var obj = this.images[imageId];
+            if (obj != null)
+            {
+                return this.GetImageInfo(obj);
+            }
+            return null;
+        }
+
+        public AudioInfo? GetAudioInfo(Guid audioId)
+        {
+            var obj = this.audios[audioId];
+            if (obj != null)
+            {
+                return this.GetAudioInfo(obj);
+            }
+            return null;
+        }
+
+        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        {
+            return this.audios.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd);
+        }
+
+        public ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        {
+            return this.images.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd);
+        }
     }
 }

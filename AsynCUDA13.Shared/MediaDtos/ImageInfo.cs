@@ -16,7 +16,10 @@ namespace AsynCUDA13.Shared.MediaDtos
         public DateTime CreatedAt { get; set; }
         public string Name { get; set; } = string.Empty;
 
+        public string FilePath { get; set; } = string.Empty;
+
         public string MediaType { get; set; } = "image";
+        public string Meta { get; set; } = string.Empty;
 
         public int Width { get; set; }
         public int Height { get; set; }

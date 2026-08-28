@@ -22,7 +22,7 @@ namespace AsynCUDA13.Media
 
 
         public float[] Data { get; set; } = [];
-        public int Length => this.Data.Length;
+        public long Length { get; set; } = 0;
         public int SampleRate { get; set; } = 0;
         public int Channels { get; set; } = 0;
         public int BitDepth { get; set; } = 0;
@@ -101,6 +101,7 @@ namespace AsynCUDA13.Media
                         samplesRead = 0;
                     }
 
+                    this.Length = samplesRead;
                     this.Data = buffer[..samplesRead];
                 }
                 this.Name = Path.GetFileNameWithoutExtension(filePath);
@@ -266,6 +267,7 @@ namespace AsynCUDA13.Media
 
                     // Update the AudioObj with resampled data
                     this.Data = resampledList.ToArray();
+                    this.Length = this.Data.LongLength;
                     this.SampleRate = targetSampleRate;
                     // Update bit depth if requested, otherwise keep existing
                     if (targetBitDepth.HasValue)
@@ -350,6 +352,7 @@ namespace AsynCUDA13.Media
                     }
 
                     this.Data = rechanneledList.ToArray();
+                    this.Length = this.Data.LongLength;
                     this.Channels = targetChannels;
 
                     return true;
@@ -458,6 +461,7 @@ namespace AsynCUDA13.Media
                     }
                 }
                 this.Data = aggregatedData.ToArray();
+                this.Length = this.Data.LongLength;
             });
 
             if (!keepPointer)

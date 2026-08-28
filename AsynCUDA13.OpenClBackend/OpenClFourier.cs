@@ -84,8 +84,8 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            bool ok = this._launcher.Execute("chunked_fft", chunkCount, input, output, chunkSize, overlap);
-            Vector2[]? result = ok ? this._register.PullData<Vector2>((IRuntimeMem) output) : null;
+            var response = this._launcher.Execute("chunked_fft", chunkCount, input, output, chunkSize, overlap);
+            Vector2[]? result = response != null ? this._register.PullData<Vector2>((IRuntimeMem) output) : null;
 
             this.SafeFree(input, output);
             return result;
@@ -117,8 +117,8 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            bool ok = this._launcher.Execute("chunked_ifft", chunkCount, input, output, chunkSize, overlap);
-            float[]? result = ok ? this._register.PullData<float>((IRuntimeMem) output) : null;
+            var response = this._launcher.Execute("chunked_ifft", chunkCount, input, output, chunkSize, overlap);
+            float[]? result = response != null ? this._register.PullData<float>((IRuntimeMem) output) : null;
 
             this.SafeFree(input, output);
             return result;
@@ -171,8 +171,8 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            bool ok = this._launcher.Execute("pad_real_to_complex", n, input, complex, data.Length, (int)n)
-                      && this._launcher.Execute("fft_full", 1, complex, n);
+            bool ok = this._launcher.Execute("pad_real_to_complex", n, input, complex, data.Length, (int)n) != null
+                      && this._launcher.Execute("fft_full", 1, complex, n) != null;
 
             Vector2[]? result = ok ? this._register.PullData<Vector2>((IRuntimeMem) complex) : null;
 
@@ -220,9 +220,9 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             float scale = 1.0f / n;
-            bool ok = this._launcher.Execute("ifft_full", 1, complex, n)
-                      && this._launcher.Execute("normalize_complex", n, complex, scale, n)
-                      && this._launcher.Execute("extract_real", n, complex, real, n);
+            bool ok = this._launcher.Execute("ifft_full", 1, complex, n) != null
+                      && this._launcher.Execute("normalize_complex", n, complex, scale, n) != null
+                      && this._launcher.Execute("extract_real", n, complex, real, n) != null;
 
             float[]? full = ok ? this._register.PullData<float>((IRuntimeMem) real) : null;
 
@@ -406,8 +406,8 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            bool ok = this._launcher.Execute("pad_real_to_complex", n, input, complex, (int)input.TotalLength, n)
-                      && this._launcher.Execute("fft_full", 1, complex, n);
+            bool ok = this._launcher.Execute("pad_real_to_complex", n, input, complex, (int) input.TotalLength, n) != null
+                      && this._launcher.Execute("fft_full", 1, complex, n) != null;
 
             if (!ok)
             {
@@ -432,9 +432,9 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
             float scale = 1.0f / n;
-            bool ok = this._launcher.Execute("ifft_full", 1, input, n)
-                      && this._launcher.Execute("normalize_complex", n, input, scale, n)
-                      && this._launcher.Execute("extract_real", n, input, real, n);
+            bool ok = this._launcher.Execute("ifft_full", 1, input, n) != null
+                      && this._launcher.Execute("normalize_complex", n, input, scale, n) != null
+                      && this._launcher.Execute("extract_real", n, input, real, n) != null;
             if (!ok)
             {
                 this.SafeFree(input, real);

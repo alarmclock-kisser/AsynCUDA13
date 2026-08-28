@@ -72,13 +72,13 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static RuntimeExecuteResponse BuildExecuteResponse(RuntimeKernelInfo kernelInfo, bool success, IntPtr? resultPtr = null, int elapsedMs = -1)
+        public static RuntimeExecuteResponse BuildExecuteResponse(RuntimeKernelInfo kernelInfo, bool success, IntPtr[]? resultPtrs = null, int elapsedMs = -1)
         {
             return new RuntimeExecuteResponse
             {
                 Success = success,
                 KernelInfo = kernelInfo,
-                ResultPointers = resultPtr.ToString(),
+                ResultPointers = resultPtrs?.Select(rp => rp.ToString()).ToArray() ?? [],
                 ElapsedMs = elapsedMs
             };
         }

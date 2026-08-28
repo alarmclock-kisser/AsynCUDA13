@@ -771,6 +771,8 @@ namespace AsynCUDA13.Client
             {
                 var response = await this.internalClient.ExecuteGenericAsync(request);
                 hasValue = response != null;
+
+
                 return response;
             }
             catch (Exception ex)

@@ -24,6 +24,11 @@ namespace AsynCUDA13.Runtime
         public Guid Id { get; private set; } = Guid.NewGuid();
 
         /// <summary>
+        /// Gets or sets an optional Asset-reference ID to reverse assign a MemObj to an Asset by its Id
+        /// </summary>
+        public Guid? AssetReferenceId { get; set; } = null;
+
+        /// <summary>
         /// Gets the CUDA device pointers (<see cref="CUdeviceptr"/>) for every buffer described by this instance.
         /// </summary>
         internal CUdeviceptr[] DevicePointers { get; private set; } = [];

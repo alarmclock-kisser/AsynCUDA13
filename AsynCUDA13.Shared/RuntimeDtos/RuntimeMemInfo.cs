@@ -8,6 +8,7 @@ namespace AsynCUDA13.Shared.RuntimeDtos
     public class RuntimeMemInfo
     {
         public string Id { get; set; } = string.Empty;
+        public Guid? AssetReferenceId { get; set; } = null;
         public string IndexPointer => this.Pointers.FirstOrDefault() ?? "0";
 
 

@@ -95,6 +95,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             var infos = service.RegisteredMemory.Select(mem => new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
+                AssetReferenceId = mem.AssetReferenceId,
                 ElementType = mem.ElementType.ToString().Split('.').Last(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
                 Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
@@ -120,6 +121,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             var info = new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
+                AssetReferenceId = mem.AssetReferenceId,
                 ElementType = mem.ElementType.ToString().Split('.').Last(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
                 Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),

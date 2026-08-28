@@ -88,8 +88,8 @@ namespace AsynCUDA13.Api.Controllers
 
                 object[] arguments = this.backend.Compiler.MergeArgumentsImage(mem.IndexPointer, outputMem.IndexPointer, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
 
-                var elapsedMs = await this.backend.Launcher.ExecuteAsync(kernelName, arguments);
-                if (!elapsedMs.HasValue)
+                var response = await this.backend.Launcher.ExecuteAsync(kernelName, arguments);
+                if (response == null)
                 {
                     var pd = new ProblemDetails
                     {
@@ -218,8 +218,8 @@ namespace AsynCUDA13.Api.Controllers
                 object[] arguments = this.backend.Compiler.MergeArgumentsImage(mem.IndexPointer, outputMem.IndexPointer, imageObj.Width, imageObj.Height, imageObj.Channels, imageObj.Bitdepth, argumentValues.ToArray());
 
                 // Execute the kernel asynchronously
-                var elapsedMs = await this.backend.Launcher.ExecuteAsync(kernelName, arguments);
-                if (!elapsedMs.HasValue)
+                var response = await this.backend.Launcher.ExecuteAsync(kernelName, arguments);
+                if (response == null)
                 {
                     var pd = new ProblemDetails
                     {

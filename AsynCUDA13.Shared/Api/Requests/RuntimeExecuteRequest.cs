@@ -77,6 +77,8 @@ namespace AsynCUDA13.Shared.Api.Requests
         public bool AsyncCall { get; set; } = true;
         public bool UnloadAfterExecution { get; set; } = false;
 
+        public bool CreateResultPointerReferenceAssets { get; set; } = true;
+
 
 
         public void UpdateImageArgs(ImageInfo imageInfo)
