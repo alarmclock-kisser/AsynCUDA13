@@ -109,24 +109,24 @@ namespace AsynCUDA13.Media
             });
         }
 
-        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
         {
             long length = long.TryParse(info.Length, out var len) ? len : 0;
-            long pointer = long.TryParse(info.Pointer, out var ptr) ? ptr : 0;
+            long ptr = pointer ?? (long.TryParse(info.Pointer, out var p) ? p : 0);
             AudioObj obj = new()
             {
                 BitDepth = info.BitDepth,
                 Channels = info.Channels,
                 ChunkSize = info.ChunkSize,
                 Length = length,
-                Data = info.OnGpu ? [] : new float[length],
+                Data = emptyData ? [] : new float[length],
                 FilePath = info.FilePath,
                 Name = info.Name,
                 Overlap = info.Overlap,
                 SampleRate = info.SampleRate,
                 Pointer = ptr
             };
-            
+
             if (tryAdd)
             {
                 if (this._audios.TryAdd(obj.Id, obj))
@@ -357,7 +357,7 @@ namespace AsynCUDA13.Media
                 if (disposeRemoved)
                 {
                     removed.Dispose();
-                }   
+                }
                 return true;
             }
             return false;

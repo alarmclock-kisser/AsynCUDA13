@@ -65,14 +65,14 @@ namespace AsynCUDA13.Api.Services
             return null;
         }
 
-        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
         {
-            return this.audios.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd);
+            return this.audios.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd, emptyData, pointer);
         }
 
-        public ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        public ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
         {
-            return this.images.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd);
+            return this.images.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd, emptyData, pointer);
         }
 
         public Guid? VerifyAssetId(Guid id)
@@ -106,9 +106,8 @@ namespace AsynCUDA13.Api.Services
 
             return ids
                 .Select(this.VerifyAssetId)
-                .Where(g => g.HasValue && g.Value != Guid.Empty)
-                .Select(g => g.Value)
-                .Cast<Guid>()
+                .OfType<Guid>()
+                .Where(g => g != Guid.Empty)
                 .ToArray();
         }
 
@@ -142,9 +141,8 @@ namespace AsynCUDA13.Api.Services
 
             return pointers
                 .Select(this.GetAssetIdByPointer)
-                .Where(g => g.HasValue && g.Value != Guid.Empty)
-                .Select(g => g.Value)
-                .Cast<Guid>()
+                .OfType<Guid>()
+                .Where(g => g != Guid.Empty)
                 .ToArray();
         }
     }

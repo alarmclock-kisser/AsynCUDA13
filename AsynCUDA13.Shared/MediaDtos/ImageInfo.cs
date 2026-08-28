@@ -33,8 +33,8 @@ namespace AsynCUDA13.Shared.MediaDtos
         public string? Pointer { get; set; } = null;
 
         public bool OnGpu => !string.IsNullOrEmpty(this.Pointer) && !this.Pointer.Equals("null", StringComparison.OrdinalIgnoreCase) && !this.Pointer.Equals(IntPtr.Zero.ToString(), StringComparison.OrdinalIgnoreCase);
-    
-    
+
+
         public bool IdMatch(string id, bool requireOnGpu = false)
         {
             return this.Id.ToString().Equals(id, StringComparison.OrdinalIgnoreCase) && (requireOnGpu ? this.OnGpu : true);

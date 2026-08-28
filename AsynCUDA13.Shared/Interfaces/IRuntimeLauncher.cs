@@ -31,6 +31,6 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="kernelName">The kernel entry-point name.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns>The elapsed time in milliseconds if the kernel executed successfully; otherwise <c>null</c>.</returns>
-        Task<RuntimeExecuteResponse?> ExecuteAsync(string  kernelName, params object[] arguments);
+        Task<RuntimeExecuteResponse?> ExecuteAsync(string kernelName, params object[] arguments);
     }
 }

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
+using System.Linq;
 
 namespace AsynCUDA13.Client
 {
@@ -59,7 +60,7 @@ namespace AsynCUDA13.Client
                 MaxResponseContentBufferSize = int.MaxValue
             };
             this.internalClient = new(this.BaseUrl, this.httpClient);
-            this.LogLevel = (LogLevel)configuration.LogLevel;
+            this.LogLevel = (LogLevel) configuration.LogLevel;
 
             if ((int) this.LogLevel >= 5)
             {
@@ -498,7 +499,7 @@ namespace AsynCUDA13.Client
 
                 if (serverSided)
                 {
-                    response = await this.internalClient.PushAssetAsync(verifiedAssetId.Value.ToString(), chunkSize, overlap, keepData);
+                    response = await this.internalClient.PushAssetAsync(verifiedAssetId.Value.ToString(),format, chunkSize, overlap, keepData);
                 }
 
                 else
@@ -566,22 +567,33 @@ namespace AsynCUDA13.Client
         public async Task<RuntimePullResponse?> PullAsync(string indexPointerOrId, bool serverSided = true, bool freeBuffer = true)
         {
             DateTime started = DateTime.Now;
-            RuntimePullResponse? response = null;
+            bool hadValue = false;
             try
             {
                 if (serverSided)
                 {
-                    Guid? assetId = await this.VerifyAssetIdExistsAsync(indexPointerOrId);
-                    if (!assetId.HasValue)
-                    {
-                        assetId = await this.GetAssetIdForIndexPointerAsync(indexPointerOrId);
-                    }
-                    if (assetId == null)
-                    {
-                        return null;
-                    }
+                    // Nur wenn der String KEINE reines Pointer-Adresse (Zahl) ist, als Asset-ID prüfen
+                    bool isNumericPointer = long.TryParse(indexPointerOrId, out _);
+                    Guid? assetId = !isNumericPointer ? await this.VerifyAssetIdExistsAsync(indexPointerOrId) : null;
 
-                    response = await this.internalClient.PullAssetAsync(assetId.Value.ToString(), !freeBuffer);
+                    if (assetId.HasValue)
+                    {
+                        hadValue = true;
+                        return await this.internalClient.PullAssetAsync(assetId.Value.ToString(), !freeBuffer);
+                    }
+                    else
+                    {
+                        // Speicher-Pointer immer strikt über den POST Memory-Pull Endpunkt auflösen
+                        var lazyRequest = new RuntimePullRequest()
+                        {
+                            IndexPointerOrId = indexPointerOrId,
+                            AsyncCall = true,
+                            FreeAfterPull = freeBuffer,
+                            EnsureReferencedAssetsUpdatedOrCreated = true
+                        };
+                        hadValue = true;
+                        return await this.internalClient.PullAsync(lazyRequest);
+                    }
                 }
                 else
                 {
@@ -591,11 +603,19 @@ namespace AsynCUDA13.Client
                         AsyncCall = true,
                         FreeAfterPull = freeBuffer
                     };
-                    response = await this.internalClient.PullAsync(request);
+                    hadValue = true;
+                    return await this.internalClient.PullAsync(request);
                 }
+            }
+            catch (ApiException apiEx)
+            {
+                hadValue = false;
+                await StaticLogger.LogAsync($"[ApiClient] PullAsync Deserialization Error (Status {apiEx.StatusCode}): {apiEx.Message}");
+                return null;
             }
             catch (Exception ex)
             {
+                hadValue = false;
                 await StaticLogger.LogAsync(ex);
                 return null;
             }
@@ -603,13 +623,10 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PullAsync(indexPointerOrId='{indexPointerOrId}', serverSided={serverSided}, freeBuffer={freeBuffer}) (elapsed={DateTime.Now - started}), {(response != null ? "returned DTO" : "returned NULL")}");
+                    await StaticLogger.LogAsync($"[ApiClient] : PullAsync(indexPointerOrId='{indexPointerOrId}', serverSided={serverSided}, freeBuffer={freeBuffer}) (elapsed={DateTime.Now - started}), {(hadValue ? "returned DTO" : "returned NULL")}");
                 }
             }
-
-            return response;
         }
-
 
         // BackendFourierController
         public async Task<RuntimeFourierResponse?> PerformFourierTransformAsync(string indexPointerOrId, bool? inverse = null, bool keepBuffer = false)
@@ -1627,7 +1644,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"One or more provided idsOrNames do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", idsOrNames.Select(i => Guid.TryParse(i, out var g) ? g : (Guid?)null)?.Where(v => v.HasValue && !verifiedIds.Contains(v.Value)) ?? [])}]");
+                        await StaticLogger.LogAsync($"One or more provided idsOrNames do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", idsOrNames.Select(i => Guid.TryParse(i, out var g) ? g : (Guid?) null)?.Where(v => v.HasValue && !verifiedIds.Contains(v.Value)) ?? [])}]");
                     }
                     return [];
                 }
@@ -1654,6 +1671,71 @@ namespace AsynCUDA13.Client
                     await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointersForAssetIdsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
+        }
+
+        public async Task<string[]> GetIndexPointersWithAssetRefIdAsync(string assedId)
+        {
+            if (string.IsNullOrEmpty(assedId))
+            {
+                return [];
+            }
+
+            if (Guid.TryParse(assedId, out var guid) && !guid.Equals(Guid.Empty))
+            {
+                return (await this.GetMemoryListAsync())
+                    .Where(m => (m.AssetReferenceIds ?? []).Contains(guid) || m.AssetReferenceId == guid)
+                    .Select(rm => rm.IndexPointer)
+                    .ToArray();
+            }
+
+            return [];
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Shared.Interfaces.IRuntimeMem.IndexPointer"/> from every <see cref="Shared.Interfaces.IRuntimeMem"/> <br/>
+        /// matching their <see cref="Shared.Interfaces.IRuntimeMem.AssetReferenceIds"/> or <see cref="Shared.Interfaces.IRuntimeMem.AssetReferenceId"/> <br/>
+        /// over <paramref name="requireAll"/> with the set of <paramref name="assetIds"/>.<br/><br/>
+        /// <b>Parameters:</b><br/>
+        /// • <b>assetIds:</b> Requires not even 'some' <see cref="System.Collections.Generic.IEnumerable{T}"/> ids from <see cref="System.Guid.ToString()"/> each, you can leave it as-is and get an empty <see cref="System.Array"/> back.<br/>
+        /// • <b>requireAll:</b> Ternary operator:<br/>
+        ///   - true = EVERY <paramref name="assetIds"/> has to match EVERY <see cref="Shared.Interfaces.IRuntimeMem.AssetReferenceIds"/><br/>
+        ///   - null = INDEX <see cref="Shared.Interfaces.IRuntimeMem.AssetReferenceId"/> has to match ANY <paramref name="assetIds"/><br/>
+        ///   - false = ANY <see cref="Shared.Interfaces.IRuntimeMem.AssetReferenceIds"/> shall match ANY <paramref name="assetIds"/>, at least one.<br/>
+        /// • <b>distinct:</b> Toggles filtering the results using <see cref="System.Linq.Enumerable.Distinct{TSource}(System.Collections.Generic.IEnumerable{TSource})"/>.
+        /// </summary>
+        /// <param name="assetIds">Requires not even 'some' <see cref="System.Collections.Generic.IEnumerable{T}"/> ids from <see cref="System.Guid.ToString()"/> each, you can leave it as-is and get an empty <see cref="System.Array"/> back.</param>
+        /// <param name="requireAll">Ternary operator: true=EVERY assetIds matches EVERY AssetReferenceIds, null=INDEX AssetReferenceId matches ANY assetIds, false=ANY AssetReferenceIds matches ANY assetIds.</param>
+        /// <param name="distinct">Toggles filtering the results using <see cref="System.Linq.Enumerable.Distinct{TSource}(System.Collections.Generic.IEnumerable{TSource})"/>.</param>
+        /// <returns>A string[] which is non-nullable and contains each matching <see cref="Shared.Interfaces.IRuntimeMem.IndexPointer"/>.</returns>
+        public async Task<string[]> GetIndexPointersForRefIdsAsync(IEnumerable<string>? assetIds = null, bool? requireAll = null, bool distinct = true)
+        {
+            assetIds = assetIds?.Where(a => !string.IsNullOrEmpty(a)).Cast<string>().ToArray();
+            if (assetIds == null || !(assetIds.Any()))
+            {
+                return [];
+            }
+
+            var memInfos = await this.GetMemoryListAsync();
+            if (memInfos == null || !(memInfos.Length > 0))
+            {
+                return [];
+            }
+
+            var assetIdSet = assetIds.ToHashSet();
+            var query = memInfos.AsParallel().Where(mem =>
+            {
+                var memRefs = (mem.AssetReferenceIds ?? []).Select(r => r.ToString()).ToHashSet();
+                if (mem.AssetReferenceId.HasValue)
+                {
+                    memRefs.Add(mem.AssetReferenceId.Value.ToString());
+                }
+
+                return requireAll.Equals(true) ? assetIdSet.All(id => memRefs.Contains(id)) :
+                       requireAll.Equals(null) ? !string.IsNullOrEmpty(mem.AssetReferenceId.ToString()) && assetIds.Contains(mem.AssetReferenceId.ToString()) :
+                       requireAll.Equals(false) && memRefs.Any(id => assetIds.Contains(id));
+            }).Select(m => m.IndexPointer);
+
+            return distinct ? query.Distinct().ToArray() : query.ToArray();
         }
 
         public async Task<bool?> IsAssetAudioAsync(Guid? assetId)

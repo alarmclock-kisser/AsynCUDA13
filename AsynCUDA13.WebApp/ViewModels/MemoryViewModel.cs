@@ -114,7 +114,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
             await this.LoadMemoryListAsync();
         }
-        
+
 
         // Handlers
         public async Task HandlePushAsync()
@@ -122,7 +122,8 @@ namespace AsynCUDA13.WebApp.ViewModels
             if (this.SelectedAssetId == null || this.SelectedAssetId.Equals(Guid.Empty))
             {
                 return;
-            };
+            }
+            
 
             await this.PushAssetAsync(this.SelectedAssetId.Value.ToString());
 
@@ -221,10 +222,11 @@ namespace AsynCUDA13.WebApp.ViewModels
             if (this.PullResult == null || !this.PullResult.Success)
             {
                 await this.PutInfoMessageAsync($"Failed to pull memory for index pointer or asset ID: {indexPointerOrId}", "error", true, 5);
-                return;
             }
-
-            await this.PutInfoMessageAsync($"Successfully pulled <{this.PullResult.MemoryInfoReference?.IndexPointer ?? "???"}> for asset with: [{indexPointerOrId}]", "success", true, 3);
+            else
+            {
+                await this.PutInfoMessageAsync($"Successfully pulled <{this.PullResult.MemoryInfoReference?.IndexPointer ?? "???"}> for asset with: [{indexPointerOrId}]", "success", true, 3);
+            }
 
             await this.LoadMemoryListAsync();
         }

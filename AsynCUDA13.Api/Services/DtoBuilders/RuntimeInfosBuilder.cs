@@ -96,18 +96,18 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             {
                 if (resultPointersAssetReferences != null)
                 {
-                    mem.AssetReferenceId = resultPointersAssetReferences.FirstOrDefault();
+                    mem.AssetReferenceIds = resultPointersAssetReferences;
                 }
                 return new RuntimeMemInfo
-            {
-                Id = mem.Id.ToString(),
-                CreatedAt = mem.CreatedAt,
-                AssetReferenceId = mem.AssetReferenceId,
-                ElementType = mem.ElementType.ToString().Split('.').Last(),
-                Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
-                Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
-                Message = mem.Message
-            };
+                {
+                    Id = mem.Id.ToString(),
+                    CreatedAt = mem.CreatedAt,
+                    AssetReferenceIds = mem.AssetReferenceIds,
+                    ElementType = mem.ElementType.ToString(),
+                    Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
+                    Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
+                    Message = mem.Message
+                };
             }).Where(mem => indexPointerOrId == null || mem.Id == indexPointerOrId || (mem.Pointers.Contains(indexPointerOrId) && mem.IndexPointer == indexPointerOrId)).ToArray() ?? [];
 
             return infos;
@@ -128,14 +128,14 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
 
             if (resultPointersAssetReferences != null)
             {
-                mem.AssetReferenceId = resultPointersAssetReferences.FirstOrDefault();
+                mem.AssetReferenceIds = resultPointersAssetReferences;
             }
             var info = new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
                 CreatedAt = mem.CreatedAt,
-                AssetReferenceId = mem.AssetReferenceId,
-                ElementType = mem.ElementType.ToString().Split('.').Last(),
+                AssetReferenceIds = mem.AssetReferenceIds,
+                ElementType = mem.ElementType.ToString(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
                 Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
                 Message = mem.Message
@@ -156,7 +156,8 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 cuPaths = cuPaths.Where(cu => service.Compiler.GetCompiledFiles().Any(ptx => Path.GetFileNameWithoutExtension(ptx) == Path.GetFileNameWithoutExtension(cu))).ToArray() ?? [];
             }
 
-            var infos = cuPaths.Select(kernel => {
+            var infos = cuPaths.Select(kernel =>
+            {
                 var args = service.Compiler.GetArguments(kernel);
                 return new RuntimeKernelInfo
                 {

@@ -76,7 +76,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Allocate output memory
-            var outputMem = this.Register.AllocateGroup<float2>(mem.PointerLengths.Select(l => (nint)l).ToArray());
+            var outputMem = this.Register.AllocateGroup<float2>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -113,7 +113,7 @@ namespace AsynCUDA13.Runtime
 
                     for (int i = 0; i < mem.Count; i++)
                     {
-                        CudaFFTPlan1D plan = new((int)nx[i], fftType, batch);
+                        CudaFFTPlan1D plan = new((int) nx[i], fftType, batch);
                         CUdeviceptr inPtr = new(mem.PointerIds[i]);
                         CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                         plan.Exec(inPtr, outPtr);
@@ -179,7 +179,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Allocate output memory
-            var outputMem = this.Register.AllocateGroup<float>(mem.PointerLengths.Select(l => (nint)l).ToArray());
+            var outputMem = this.Register.AllocateGroup<float>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -216,7 +216,7 @@ namespace AsynCUDA13.Runtime
 
                     for (int i = 0; i < mem.Count; i++)
                     {
-                        CudaFFTPlan1D plan = new((int)nx[i], fftType, batch);
+                        CudaFFTPlan1D plan = new((int) nx[i], fftType, batch);
                         CUdeviceptr inPtr = new(mem.PointerIds[i]);
                         CUdeviceptr outPtr = new(outputMem.PointerIds[i]);
                         plan.Exec(inPtr, outPtr);
@@ -314,7 +314,7 @@ namespace AsynCUDA13.Runtime
                 return IntPtr.Zero;
             }
 
-            var outputMem = await this.Register.AllocateGroupAsync<float2>(mem.PointerLengths.Select(l => (nint)l).ToArray());
+            var outputMem = await this.Register.AllocateGroupAsync<float2>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");
@@ -389,7 +389,7 @@ namespace AsynCUDA13.Runtime
                 return IntPtr.Zero;
             }
 
-            var outputMem = await this.Register.AllocateGroupAsync<float>(mem.PointerLengths.Select(l => (nint)l).ToArray());
+            var outputMem = await this.Register.AllocateGroupAsync<float>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
                 StaticLogger.Log("Could not allocate output memory.");

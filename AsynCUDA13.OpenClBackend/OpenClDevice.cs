@@ -140,7 +140,7 @@ namespace AsynCUDA13.OpenClBackend
                 for (int d = 0; d < devices.Length; d++)
                 {
                     string deviceName = ReadstringInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.Name, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
-                    DeviceType type = (DeviceType)ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.Type, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
+                    DeviceType type = (DeviceType) ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.Type, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
                     ulong globalMem = ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.GlobalMemorySize, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
                     ulong maxWorkGroup = ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.MaximumWorkGroupSize, out Byte[] bytes) == CLResultCode.Success ? bytes : null);
                     uint computeUnits = (uint) ReadUlongInfo(() => CL.GetDeviceInfo(devices[d], DeviceInfo.MaximumComputeUnits, out Byte[] bytes) == CLResultCode.Success ? bytes : null);

@@ -14,7 +14,7 @@ namespace AsynCUDA13.Api.Controllers
         public RuntimeDeviceController(IRuntimeService backend)
             : base(backend)
         {
-            
+
         }
 
 
@@ -77,7 +77,7 @@ namespace AsynCUDA13.Api.Controllers
             try
             {
                 var devices = this.backend.TotalAvailableDeviceProperties;
-                
+
                 var info = RuntimeInfosBuilder.BuildRuntimeDeviceInfo(this.backend, deviceId);
                 if (info == null)
                 {

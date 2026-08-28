@@ -706,10 +706,10 @@ namespace AsynCUDA13.OpenClBackend
             int argCount = CL.GetKernelInfo(clK.Value, KernelInfo.NumberOfArguments, out byte[] count) == CLResultCode.Success ? BitConverter.ToInt32(count, 0) : 0;
             for (int i = 0; i < argCount; i++)
             {
-                string argName = CL.GetKernelArgInfo(clK.Value, (uint)i, KernelArgInfo.Name, out byte[] nameBytes) == CLResultCode.Success
+                string argName = CL.GetKernelArgInfo(clK.Value, (uint) i, KernelArgInfo.Name, out byte[] nameBytes) == CLResultCode.Success
                     ? Encoding.ASCII.GetString(nameBytes).TrimEnd('\0')
                     : argNames[i];
-                string argTypeStr = CL.GetKernelArgInfo(clK.Value, (uint)i, KernelArgInfo.TypeName, out byte[] typeBytes) == CLResultCode.Success
+                string argTypeStr = CL.GetKernelArgInfo(clK.Value, (uint) i, KernelArgInfo.TypeName, out byte[] typeBytes) == CLResultCode.Success
                     ? Encoding.ASCII.GetString(typeBytes).TrimEnd('\0')
                     : argTypes[i];
                 Type argType = MapOpenClTypeToCSharp(argTypeStr);
@@ -834,7 +834,7 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             // Calculate expected length of input data based on width, height, and channels as a fallback if when there is no reference input MemObj TotalLength to get
-            nint expectedLen = checked((nint)((long)width * height * channels));
+            nint expectedLen = checked((nint) ((long) width * height * channels));
             nint? inputPtrLen = inputPointer.HasValue ? (nint) (this.Register[inputPointer.Value]?.TotalLength ?? expectedLen) : null;
 
             // Create array for kernel arguments with pointers and index counters

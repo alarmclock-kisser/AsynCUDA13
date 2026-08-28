@@ -7,6 +7,7 @@ using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
 using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.MediaDtos;
 using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.Shared.Serialization;
 using Microsoft.AspNetCore.Mvc;
@@ -185,7 +186,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                string freed = (await Task.WhenAll(this.backend.RegisteredMemory.Select(async m => await Task.Run(() =>this.backend.FreeMemory(m.IndexPointer))))).Sum().ToString();
+                string freed = (await Task.WhenAll(this.backend.RegisteredMemory.Select(async m => await Task.Run(() => this.backend.FreeMemory(m.IndexPointer))))).Sum().ToString();
 
                 return this.Ok(freed);
             }
@@ -327,7 +328,6 @@ namespace AsynCUDA13.Api.Controllers
                     if (audio != null)
                     {
                         audio.Pointer = mem.IndexPointer;
-
                     }
                     else if (image != null)
                     {
@@ -394,11 +394,21 @@ namespace AsynCUDA13.Api.Controllers
 
                 // Try get CudaMem-object for the given index/pointer/ID
                 RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, request.IndexPointerOrId);
+                if (memInfo != null)
+                {
+                    assetPtr = long.TryParse(memInfo.IndexPointer, out var ptr) ? ptr : null;
+
+                }
+
                 if (memInfo == null)
                 {
                     audio = this.assetProvider.GetAudio(Guid.TryParse(request.IndexPointerOrId, out var aguid) ? aguid : Guid.Empty) ?? this.assetProvider.GetAudio(request.IndexPointerOrId);
                     image = this.assetProvider.GetImage(Guid.TryParse(request.IndexPointerOrId, out var iguid) ? iguid : Guid.Empty) ?? this.assetProvider.GetImage(request.IndexPointerOrId);
+
                     assetPtr = audio?.Pointer != null ? audio.Pointer : image?.Pointer != null ? image.Pointer : 0;
+                    var audioInfo = this.assetProvider.GetAudioInfo(audio?.Id ?? Guid.Empty);
+                    var imageInfo = this.assetProvider.GetImageInfo(image?.Id ?? Guid.Empty);
+
                     memInfo = assetPtr != 0 ? RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, assetPtr.Value.ToString()) : null;
                 }
 
@@ -414,46 +424,75 @@ namespace AsynCUDA13.Api.Controllers
 
                 if (request.EnsureReferencedAssetsUpdatedOrCreated && memInfo.AssetReferenceId.HasValue)
                 {
-                    Guid? assetId = null;
-                    if (assetPtr.HasValue)
+                    Guid refId = memInfo.AssetReferenceId.Value;
+                    long currentMemPtr = long.TryParse(memInfo.IndexPointer, out var parsedPtr) ? parsedPtr : 0;
+
+                    IntPtr nativePtr = new IntPtr(currentMemPtr);
+                    IRuntimeMem? mem = this.backend[nativePtr];
+
+                    // 1. Audio-Asset Prüfung
+                    var audioInfo = this.assetProvider.GetAudioInfo(refId);
+                    if (audioInfo != null)
                     {
-                        assetId = this.assetProvider.GetAssetIdByPointer(assetPtr.Value);
-                    }
-                    if (assetId.HasValue)
-                    {
-                        var audioInfo = this.assetProvider.GetAudioInfo(assetId.Value);
-                        var imageInfo = this.assetProvider.GetImageInfo(assetId.Value);
-                        if (audioInfo == null)
+                        var existingAudio = this.assetProvider.GetAudio(refId);
+
+                        if (existingAudio == null || (existingAudio.Pointer != 0 && existingAudio.Pointer != currentMemPtr))
                         {
-                            var audioRef = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
-                            if (audioRef != null)
+                            audio = this.assetProvider.CreateFromInfo(audioInfo);
+                            if (audio != null)
                             {
-                                audio = this.assetProvider.CreateFromInfo(audioRef);
-                                audio?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptr) ? ptr : 0;
+                                audio.Pointer = currentMemPtr; // WICHTIG: Pointer am neu erstellten AudioObj setzen!
+                                if (mem != null)
+                                {
+                                    mem.AssetReferenceId = audio.Id;
+                                }
+                                memInfo.AssetReferenceIds = (mem?.AssetReferenceIds ?? Array.Empty<Guid>()).Append(audio.Id).Distinct().ToArray();
                             }
                         }
-                        else if (imageInfo != null)
+                        else
                         {
-                            var imageRef = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
-                            if (imageRef != null)
+                            existingAudio.Pointer = currentMemPtr;
+                            audio = existingAudio;
+                        }
+                    }
+                    // 2. Image-Asset Prüfung
+                    else
+                    {
+                        var imageInfo = this.assetProvider.GetImageInfo(refId);
+                        if (imageInfo != null)
+                        {
+                            var existingImage = this.assetProvider.GetImage(refId);
+
+                            if (existingImage == null || (existingImage.Pointer != 0 && existingImage.Pointer != currentMemPtr))
                             {
-                                image = this.assetProvider.CreateFromInfo(imageRef);
-                                image?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptr) ? ptr : 0;
+                                image = this.assetProvider.CreateFromInfo(imageInfo);
+                                if (image != null)
+                                {
+                                    image.Pointer = currentMemPtr; // WICHTIG: Pointer am neu erstellten ImageObj setzen!
+                                    if (mem != null)
+                                    {
+                                        mem.AssetReferenceId = image.Id;
+                                    }
+                                    memInfo.AssetReferenceIds = (mem?.AssetReferenceIds ?? Array.Empty<Guid>()).Append(image.Id).Distinct().ToArray();
+                                }
+                            }
+                            else
+                            {
+                                existingImage.Pointer = currentMemPtr;
+                                image = existingImage;
                             }
                         }
                     }
                 }
 
-                // Get Type T
+                // Element-Typ bestimmen
                 Type t = Type.GetType(memInfo.ElementType, true, true) ?? throw new ArgumentException($"Element type '{memInfo.ElementType}' could not be found.");
 
-                // Create DTO response
                 RuntimePullResponse response = new()
                 {
                     MemoryInfoReference = memInfo
                 };
 
-                // Get the appropriate method for pulling data
                 var pullMethod = memInfo.Count == 1
                     ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.PullDataAsync), [typeof(IntPtr), typeof(bool)])
                     : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.PullChunksAsync), [typeof(IntPtr), typeof(bool)]);
@@ -463,22 +502,49 @@ namespace AsynCUDA13.Api.Controllers
                     throw new InvalidOperationException($"Could not find pull method for {this.RuntimeType} memory.");
                 }
 
-                // Pull data from CUDA
+                // FIX: Task korrekt über Basis-Klasse 'Task' abwarten und Result auslesen
                 var genericPullMethod = pullMethod.MakeGenericMethod(t);
-                var pointer = new IntPtr(long.Parse(memInfo.Pointers[0]));
-                var data = genericPullMethod.Invoke(this.backend, [pointer, false]) is Task<dynamic> dataTask ? await dataTask : null;
+                var pointer = new IntPtr(long.Parse(memInfo.IndexPointer));
+                var pullTask = genericPullMethod.Invoke(this.backend.Register, [pointer, false]) as Task
+                    ?? throw new InvalidOperationException($"Pull operation failed to return a Task.");
+
+                await pullTask;
+                var data = pullTask.GetType().GetProperty("Result")?.GetValue(pullTask);
                 bool isChunked = memInfo.Count > 1;
+
+                // VRAM-Daten direkt in das Media-Objekt schreiben
+                if (image != null && data is byte[] imageBytes && imageBytes.Length > 0)
+                {
+                    await image.SetImageAsync(imageBytes);
+                }
+                else if (audio != null)
+                {
+                    if (data is float[][] audioChunks && audioChunks.Length > 0)
+                    {
+                        await audio.AggregateChunksAsync(audioChunks, int.TryParse(memInfo.IndexLength, out var indexLength) ? indexLength : null, null, !request.FreeAfterPull);
+                    }
+                    else if (data is float[] audioFloats && audioFloats.Length > 0)
+                    {
+                        audio.Data = audioFloats;
+                    }
+                }
 
                 response.Payload = await InvokeGenericAsync(
                     typeof(DataSerializer),
                     nameof(DataSerializer.SerializeAsync),
                     t,
-                    data,
+                    data!,
                     true,
                     isChunked) as ISimdPayload ?? throw new InvalidOperationException($"Failed to serialize {this.RuntimeType} pull data.");
 
+                if (request.FreeAfterPull && pointer != IntPtr.Zero)
+                {
+                    this.backend.FreeMemory(pointer);
+                }
+
                 response.ElapsedMs = (int) (DateTime.Now - startDate).TotalMilliseconds;
                 response.Success = true;
+                response.MemoryInfoReference = memInfo;
 
                 return this.Ok(response);
             }
@@ -497,7 +563,7 @@ namespace AsynCUDA13.Api.Controllers
 
 
         [HttpGet("push-asset")]
-        public async Task<ActionResult<RuntimePushResponse>?> PushAssetAsync(string assetIdOrName, string format = "jpeg",  int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
+        public async Task<ActionResult<RuntimePushResponse>?> PushAssetAsync(string assetIdOrName, string format = "jpeg", int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
         {
             if (!this.backend.Online)
             {
@@ -652,14 +718,50 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
+                // FIX: Lazy Pointer Resolution
+                // Falls der Pointer im Asset-Objekt 0 ist, suchen wir im Backend nach einem Speicherobjekt, 
+                // das dieses Asset referenziert (AssetReferenceId).
                 Guid assetId = Guid.Parse(assetIdOrName);
-                IntPtr ptr = audio != null ? (nint) audio.Pointer : image != null ? (nint) image.Pointer : IntPtr.Zero;
+                IntPtr ptr = IntPtr.Zero;
+                if (audio != null)
+                {
+                    ptr = (nint) audio.Pointer;
+                }
+                else if (image != null)
+                {
+                    ptr = (nint) image.Pointer;
+                }
+
+                if (ptr == IntPtr.Zero)
+                {
+                    // Versuche, die Asset-ID zu bestimmen
+                    assetId = guid != Guid.Empty ? guid : (audio?.Id ?? image?.Id) ?? Guid.Empty;
+                    if (!guid.Equals(Guid.Empty))
+                    {
+                        // Suche im Backend nach einem Speicherobjekt, das diese AssetId referenziert
+                        var memWithRef = this.backend.RegisteredMemory.FirstOrDefault(m => m.AssetReferenceId == assetId);
+                        if (memWithRef != null)
+                        {
+                            ptr = memWithRef.IndexPointer;
+                            // Synchronisiere den Pointer zurück in das Asset-Objekt
+                            if (audio != null)
+                            {
+                                audio.Pointer = ptr;
+                            }
+                            else if (image != null)
+                            {
+                                image.Pointer = ptr;
+                            }
+                        }
+                    }
+                }
+
                 if (ptr == IntPtr.Zero)
                 {
                     return this.StatusCode(400, new ProblemDetails
                     {
                         Title = "Asset not in VRAM",
-                        Detail = $"Asset '{assetIdOrName}' has no valid {this.RuntimeType} memory pointer allocated.",
+                        Detail = $"Asset '{assetIdOrName}' has no valid {this.RuntimeType} memory pointer allocated and no reference found in VRAM.",
                         Status = 400
                     });
                 }
@@ -837,6 +939,8 @@ namespace AsynCUDA13.Api.Controllers
                         IndexPointerOrId = image.Pointer.ToString(),
                         FreeAfterPull = !keepBuffer
                     };
+
+
                     return await this.PullAsync(pullRequest);
                 }
 

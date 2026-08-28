@@ -642,7 +642,7 @@ namespace AsynCUDA13.Runtime
                                 newAllocated.Add(IntPtr.Zero);
                             }
                         }
-                    }                    
+                    }
                 }
             }
 

@@ -171,7 +171,7 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            bool ok = this._launcher.Execute("pad_real_to_complex", n, input, complex, data.Length, (int)n) != null
+            bool ok = this._launcher.Execute("pad_real_to_complex", n, input, complex, data.Length, (int) n) != null
                       && this._launcher.Execute("fft_full", 1, complex, n) != null;
 
             Vector2[]? result = ok ? this._register.PullData<Vector2>((IRuntimeMem) complex) : null;
@@ -198,7 +198,7 @@ namespace AsynCUDA13.OpenClBackend
                 return null;
             }
 
-            int n = (int)NextPowerOfTwo(data.Length);
+            int n = (int) NextPowerOfTwo(data.Length);
 
             Vector2[] padded;
             if (n == data.Length)

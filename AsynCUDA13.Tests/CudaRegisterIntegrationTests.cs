@@ -66,7 +66,7 @@ namespace AsynCUDA13.Tests
             floatData.ShouldNotBeNull(); group.ShouldNotBeNull(); asyncfloat.ShouldNotBeNull(); asyncGroup.ShouldNotBeNull();
             this.service.TotalAllocations.ShouldBe(4);
             this.service.TotalAllocatedBytes.ShouldBe(this.service.RegisteredMemory.Sum(m => m.TotalLength));
-            this.service.FreeMemory((CudaMem)floatData).ShouldBe(floatData.TotalSize);
+            this.service.FreeMemory((CudaMem) floatData).ShouldBe(floatData.TotalSize);
             this.service.FreeMemory(group!.Id).ShouldBe(group.TotalSize);
             (await this.service.FreeMemoryAsync(asyncfloat!.Id)).ShouldBe(asyncfloat.TotalSize);
             (await this.service.FreeMemoryAsync(asyncGroup!.IndexPointer)).ShouldBe(asyncGroup.TotalSize);

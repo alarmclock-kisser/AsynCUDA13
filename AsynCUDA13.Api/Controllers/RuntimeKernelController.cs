@@ -16,7 +16,7 @@ namespace AsynCUDA13.Api.Controllers
     {
         private readonly IAssetProvider assetProvider;
 
-        public RuntimeKernelController(IRuntimeService runtime,IAssetProvider assets)
+        public RuntimeKernelController(IRuntimeService runtime, IAssetProvider assets)
             : base(runtime)
         {
             this.assetProvider = assets;
@@ -182,7 +182,7 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
                 }
-                
+
                 if (request.CreateResultPointerAssetReference)
                 {
                     string[] assetPtrs = result.GetAssetPointers(request);
@@ -195,38 +195,26 @@ namespace AsynCUDA13.Api.Controllers
                     foreach (var ptr in result.ResultPointers ?? [])
                     {
                         RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr, assetGuids);
-                        if (memInfo == null || memInfo.AssetReferenceId == null)
+                        if (memInfo == null)
                         {
                             continue;
                         }
 
-                        var audioInfo = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
-                        var imageInfo = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
-                        long? pointer = long.TryParse(ptr, out var ptrValue) ? ptrValue : null;
-                        Guid? assetId = this.assetProvider.GetAssetIdByPointer(pointer ?? 0);
-                        if (audioInfo != null && pointer.HasValue && assetId.HasValue)
+                        // Set references on the actual memory object in the backend registry
+                        var mem = this.backend.RegisteredMemory.FirstOrDefault(m => m.IndexPointer.ToString() == memInfo.IndexPointer);
+                        if (mem != null)
                         {
-                            var audioRef = this.assetProvider.GetAudioInfo(assetId.Value);
-                            if (audioRef != null)
+                            if (assetGuids != null && assetGuids.Length > 0)
                             {
-                                var audioObj = this.assetProvider.CreateFromInfo(audioRef);
-                                audioObj?.Pointer = pointer.Value;
-                            }
-                        }
-                        if (imageInfo != null && pointer.HasValue && assetId.HasValue)
-                        {
-                            var imageRef = this.assetProvider.GetImageInfo(assetId.Value);
-                            if (imageRef != null)
-                            {
-                                var imageObj = this.assetProvider.CreateFromInfo(imageRef);
-                                imageObj?.Pointer = pointer.Value;
+                                mem.AssetReferenceIds = assetGuids;
+                                mem.AssetReferenceId = assetGuids[0];
                             }
                         }
                     }
                 }
 
                 result.KernelInfo = request.KernelInfo;
-                
+
                 return this.Ok(result);
             }
             catch (Exception ex)

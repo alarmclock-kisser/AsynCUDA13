@@ -29,9 +29,28 @@ namespace AsynCUDA13.Runtime
         public DateTime CreatedAt { get; private set; } = DateTime.Now;
 
         /// <summary>
+        /// Gets or sets an optional array of Asset-reference IDs to associate this MemObj with Assets by their Ids
+        /// </summary>
+        public Guid[] AssetReferenceIds { get; set; } = [];
+
+        /// <summary>
         /// Gets or sets an optional Asset-reference ID to reverse assign a MemObj to an Asset by its Id
         /// </summary>
-        public Guid? AssetReferenceId { get; set; } = null;
+        public Guid? AssetReferenceId
+        {
+            get => this.AssetReferenceIds.Length > 0 ? this.AssetReferenceIds[0] : null;
+            set
+            {
+                if (value.HasValue)
+                {
+                    this.AssetReferenceIds = [value.Value];
+                }
+                else
+                {
+                    this.AssetReferenceIds = [];
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the CUDA device pointers (<see cref="CUdeviceptr"/>) for every buffer described by this instance.

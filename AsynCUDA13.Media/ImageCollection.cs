@@ -91,11 +91,12 @@ namespace AsynCUDA13.Media
             return added;
         }
 
-        public ImageObj? CreateFromInfo(Shared.MediaDtos.ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true)
+        public ImageObj? CreateFromInfo(Shared.MediaDtos.ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
         {
-            long pointer = long.TryParse(info.Pointer, out var ptr) ? ptr : 0;
+            long ptr = pointer ?? (long.TryParse(info.Pointer, out var p) ? p : 0);
             ImageObj obj = new(info.Width, info.Height)
             {
+                Img = emptyData ? null : new Image<Rgba32>(info.Width, info.Height),
                 Bitdepth = info.BitDepth,
                 Channels = info.Channels,
                 CreatedAt = info.CreatedAt,

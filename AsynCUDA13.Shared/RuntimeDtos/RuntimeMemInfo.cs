@@ -9,7 +9,24 @@ namespace AsynCUDA13.Shared.RuntimeDtos
     {
         public string Id { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.MinValue;
-        public Guid? AssetReferenceId { get; set; } = null;
+
+        public Guid[] AssetReferenceIds { get; set; } = [];
+        public Guid? AssetReferenceId
+        {
+            get => this.AssetReferenceIds.Length > 0 ? this.AssetReferenceIds[0] : null;
+            set
+            {
+                if (value.HasValue)
+                {
+                    this.AssetReferenceIds = [value.Value];
+                }
+                else
+                {
+                    this.AssetReferenceIds = [];
+                }
+            }
+        }
+
         public string IndexPointer => this.Pointers.FirstOrDefault() ?? "0";
 
 

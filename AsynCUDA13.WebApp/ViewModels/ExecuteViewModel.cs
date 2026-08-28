@@ -100,7 +100,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 return [];
             }
 ;
-            var argTypePtrs = this.MemoryInfos.Where(m => m.ElementType.Equals(argType.Replace("*", "").Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+            var argTypePtrs = this.MemoryInfos.Where(m => m.ElementType.Split('.').Last().Equals(argType.Replace("*", "").Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
             if (removeTakenPointers)
             {
                 argTypePtrs.RemoveAll(p => this.TakenArgTypePointers.Contains(p.IndexPointer));

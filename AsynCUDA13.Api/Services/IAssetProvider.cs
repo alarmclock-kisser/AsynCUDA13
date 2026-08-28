@@ -15,8 +15,8 @@ namespace AsynCUDA13.Api.Services
         ImageInfo? GetImageInfo(Guid imageId);
         AudioInfo? GetAudioInfo(Guid audioId);
 
-        AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true);
-        ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true);
+        AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0);
+        ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0);
 
         Guid? VerifyAssetId(Guid assetId);
         Guid[] VerifyAssetIds(IEnumerable<Guid> ids);

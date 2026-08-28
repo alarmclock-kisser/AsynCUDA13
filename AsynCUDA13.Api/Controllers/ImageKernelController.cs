@@ -74,7 +74,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(500, pd);
                 }
 
-                var outputMem = await this.backend.Register.AllocateSingleAsync<byte>((nint)mem.TotalLength);
+                var outputMem = await this.backend.Register.AllocateSingleAsync<byte>((nint) mem.TotalLength);
                 if (outputMem == null)
                 {
                     var pd = new ProblemDetails

@@ -140,7 +140,7 @@ namespace AsynCUDA13.Runtime
             {
                 return null;
             }
-            
+
             // If it's an existing file path, read it directly
             if (File.Exists(kernel))
             {
@@ -209,7 +209,7 @@ namespace AsynCUDA13.Runtime
             {
                 kernel = File.ReadAllText(kernel);
             }
-           
+
             return this.PrecompileKernel(kernel);
         }
 
@@ -1132,7 +1132,7 @@ namespace AsynCUDA13.Runtime
             }
 
             // Calculate expected length of input data based on width, height, and channels as a fallback if when there is no reference input MemObj TotalLength to get
-            nint expectedLen = checked((nint)((long)width * height * channels));
+            nint expectedLen = checked((nint) ((long) width * height * channels));
             nint? inputPtrLen = inputPointer.HasValue ? (nint) (this.Register[inputPointer.Value]?.TotalLength ?? expectedLen) : null;
 
             // Create array for kernel arguments with pointers and index counters
@@ -1269,7 +1269,7 @@ namespace AsynCUDA13.Runtime
         }
 
 
-    
+
 
 
 

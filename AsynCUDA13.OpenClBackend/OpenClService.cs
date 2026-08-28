@@ -24,7 +24,7 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         private OpenClRegister? _register;
         public IRuntimeRegister Register => this._register ?? throw new InvalidOperationException("OpenClService: service is offline. Call Initialize(...) first.");
-        
+
         /// <summary>
         /// The OpenCL compiler instance used for compiling kernels (private, public as <see cref="IRuntimeCompiler"/>)
         /// </summary>

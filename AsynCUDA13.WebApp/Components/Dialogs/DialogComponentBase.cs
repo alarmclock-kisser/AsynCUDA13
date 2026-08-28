@@ -74,7 +74,7 @@ namespace AsynCUDA13.WebApp.Components.Dialogs
             await this.VisibleChanged.InvokeAsync(this.Visible);
         }
 
-        public async Task OpenDialogAsync(TRequest? request= null, TResult? response = null)
+        public async Task OpenDialogAsync(TRequest? request = null, TResult? response = null)
         {
             this.DialogRequest = request;
             this.DialogResult = response;
