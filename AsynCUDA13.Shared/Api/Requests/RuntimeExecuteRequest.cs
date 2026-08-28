@@ -77,9 +77,9 @@ namespace AsynCUDA13.Shared.Api.Requests
         public bool AsyncCall { get; set; } = true;
         public bool UnloadAfterExecution { get; set; } = false;
 
-        public bool CreateResultPointerReferenceAssets { get; set; } = true;
+        public bool CreateResultPointerAssetReference { get; set; } = false;
 
-
+        public string[] PointerArguments => this._argumentValues.Where((a, i) => this.KernelInfo?.ArgumentTypes[i].Contains('*') == true).ToArray();
 
         public void UpdateImageArgs(ImageInfo imageInfo)
         {

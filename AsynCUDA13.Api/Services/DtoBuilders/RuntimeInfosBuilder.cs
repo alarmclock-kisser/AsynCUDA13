@@ -85,27 +85,35 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return info;
         }
 
-        public static RuntimeMemInfo[]? BuildRuntimeMemoryInfos(IRuntimeService service, string? indexPointerOrId = null)
+        public static RuntimeMemInfo[]? BuildRuntimeMemoryInfos(IRuntimeService service, string? indexPointerOrId = null, Guid[]? resultPointersAssetReferences = null)
         {
             if (!service.Online)
             {
                 return null;
             }
 
-            var infos = service.RegisteredMemory.Select(mem => new RuntimeMemInfo
+            var infos = service.RegisteredMemory.Select(mem =>
+            {
+                if (resultPointersAssetReferences != null)
+                {
+                    mem.AssetReferenceId = resultPointersAssetReferences.FirstOrDefault();
+                }
+                return new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
+                CreatedAt = mem.CreatedAt,
                 AssetReferenceId = mem.AssetReferenceId,
                 ElementType = mem.ElementType.ToString().Split('.').Last(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),
                 Lengths = mem.PointerLengths.Select(len => len.ToString()).ToArray(),
                 Message = mem.Message
+            };
             }).Where(mem => indexPointerOrId == null || mem.Id == indexPointerOrId || (mem.Pointers.Contains(indexPointerOrId) && mem.IndexPointer == indexPointerOrId)).ToArray() ?? [];
 
             return infos;
         }
 
-        public static RuntimeMemInfo? BuildRuntimeMemoryInfo(IRuntimeService service, string indexPointerOrId)
+        public static RuntimeMemInfo? BuildRuntimeMemoryInfo(IRuntimeService service, string indexPointerOrId, Guid[]? resultPointersAssetReferences = null)
         {
             if (!service.Online)
             {
@@ -118,9 +126,14 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 return null;
             }
 
+            if (resultPointersAssetReferences != null)
+            {
+                mem.AssetReferenceId = resultPointersAssetReferences.FirstOrDefault();
+            }
             var info = new RuntimeMemInfo
             {
                 Id = mem.Id.ToString(),
+                CreatedAt = mem.CreatedAt,
                 AssetReferenceId = mem.AssetReferenceId,
                 ElementType = mem.ElementType.ToString().Split('.').Last(),
                 Pointers = mem.PointerIds.Select(ptr => ptr.ToString()).ToArray(),

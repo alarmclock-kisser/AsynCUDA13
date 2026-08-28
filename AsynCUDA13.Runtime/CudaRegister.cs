@@ -162,7 +162,7 @@ namespace AsynCUDA13.Runtime
 
         /// <summary>Gets the memory object with the given id, or <c>null</c> if it is not registered.</summary>
         /// <param name="id">The unique id of the memory object.</param>
-        public IRuntimeMem? this[Guid id] => this.Memory.ContainsKey(id) ? this.Memory[id] : null;
+        public IRuntimeMem? this[Guid id] => this.Memory.ContainsKey(id) ? this.Memory[id] : this.Memory.Values.FirstOrDefault(m => m.AssetReferenceId.Equals(id));
 
         /// <summary> Gets the memory object that matches the given string, which may be either a native handle or a unique id. </summary>
         /// <param name="indexPointerOrId">The string representation of either a native handle or a unique id.</param>

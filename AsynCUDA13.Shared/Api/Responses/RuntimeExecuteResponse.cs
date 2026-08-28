@@ -1,3 +1,4 @@
+using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.RuntimeDtos;
 using System;
 using System.Collections.Generic;
@@ -14,5 +15,11 @@ namespace AsynCUDA13.Shared.Api.Responses
         public RuntimeKernelInfo? KernelInfo { get; set; } = null;
 
         public int ElapsedMs { get; set; } = -1;  // -1 if failed
+
+
+        public string[] GetAssetPointers(RuntimeExecuteRequest request)
+        {
+            return request.PointerArguments?.Where(a => !this.ResultPointers?.Contains(a) == true).ToArray() ?? [];
+        }
     }
 }

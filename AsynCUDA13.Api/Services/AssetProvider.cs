@@ -74,5 +74,78 @@ namespace AsynCUDA13.Api.Services
         {
             return this.images.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd);
         }
+
+        public Guid? VerifyAssetId(Guid id)
+        {
+            if (id == Guid.Empty)
+            {
+                return null;
+            }
+
+            // Prüfe erst in audios
+            if (this.audios[id] is AudioObj audio)
+            {
+                return audio.Id;
+            }
+
+            // Dann prüfe in images
+            if (this.images[id] is ImageObj image)
+            {
+                return image.Id;
+            }
+
+            return null; // Nicht gefunden
+        }
+
+        public Guid[] VerifyAssetIds(IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                return [];
+            }
+
+            return ids
+                .Select(this.VerifyAssetId)
+                .Where(g => g.HasValue && g.Value != Guid.Empty)
+                .Select(g => g.Value)
+                .Cast<Guid>()
+                .ToArray();
+        }
+
+        public Guid? GetAssetIdByPointer(long pointer)
+        {
+            if (pointer == 0)
+            {
+                return null;
+            }
+            // Prüfe erst in audios
+            var audio = this.audios.Audios.FirstOrDefault(a => a.Pointer == pointer);
+            if (audio != null)
+            {
+                return audio.Id;
+            }
+            // Dann prüfe in images
+            var image = this.images.Images.FirstOrDefault(i => i.Pointer == pointer);
+            if (image != null)
+            {
+                return image.Id;
+            }
+            return null; // Nicht gefunden
+        }
+
+        public Guid[] GetAssetIdsByPointers(IEnumerable<long> pointers)
+        {
+            if (pointers == null)
+            {
+                return [];
+            }
+
+            return pointers
+                .Select(this.GetAssetIdByPointer)
+                .Where(g => g.HasValue && g.Value != Guid.Empty)
+                .Select(g => g.Value)
+                .Cast<Guid>()
+                .ToArray();
+        }
     }
 }

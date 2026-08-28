@@ -748,7 +748,7 @@ namespace AsynCUDA13.Client
             }
         }
 
-        public async Task<RuntimeExecuteResponse?> ExecuteGenericKernelAsync(string kernelName, string[]? args = null, bool unloadAfterExecute = false)
+        public async Task<RuntimeExecuteResponse?> ExecuteGenericKernelAsync(string kernelName, string[]? args = null, bool unloadAfterExecute = false, bool createResultPointerAssetReference = false)
         {
             RuntimeKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
             if (kernelInfo == null)
@@ -762,6 +762,7 @@ namespace AsynCUDA13.Client
                 KernelInfo = kernelInfo,
                 ArgumentValues = args ?? [],
                 UnloadAfterExecution = unloadAfterExecute,
+                CreateResultPointerAssetReference = createResultPointerAssetReference,
                 AsyncCall = true
             };
 
@@ -1754,6 +1755,7 @@ namespace AsynCUDA13.Client
             }
         }
 
+        public async Task<RuntimeExecuteResponse?> ExecuteGenericKernelAsync(String functionName, String[] argumentValues, Object unloadAfterExecute, Boolean createResultPointerReferenceAssets) => throw new NotImplementedException();
     }
     public enum LogLevel
     {

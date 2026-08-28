@@ -15,6 +15,11 @@ namespace AsynCUDA13.Shared.Interfaces
         Guid Id { get; }
 
         /// <summary>
+        /// Gets the timestamp indicating when this memory object was created.
+        /// </summary>
+        DateTime CreatedAt { get; }
+
+        /// <summary>
         /// Gets the .NET element <see cref="Type"/> stored in the buffer(s) (for example <see cref="float"/>).
         /// </summary>
         Type ElementType { get; }

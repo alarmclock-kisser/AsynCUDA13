@@ -1,5 +1,6 @@
 ﻿using AsynCUDA13.Api.Services;
 using AsynCUDA13.Api.Services.DtoBuilders;
+using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.Api.Responses;
@@ -181,26 +182,35 @@ namespace AsynCUDA13.Api.Controllers
                         return this.StatusCode(500, pd);
                     }
                 }
-
-                if (request.CreateResultPointerReferenceAssets)
+                
+                if (request.CreateResultPointerAssetReference)
                 {
+                    string[] assetPtrs = result.GetAssetPointers(request);
+                    Guid[]? assetGuids = this.assetProvider.GetAssetIdsByPointers(assetPtrs.Select(aPtr => long.TryParse(aPtr, out var ptr) ? ptr : 0).Where(ptr => ptr != 0));
+                    if (assetGuids.Length <= 0)
+                    {
+                        assetGuids = null;
+                    }
+
                     foreach (var ptr in result.ResultPointers ?? [])
                     {
-                        RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr);
+                        RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr, assetGuids);
                         if (memInfo == null || memInfo.AssetReferenceId == null)
                         {
                             continue;
                         }
 
-                        var audio = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
-                        var image = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
-                        if (audio != null)
+                        var audioInfo = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
+                        var imageInfo = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
+                        if (audioInfo != null && !string.IsNullOrEmpty(ptr))
                         {
-                            this.assetProvider.CreateFromInfo(audio);
+                            AudioObj? audio = this.assetProvider.CreateFromInfo(audioInfo);
+                            audio?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptrValue) ? ptrValue : 0;
                         }
-                        if (image != null)
+                        if (imageInfo != null && !string.IsNullOrEmpty(ptr))
                         {
-                            this.assetProvider.CreateFromInfo(image);
+                            ImageObj? image = this.assetProvider.CreateFromInfo(imageInfo);
+                            image?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptrValue) ? ptrValue : 0;
                         }
                     }
                 }
@@ -304,11 +314,14 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                if (request.CreateResultPointerReferenceAssets)
+                if (request.CreateResultPointerAssetReference)
                 {
+                    string[] assetPtrs = result.GetAssetPointers(request);
+                    Guid[] assetGuids = this.assetProvider.GetAssetIdsByPointers(assetPtrs.Select(aPtr => long.TryParse(aPtr, out var ptr) ? ptr : 0).Where(ptr => ptr != 0));
+
                     foreach (var ptr in result.ResultPointers ?? [])
                     {
-                        RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr);
+                        RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr, assetGuids);
                         if (memInfo == null || memInfo.AssetReferenceId == null)
                         {
                             continue;

@@ -24,6 +24,11 @@ namespace AsynCUDA13.Runtime
         public Guid Id { get; private set; } = Guid.NewGuid();
 
         /// <summary>
+        /// Gets the timestamp when this memory object was created.
+        /// </summary>
+        public DateTime CreatedAt { get; private set; } = DateTime.Now;
+
+        /// <summary>
         /// Gets or sets an optional Asset-reference ID to reverse assign a MemObj to an Asset by its Id
         /// </summary>
         public Guid? AssetReferenceId { get; set; } = null;

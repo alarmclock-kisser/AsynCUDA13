@@ -9,6 +9,7 @@ namespace AsynCUDA13.Api.Services
         ImageObj? GetImage(string name);
         AudioObj? GetAudio(Guid id);
         AudioObj? GetAudio(string name);
+
         ImageInfo GetImageInfo(ImageObj image);
         AudioInfo GetAudioInfo(AudioObj audio);
         ImageInfo? GetImageInfo(Guid imageId);
@@ -16,5 +17,11 @@ namespace AsynCUDA13.Api.Services
 
         AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true);
         ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true);
+
+        Guid? VerifyAssetId(Guid assetId);
+        Guid[] VerifyAssetIds(IEnumerable<Guid> ids);
+
+        Guid? GetAssetIdByPointer(long pointer);
+        Guid[] GetAssetIdsByPointers(IEnumerable<long> pointers);
     }
 }

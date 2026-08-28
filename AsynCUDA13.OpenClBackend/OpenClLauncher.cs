@@ -203,35 +203,61 @@ namespace AsynCUDA13.OpenClBackend
         private IntPtr[]? SetArguments(CLKernel kernel, string kernelName, object[] arguments, Type[] argumentTypes)
         {
             List<IntPtr> newAllocated = [];
-            nint[] maxDim = [];
-            Type? lastMemType = null; 
+            nint[]? lastKnownDim = null;
+            Type? lastMemType = null;
+
             for (uint i = 0; i < arguments.Length; i++)
             {
                 object arg = arguments[i];
                 Type t = argumentTypes[i];
-                CLResultCode code;
+                CLResultCode code = CLResultCode.Success;
 
-                if (arg is IntPtr ptr)
+                // 1. Pointer-Erkennung und Normalisierung
+                bool isPointerLogic = (arg is IntPtr) || (arg?.GetType().IsPointer == true) || (t.IsPointer);
+
+                if (isPointerLogic)
                 {
-                    OpenClMem? mem = this._register[(nint) arg] as OpenClMem;
-                    if (mem != null)
+                    IntPtr ptrKey = IntPtr.Zero;
+                    if (arg is IntPtr p)
                     {
-                        arg = mem;
-                        maxDim = mem.PointerLengths.Select(l => (nint)l).ToArray();
-                        lastMemType = mem.ElementType;
+                        ptrKey = p;
                     }
-                    else if (maxDim.Length > 0)
+                    else if (arg != null && arg.GetType().IsPointer)
                     {
-                        bool isSingle = maxDim.Length <= 1;
-                        var allocMethod = isSingle
-                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateSingle), [typeof(IntPtr)])
-                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateGroup), [typeof(IntPtr[])]);
+                        ptrKey = (IntPtr) Convert.ChangeType(arg, typeof(IntPtr));
+                    }
 
-                        mem = allocMethod?.MakeGenericMethod(t).Invoke(this, isSingle ? [maxDim.FirstOrDefault()] : maxDim.Cast<object>().ToArray()) as OpenClMem;
-                        if (mem != null)
+                    // 2. Register-Lookup
+                    if (ptrKey != IntPtr.Zero && this._register[ptrKey] is OpenClMem memObj)
+                    {
+                        if (memObj is OpenClMem mem)
                         {
                             arg = mem;
-                            newAllocated.Add(mem.IndexPointer);
+                            lastKnownDim = mem.PointerLengths.Select(l => (nint) l).ToArray();
+                            lastMemType = mem.ElementType;
+                        }
+                    }
+                    // 3. Dynamische Allokation (Fallback), wenn Dimensionen aus vorherigen Args bekannt sind
+                    else if (lastKnownDim != null)
+                    {
+                        bool isSingle = lastKnownDim.Length <= 1;
+                        var allocMethod = isSingle
+                            ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateSingle), [typeof(IntPtr)])
+                            : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateGroup), [typeof(IntPtr[])]);
+
+                        Type genericType = lastMemType ?? t;
+                        if (genericType.IsPointer)
+                        {
+                            genericType = typeof(IntPtr);
+                        }
+
+                        var method = allocMethod?.MakeGenericMethod(genericType);
+                        var result = method?.Invoke(this._register, isSingle ? [lastKnownDim.FirstOrDefault()] : lastKnownDim.Cast<object>().ToArray());
+
+                        if (result is OpenClMem memAlloc)
+                        {
+                            arg = memAlloc;
+                            newAllocated.Add(memAlloc.IndexPointer);
                         }
                         else
                         {
@@ -247,36 +273,27 @@ namespace AsynCUDA13.OpenClBackend
                 switch (arg)
                 {
                     case OpenClMem mem:
-                        {
-                            CLBuffer buffer = mem.IndexBuffer;
-                            code = CL.SetKernelArg(kernel, i, in buffer);
-                            break;
-                        }
-
+                        var buf = mem.IndexBuffer;
+                        code = CL.SetKernelArg(kernel, i, in buf);
+                        break;
                     case CLBuffer buffer:
                         code = CL.SetKernelArg(kernel, i, in buffer);
                         break;
-
                     case int value:
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
-
                     case uint value:
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
-
                     case float value:
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
-
                     case long value:
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
-
                     case nint value:
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
-
                     default:
                         StaticLogger.LogError($"Execute '{kernelName}': unsupported argument type '{arg?.GetType().Name ?? "null"}' at index {i}.");
                         return null;

@@ -68,7 +68,7 @@ namespace AsynCUDA13.OpenClBackend
         /// Gets the tracked allocation whose id matches <paramref name="id"/>, or <c>null</c> if none is found.
         /// </summary>
         /// <param name="id">The unique id of the allocation.</param>
-        public Shared.Interfaces.IRuntimeMem? this[Guid id] => this._allocations.TryGetValue(id, out var mem) ? mem : null;
+        public Shared.Interfaces.IRuntimeMem? this[Guid id] => this._allocations.TryGetValue(id, out var mem) ? mem : this._allocations.Values.FirstOrDefault(m => m.AssetReferenceId.Equals(id));
 
         /// <summary>
         /// Gets the tracked allocation that owns the given native buffer handle, or <c>null</c> if none is found.

@@ -11,6 +11,7 @@ using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.Shared.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using NAudio.CoreAudioApi;
+using System.Diagnostics.Eventing.Reader;
 
 namespace AsynCUDA13.Api.Controllers
 {
@@ -229,9 +230,75 @@ namespace AsynCUDA13.Api.Controllers
                 }
                 var startDate = DateTime.Now;
 
-                dynamic data = request.Payload is SimdPayload1D p1 ? DataParser.ParseAsync(p1, request.ElementType) :
-                               request.Payload is SimdPayload2D p2 ? DataParser.ParseAsync(p2, request.ElementType) :
-                               throw new ArgumentException("Unsupported payload type.");
+                dynamic data;
+                AudioObj? audio = null;
+                ImageObj? image = null;
+                if (request.Payload == null && request.AssetId.HasValue)
+                {
+                    audio = this.assetProvider.GetAudio(request.AssetId.Value);
+                    image = this.assetProvider.GetImage(request.AssetId.Value);
+
+                    if (audio != null)
+                    {
+                        if (request.Stride > 1)
+                        {
+                            var serialized = await DataSerializer.SerializeAsync(audio.GetChunks(request.Stride, request.Overlap, request.KeepData));
+                            if (serialized is SimdPayload2D payload2D)
+                            {
+                                data = await DataParser.ParseAsync<float>(payload2D) ?? [];
+                            }
+                            else
+                            {
+                                throw new InvalidCastException("Expected SimdPayload2D for chunked audio data.");
+                            }
+                        }
+                        else
+                        {
+                            var serialized = await DataSerializer.SerializeAsync(audio.Data);
+                            if (!request.KeepData)
+                            {
+                                audio.Data = [];
+                            }
+                            if (serialized is SimdPayload1D payload1D)
+                            {
+                                data = await DataParser.ParseAsync<float>(payload1D) ?? [];
+                            }
+                            else
+                            {
+                                throw new InvalidCastException("Expected SimdPayload1D for single audio data.");
+                            }
+                        }
+                    }
+                    else if (image != null)
+                    {
+                        var bytes = await image.GetBytesAsync(request.KeepData);
+                        var serialized = await DataSerializer.SerializeAsync(bytes);
+                        if (serialized is SimdPayload1D payload1D)
+                        {
+                            data = await DataParser.ParseAsync<byte>(payload1D) ?? [];
+                        }
+                        else
+                        {
+                            throw new InvalidCastException("Expected SimdPayload1D for image data.");
+                        }
+                    }
+                    else
+                    {
+                        return this.StatusCode(404, new ProblemDetails
+                        {
+                            Title = "Asset not found",
+                            Detail = $"No audio or image asset found for ID: {request.AssetId}.",
+                            Status = 404
+                        });
+                    }
+                }
+                else
+                {
+                    data = (request.Payload is SimdPayload1D p1 ? await DataParser.ParseAsync(p1, request.ElementType) ?? [] :
+                           request.Payload is SimdPayload2D p2 ? await DataParser.ParseAsync(p2, request.ElementType) ?? [] :
+                           throw new ArgumentException("Unsupported payload type."));
+                }
+
                 if (data == null)
                 {
                     return this.StatusCode(400, new ProblemDetails
@@ -254,7 +321,19 @@ namespace AsynCUDA13.Api.Controllers
                         Status = 500
                     });
                 }
-                mem.AssetReferenceId = request.AssetId;
+                if (request.AssetId.HasValue)
+                {
+                    mem.AssetReferenceId = request.AssetId.Value;
+                    if (audio != null)
+                    {
+                        audio.Pointer = mem.IndexPointer;
+
+                    }
+                    else if (image != null)
+                    {
+                        image.Pointer = mem.IndexPointer;
+                    }
+                }
 
                 RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, mem.IndexPointer.ToString());
                 if (memInfo == null)
@@ -309,30 +388,59 @@ namespace AsynCUDA13.Api.Controllers
                 }
 
                 var startDate = DateTime.Now;
+                AudioObj? audio = null;
+                ImageObj? image = null;
+                long? assetPtr = null;
 
                 // Try get CudaMem-object for the given index/pointer/ID
                 RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, request.IndexPointerOrId);
                 if (memInfo == null)
                 {
+                    audio = this.assetProvider.GetAudio(Guid.TryParse(request.IndexPointerOrId, out var aguid) ? aguid : Guid.Empty) ?? this.assetProvider.GetAudio(request.IndexPointerOrId);
+                    image = this.assetProvider.GetImage(Guid.TryParse(request.IndexPointerOrId, out var iguid) ? iguid : Guid.Empty) ?? this.assetProvider.GetImage(request.IndexPointerOrId);
+                    assetPtr = audio?.Pointer != null ? audio.Pointer : image?.Pointer != null ? image.Pointer : 0;
+                    memInfo = assetPtr != 0 ? RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, assetPtr.Value.ToString()) : null;
+                }
+
+                if (memInfo == null)
+                {
                     return this.StatusCode(404, new ProblemDetails
                     {
                         Title = $"{this.RuntimeType} memory not found",
-                        Detail = $"No {this.RuntimeType} memory object found for index/pointer/ID: {request.IndexPointerOrId}.",
+                        Detail = $"No {this.RuntimeType} memory object or asset found for index/pointer/ID: {request.IndexPointerOrId}.",
                         Status = 404
                     });
                 }
 
                 if (request.EnsureReferencedAssetsUpdatedOrCreated && memInfo.AssetReferenceId.HasValue)
                 {
-                    var audio = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
-                    var image = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
-                    if (audio != null)
+                    Guid? assetId = null;
+                    if (assetPtr.HasValue)
                     {
-                        this.assetProvider.CreateFromInfo(audio);
+                        assetId = this.assetProvider.GetAssetIdByPointer(assetPtr.Value);
                     }
-                    if (image != null)
+                    if (assetId.HasValue)
                     {
-                        this.assetProvider.CreateFromInfo(image);
+                        var audioInfo = this.assetProvider.GetAudioInfo(assetId.Value);
+                        var imageInfo = this.assetProvider.GetImageInfo(assetId.Value);
+                        if (audioInfo == null)
+                        {
+                            var audioRef = this.assetProvider.GetAudioInfo(memInfo.AssetReferenceId.Value);
+                            if (audioRef != null)
+                            {
+                                audio = this.assetProvider.CreateFromInfo(audioRef);
+                                audio?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptr) ? ptr : 0;
+                            }
+                        }
+                        else if (imageInfo != null)
+                        {
+                            var imageRef = this.assetProvider.GetImageInfo(memInfo.AssetReferenceId.Value);
+                            if (imageRef != null)
+                            {
+                                image = this.assetProvider.CreateFromInfo(imageRef);
+                                image?.Pointer = long.TryParse(memInfo.IndexPointer, out var ptr) ? ptr : 0;
+                            }
+                        }
                     }
                 }
 
@@ -389,7 +497,7 @@ namespace AsynCUDA13.Api.Controllers
 
 
         [HttpGet("push-asset")]
-        public async Task<ActionResult<RuntimePushResponse>?> PushAssetAsync(string assetIdOrName, int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
+        public async Task<ActionResult<RuntimePushResponse>?> PushAssetAsync(string assetIdOrName, string format = "jpeg",  int chunkSize = 0, float overlap = 0.5f, bool keepData = false)
         {
             if (!this.backend.Online)
             {
@@ -435,6 +543,10 @@ namespace AsynCUDA13.Api.Controllers
                         }
                         // Direktes Pushen des float[] Arrays in den VRAM
                         mem = await this.backend.Register.PushDataAsync(audio.Data);
+                        if (!keepData)
+                        {
+                            audio.Data = [];
+                        }
                         audio.Pointer = mem?.IndexPointer ?? 0;
                     }
                     else
@@ -540,6 +652,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
+                Guid assetId = Guid.Parse(assetIdOrName);
                 IntPtr ptr = audio != null ? (nint) audio.Pointer : image != null ? (nint) image.Pointer : IntPtr.Zero;
                 if (ptr == IntPtr.Zero)
                 {
@@ -551,7 +664,7 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
 
-                IRuntimeMem? mem = this.backend[ptr];
+                IRuntimeMem? mem = this.backend[ptr] ?? this.backend[assetId];
                 RuntimeMemInfo? memInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfo(this.backend, ptr.ToString());
                 if (mem == null || memInfo == null)
                 {

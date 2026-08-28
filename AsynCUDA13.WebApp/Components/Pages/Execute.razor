@@ -97,6 +97,8 @@
                           Class="mt-3" 
                           Click="VM.ExecuteKernelAsync" 
                           Disabled="@(!VM.CanExecute)" />
+            <RadzenLabel Text="@L["CreateReferences"]" />
+            <RadzenCheckBox @bind-Value="VM.CreateResultPointerReferenceAssets" Name="CreateReferences" TValue="bool" Label="@L["CreateReferences"]" />
         </RadzenCard>
     </RadzenCard>
 

@@ -17,6 +17,8 @@ namespace AsynCUDA13.WebApp.ViewModels
         public RuntimeKernelInfo[]? CompiledKernels { get; set; }
         public RuntimeMemInfo[]? MemoryInfos { get; set; }
 
+        public List<string> TakenArgTypePointers { get; set; } = [];
+
         public RuntimeKernelInfo? SelectedKernelInfo { get; set; }
         public bool CanExecute => this.SelectedKernelInfo?.ArgumentsCount >= 0;
 
@@ -34,6 +36,25 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
         }
 
+        public bool CreateResultPointerReferenceAssets
+        {
+            get;
+            set
+            {
+                this.ExecuteRequest.CreateResultPointerAssetReference = value;
+                field = value;
+            }
+        } = true;
+
+        public bool UnloadAfterExecute
+        {
+            get;
+            set
+            {
+                this.ExecuteRequest.UnloadAfterExecution = value;
+                field = value;
+            }
+        }
 
         public async Task LoadKernelsAndMemoryInfosAsync()
         {
@@ -49,6 +70,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 await this.PutInfoMessageAsync("No kernel selected. Please select a kernel to execute.", "warning", true, 5);
             }
 
+            this.TakenArgTypePointers.Clear();
             await this.NotifyStateChangedAsync(false);
         }
 
@@ -71,14 +93,20 @@ namespace AsynCUDA13.WebApp.ViewModels
         }
 
 
-        public RuntimeMemInfo[] GetPointersForArgumentType(string argType)
+        public RuntimeMemInfo[] GetPointersForArgumentType(string argType, bool removeTakenPointers = false)
         {
             if (string.IsNullOrWhiteSpace(argType) || this.MemoryInfos == null || this.MemoryInfos.Length == 0)
             {
                 return [];
             }
+;
+            var argTypePtrs = this.MemoryInfos.Where(m => m.ElementType.Equals(argType.Replace("*", "").Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+            if (removeTakenPointers)
+            {
+                argTypePtrs.RemoveAll(p => this.TakenArgTypePointers.Contains(p.IndexPointer));
+            }
 
-            return this.MemoryInfos.Where(m => m.ElementType.Equals(argType.Replace("*", "").Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
+            return argTypePtrs.ToArray();
         }
 
 
@@ -93,7 +121,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 return;
             }
 
-            this.ExecuteResponse = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelInfo.FunctionName, this.ExecuteRequest.ArgumentValues, false);
+            this.ExecuteResponse = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelInfo.FunctionName, this.ExecuteRequest.ArgumentValues, this.ExecuteRequest.UnloadAfterExecution, this.CreateResultPointerReferenceAssets);
             if (this.ExecuteResponse == null || !this.ExecuteResponse.Success || this.ExecuteResponse.ResultPointers == null)
             {
                 await this.PutInfoMessageAsync("Execute response DTO was null or not successful or its ResultPointers were null.", "error", true, 5);

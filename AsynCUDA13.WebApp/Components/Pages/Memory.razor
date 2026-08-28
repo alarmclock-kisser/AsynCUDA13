@@ -38,7 +38,9 @@
                                     ButtonStyle="ButtonStyle.Success"
                                     Click="@VM.OpenPushDialogAsync"
                                     Disabled="@(!VM.AssetPushable)" />
+                    <RadzenLabel Text="@L["KeepData"]" />
                     <RadzenCheckBox @bind-Value="VM.KeepData" Name="KeepData" TValue="bool" Label="@L["KeepData"]" />
+                    <RadzenLabel Text="@L["KeepBuffer"]" />
                     <RadzenCheckBox @bind-Value="VM.KeepBuffer" Name="KeepBuffer" TValue="bool" Label="@L["KeepBuffer"]" />
                 </div>
             </div>
@@ -66,10 +68,12 @@
                                 <table class="table table-sm">
                                     <tbody>
                                         <tr><th>@L["GuidId"]</th><td>@memInfo.Id</td></tr>
+                                        <tr><th>@L["CreatedAt"]</th><td>@memInfo.CreatedAt.ToString()</td></tr>
                                         <tr><th>@L["ElementType"]</th><td>@memInfo.ElementType</td></tr>
                                         <tr><th>@L["IndexPointer"]</th><td>@memInfo.IndexPointer</td></tr>
                                         <tr><th>@L["TotalLength"]</th><td>@memInfo.TotalLength</td></tr>
                                         <tr><th>@L["TotalSize"]</th><td>@VM.FormatSize(memInfo.TotalSize)</td></tr>
+                                        <tr><th>@L["AssetRef"]</th><td>@(memInfo.AssetReferenceId?.ToString() ?? "---")</td></tr>
                                     </tbody>
                                 </table>
                             </div>
