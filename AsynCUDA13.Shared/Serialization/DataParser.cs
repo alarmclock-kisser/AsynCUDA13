@@ -26,9 +26,9 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
-            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(SimdPayload1D) });
+            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), [typeof(SimdPayload1D)]);
 
-            if (method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) is not Task task)
+            if (method?.MakeGenericMethod(t).Invoke(null, [payload]) is not Task task)
             {
                 return null;
             }
@@ -53,9 +53,9 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             // Reflection to call the generic method ParseAsync<T> with the resolved type
-            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), new Type[] { typeof(SimdPayload2D) });
+            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), [typeof(SimdPayload2D)]);
 
-            if (method?.MakeGenericMethod(t).Invoke(null, new object[] { payload }) is not Task task)
+            if (method?.MakeGenericMethod(t).Invoke(null, [payload]) is not Task task)
             {
                 return null;
             }

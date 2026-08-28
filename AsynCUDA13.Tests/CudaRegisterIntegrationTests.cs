@@ -47,7 +47,7 @@ namespace AsynCUDA13.Tests
         [TestMethod]
         public async Task PushPullAsyncfloatAndBatchPreserveValues()
         {
-            var chunks = new[] { new[] { 1f, 2f, 3f }, new[] { 4f, 5f } };
+            var chunks = new[] { new[] { 1f, 2f, 3f }, [4f, 5f] };
             var floatData = await this.service!.PushDataAsync(chunks.SelectMany(x => x));
             var batch = await this.service.PushChunksAsync(chunks);
             floatData.ShouldNotBeNull();
@@ -60,9 +60,9 @@ namespace AsynCUDA13.Tests
         public async Task AllocateAndFreeMemoryUpdatesRegistrySizes()
         {
             var floatData = this.service!.AllocateSingle<float>(128);
-            var group = this.service.AllocateGroup<float>(new IntPtr[] { 32, 64 });
+            var group = this.service.AllocateGroup<float>([32, 64]);
             var asyncfloat = await this.service.AllocateSingleAsync<float>(16);
-            var asyncGroup = await this.service.AllocateGroupAsync<float>(new IntPtr[] { 8, 8 });
+            var asyncGroup = await this.service.AllocateGroupAsync<float>([8, 8]);
             floatData.ShouldNotBeNull(); group.ShouldNotBeNull(); asyncfloat.ShouldNotBeNull(); asyncGroup.ShouldNotBeNull();
             this.service.TotalAllocations.ShouldBe(4);
             this.service.TotalAllocatedBytes.ShouldBe(this.service.RegisteredMemory.Sum(m => m.TotalLength));

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AsynCUDA13.Shared.Api.Responses;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="kernelName">The kernel entry-point name.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns>The elapsed time in milliseconds if the kernel executed successfully; otherwise <c>null</c>.</returns>
-        int? Execute(string kernelName, params object[] arguments);
+        RuntimeExecuteResponse? Execute(string kernelName, params object[] arguments);
 
         /// <summary>
         /// Executes a kernel by name with the supplied arguments asynchronously.
@@ -30,6 +31,6 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="kernelName">The kernel entry-point name.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns>The elapsed time in milliseconds if the kernel executed successfully; otherwise <c>null</c>.</returns>
-        Task<int?> ExecuteAsync(string  kernelName, params object[] arguments);
+        Task<RuntimeExecuteResponse?> ExecuteAsync(string  kernelName, params object[] arguments);
     }
 }

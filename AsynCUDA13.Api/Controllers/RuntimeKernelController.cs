@@ -153,6 +153,16 @@ namespace AsynCUDA13.Api.Controllers
 
                 this.backend.SetCurrent();
                 var result = request.AsyncCall ? await this.backend.Launcher.ExecuteAsync(request.KernelInfo.FunctionName, args) : this.backend.Launcher.Execute(request.KernelInfo.FunctionName, args);
+                if (result == null)
+                {
+                    var pd = new ProblemDetails
+                    {
+                        Title = "Kernel execute error",
+                        Detail = $"The kernel '{this.backend.Compiler.KernelName}' could not be executed or did not return a response DTO.",
+                        Status = 500
+                    };
+                    return this.StatusCode(500, pd);
+                }
 
                 if (request.UnloadAfterExecution)
                 {
@@ -169,8 +179,9 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = RuntimeResponsesBuilder.BuildExecuteResponse(request.KernelInfo, result.HasValue, null, result ?? -1);
-                return this.Ok(response);
+                result.KernelInfo = request.KernelInfo;
+                
+                return this.Ok(result);
             }
             catch (Exception ex)
             {
@@ -240,8 +251,8 @@ namespace AsynCUDA13.Api.Controllers
                 IntPtr length = (IntPtr) mem.TotalLength;
 
                 this.backend.SetCurrent();
-                var resultPtr = await Task.Run(() => this.backend.Launcher.Execute(request.KernelInfo.FunctionName, pointer.Value, args, length));
-                if (resultPtr == null || resultPtr == IntPtr.Zero)
+                var result = await Task.Run(() => this.backend.Launcher.Execute(request.KernelInfo.FunctionName, pointer.Value, args, length));
+                if (result == null)
                 {
                     var pd = new ProblemDetails
                     {
@@ -267,8 +278,8 @@ namespace AsynCUDA13.Api.Controllers
                     }
                 }
 
-                var response = RuntimeResponsesBuilder.BuildExecuteResponse(request.KernelInfo, resultPtr.HasValue, resultPtr, (int) (DateTime.Now - started).TotalMilliseconds);
-                return this.Ok(response);
+                result.KernelInfo = request.KernelInfo;
+                return this.Ok(result);
             }
             catch (Exception ex)
             {

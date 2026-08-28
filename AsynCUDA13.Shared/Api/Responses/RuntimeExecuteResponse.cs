@@ -7,7 +7,7 @@ namespace AsynCUDA13.Shared.Api.Responses
 {
     public class RuntimeExecuteResponse
     {
-        public string? ResultPointer { get; set; } = null;  // Optional pointer to the result data in device memory
+        public string[]? ResultPointers { get; set; } = null;  // Optional pointer to the result data in device memory
 
         public bool Success { get; set; } = false;  // True if execution succeeded
 

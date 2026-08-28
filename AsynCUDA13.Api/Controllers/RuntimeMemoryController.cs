@@ -333,8 +333,8 @@ namespace AsynCUDA13.Api.Controllers
 
                 // Get the appropriate method for pulling data
                 var pullMethod = memInfo.Count == 1
-                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.PullDataAsync), new Type[] { typeof(IntPtr), typeof(bool) })
-                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.PullChunksAsync), new Type[] { typeof(IntPtr), typeof(bool) });
+                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.PullDataAsync), [typeof(IntPtr), typeof(bool)])
+                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.PullChunksAsync), [typeof(IntPtr), typeof(bool)]);
 
                 if (pullMethod == null)
                 {
@@ -344,7 +344,7 @@ namespace AsynCUDA13.Api.Controllers
                 // Pull data from CUDA
                 var genericPullMethod = pullMethod.MakeGenericMethod(t);
                 var pointer = new IntPtr(long.Parse(memInfo.Pointers[0]));
-                var data = genericPullMethod.Invoke(this.backend, new object[] { pointer, false }) is Task<dynamic> dataTask ? await dataTask : null;
+                var data = genericPullMethod.Invoke(this.backend, [pointer, false]) is Task<dynamic> dataTask ? await dataTask : null;
                 bool isChunked = memInfo.Count > 1;
 
                 response.Payload = await InvokeGenericAsync(

@@ -5,6 +5,8 @@ using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Interfaces;
 using System.Runtime.CompilerServices;
 using AsynCUDA13.Shared.Serialization;
+using AsynCUDA13.Shared.Api.Requests;
+using AsynCUDA13.Shared.Api.Responses;
 
 namespace AsynCUDA13.OpenClBackend
 {
@@ -59,15 +61,17 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="kernelName">The name of the kernel to execute.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns>The execution time in milliseconds, or <c>null</c> if the execution failed.</returns>
-        public int? Execute(string kernelName, params object[] arguments)
+        public RuntimeExecuteResponse? Execute(string kernelName, params object[] arguments)
         {
             DateTime started = DateTime.Now;
-            bool ok = this.Execute(kernelName, 0, 0, arguments);
-            if (!ok)
+            var response = this.Execute(kernelName, 0, 0, arguments);
+            if (response == null)
             {
                 return null;
             }
-            return (int) (DateTime.Now - started).TotalMilliseconds;
+
+            response.ElapsedMs = (int) (DateTime.Now - started).TotalMilliseconds;
+            return response;
         }
 
         /// <summary>
@@ -79,7 +83,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="globalWorkSize">The total number of work-items.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns><c>true</c> if the kernel executed successfully; otherwise <c>false</c>.</returns>
-        public bool Execute(string kernelName, long globalWorkSize = 0, params object[] arguments)
+        public RuntimeExecuteResponse? Execute(string kernelName, long globalWorkSize = 0, params object[] arguments)
         {
             return this.Execute(kernelName, globalWorkSize, 0, arguments);
         }
@@ -92,13 +96,14 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="localWorkSize">The work-group size, or 0 to let the runtime choose.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns><c>true</c> if the kernel executed successfully; otherwise <c>false</c>.</returns>
-        public bool Execute(string kernelName, long globalWorkSize = 0, long localWorkSize = 0, params object[] arguments)
+        public RuntimeExecuteResponse Execute(string kernelName, long globalWorkSize = 0, long localWorkSize = 0, params object[] arguments)
         {
+            var response = new RuntimeExecuteResponse();
             CLKernel? kernel = this._compiler.GetClKernel(kernelName);
             if (kernel == null)
             {
                 StaticLogger.LogError($"Execute '{kernelName}': kernel not found.");
-                return false;
+                return response;
             }
 
             arguments = DataParser.AreAllArgumentsString(arguments) ? DataParser.ParseArgumentValues(arguments.Cast<string>(), this._compiler.GetArguments(kernelName).Values) : arguments;
@@ -110,13 +115,15 @@ namespace AsynCUDA13.OpenClBackend
                 if (globalWorkSize <= 0)
                 {
                     StaticLogger.LogError($"Execute '{kernelName}': invalid global work size {globalWorkSize} (localWorkSize={localWorkSize}).");
-                    return false;
+                    return response;
                 }
             }
 
-            if (!this.SetArguments(kernel.Value, kernelName, arguments))
+            var allocated = this.SetArguments(kernel.Value, kernelName, arguments);
+            if (allocated == null)
             {
-                return false;
+                StaticLogger.Log("Error setting arguments, aborting.");
+                return response;
             }
 
             nuint[] global = [(nuint) globalWorkSize];
@@ -126,18 +133,19 @@ namespace AsynCUDA13.OpenClBackend
             if (code != CLResultCode.Success)
             {
                 StaticLogger.LogError($"Execute '{kernelName}': EnqueueNDRangeKernel failed ({code}).");
-                return false;
+                return response;
             }
 
             CLResultCode finish = CL.Finish(this._queue);
             if (finish != CLResultCode.Success)
             {
                 StaticLogger.LogError($"Execute '{kernelName}': Finish failed ({finish}).");
-                return false;
+                return response;
             }
 
+            response.ResultPointers = allocated.Select(p => p.ToString()).ToArray();
             StaticLogger.LogSuccess($"Execute '{kernelName}': executed successfully.");
-            return true;
+            return response;
         }
 
 
@@ -147,16 +155,17 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="kernelName">The name of the kernel to execute.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns>The execution time in milliseconds, or <c>null</c> if the execution failed.</returns>
-        public async Task<int?> ExecuteAsync(string kernelName, params object[] arguments)
+        public async Task<RuntimeExecuteResponse?> ExecuteAsync(string kernelName, params object[] arguments)
         {
             DateTime started = DateTime.Now;
-            bool ok = await Task.Run(() => this.Execute(kernelName, 0, 0, arguments));
-            if (!ok)
+            var response = await Task.Run(() => this.Execute(kernelName, 0, 0, arguments));
+            if (response == null)
             {
                 await StaticLogger.LogAsync($"ExecuteAsync '{kernelName}': execution failed.");
                 return null;
             }
-            return (int) (DateTime.Now - started).TotalMilliseconds;
+            response.ElapsedMs = (int) (DateTime.Now - started).TotalMilliseconds;
+            return response;
         }
 
         /// <summary>
@@ -166,7 +175,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="globalWorkSize">The global work size, or 0 to let the runtime choose.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns><c>true</c> if the kernel executed successfully; otherwise <c>false</c>.</returns>
-        public async Task<bool> ExecuteAsync(string kernelName, long globalWorkSize = 0, params object[] arguments)
+        public async Task<RuntimeExecuteResponse?> ExecuteAsync(string kernelName, long globalWorkSize = 0, params object[] arguments)
         {
             return await Task.Run(() => this.Execute(kernelName, globalWorkSize, 0, arguments));
         }
@@ -179,7 +188,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="localWorkSize">The local work size, or 0 to let the runtime choose.</param>
         /// <param name="arguments">The ordered kernel arguments.</param>
         /// <returns><c>true</c> if the kernel executed successfully; otherwise <c>false</c>.</returns>
-        public async Task<bool> ExecuteAsync(string kernelName, long globalWorkSize = 0, long localWorkSize = 0, params object[] arguments)
+        public async Task<RuntimeExecuteResponse?> ExecuteAsync(string kernelName, long globalWorkSize = 0, long localWorkSize = 0, params object[] arguments)
         {
             return await Task.Run(() => this.Execute(kernelName, globalWorkSize, localWorkSize, arguments));
         }
@@ -189,8 +198,11 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Binds each argument to its kernel index, handling buffers and unmanaged scalars.
         /// </summary>
-        private bool SetArguments(CLKernel kernel, string kernelName, object[] arguments)
+        private IntPtr[]? SetArguments(CLKernel kernel, string kernelName, object[] arguments)
         {
+            List<IntPtr> newAllocated = [];
+            int maxStride = 1;
+            Type? lastMemType = null;
             for (uint i = 0; i < arguments.Length; i++)
             {
                 object arg = arguments[i];
@@ -202,10 +214,32 @@ namespace AsynCUDA13.OpenClBackend
                     if (mem != null)
                     {
                         arg = mem;
+                        maxStride = mem.Count;
+                        lastMemType = mem.ElementType;
+                    }
+                    else if (lastMemType != null)
+                    {
+                        var pullMethod = maxStride <= 1
+                    ? typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateSingle), [typeof(IntPtr), typeof(bool)])
+                    : typeof(IRuntimeRegister).GetMethod(nameof(IRuntimeRegister.AllocateGroup), [typeof(IntPtr), typeof(bool)]);
+
+                        mem = pullMethod?.MakeGenericMethod(lastMemType).Invoke(this, arguments) as OpenClMem;
+                        
+                        if (mem != null)
+                        {
+                            arg = mem;
+                            newAllocated.Add(mem.IndexPointer);
+                        }
+                        else
+                        {
+                            arg = IntPtr.Zero;
+                        }
+                         
+                        
                     }
                     else
                     {
-                        arg = ptr;
+                        arg = IntPtr.Zero;
                     }
                 }
 
@@ -244,17 +278,17 @@ namespace AsynCUDA13.OpenClBackend
 
                     default:
                         StaticLogger.LogError($"Execute '{kernelName}': unsupported argument type '{arg?.GetType().Name ?? "null"}' at index {i}.");
-                        return false;
+                        return null;
                 }
 
                 if (code != CLResultCode.Success)
                 {
                     StaticLogger.LogError($"Execute '{kernelName}': SetKernelArg failed at index {i} ({code}).");
-                    return false;
+                    return null;
                 }
             }
 
-            return true;
+            return newAllocated.ToArray();
         }
 
         /// <summary>

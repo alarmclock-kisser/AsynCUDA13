@@ -215,7 +215,7 @@ namespace AsynCUDA13.Tests
                 return string.Empty;
             }
 
-            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = stackTrace.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
             // Sammle alle Zeilen, die zur Fehlermeldung gehören
             var messageLines = new List<string>();
@@ -344,7 +344,7 @@ namespace AsynCUDA13.Tests
         /// </summary>
         private static string? ExtractTestAssertionInfo(string stackTrace)
         {
-            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = stackTrace.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var line in lines)
             {
@@ -382,7 +382,7 @@ namespace AsynCUDA13.Tests
         /// </summary>
         private static string? ExtractAssertInfoFromStackTrace(string stackTrace)
         {
-            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = stackTrace.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
             // Suche nach Shouldly-Affirmationen im Stacktrace
             foreach (var line in lines)
@@ -593,7 +593,7 @@ namespace AsynCUDA13.Tests
             }
 
             // Suche nach der ersten "at" Zeile im Stacktrace, die die Testklasse enthält
-            var lines = stackTrace.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = stackTrace.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
                 var match = Regex.Match(line, @"at\s+([\w\.]+)\s*\(", RegexOptions.IgnoreCase);

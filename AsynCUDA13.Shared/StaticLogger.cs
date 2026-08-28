@@ -41,7 +41,7 @@ namespace AsynCUDA13.Shared
         /// <summary>
         /// Gets or sets the key phrases that determine which log lines are echoed to the console when <see cref="EchoToConsole"/> is null. Only log lines containing any of these phrases will be echoed to the console.
         /// </summary>
-        public static string[] EchoToConsoleKeyPhrases { get; set; } = new[] { "[SUCCESS]", "[ERROR]", "[WARN", "Exception:" };
+        public static string[] EchoToConsoleKeyPhrases { get; set; } = ["[SUCCESS]", "[ERROR]", "[WARN", "Exception:"];
 
         /// <summary>
         /// The directory where log files are stored.
