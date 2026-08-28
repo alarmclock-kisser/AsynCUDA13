@@ -599,19 +599,6 @@ namespace AsynCUDA13.Api.Controllers
                     Success = true
                 };
 
-                if (!keepBuffer)
-                {
-                    try
-                    {
-                        long freed = this.backend.FreeMemory(ptr);
-                        await StaticLogger.LogAsync($"Freed {freed} bytes of {this.RuntimeType} memory for asset '{assetIdOrName}' after pull operation.");
-                    }
-                    catch (Exception ex)
-                    {
-                        await StaticLogger.LogAsync(ex);
-                    }
-                }
-
                 return this.Ok(response);
             }
             catch (Exception ex)

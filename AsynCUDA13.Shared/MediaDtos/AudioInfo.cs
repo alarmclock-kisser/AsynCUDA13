@@ -17,9 +17,9 @@ namespace AsynCUDA13.Shared.MediaDtos
 
         public string MediaType { get; set; } = "audio";
 
-        public Int32 SampleRate { get; set; }
-        public Int32 Channels { get; set; }
-        public Int32 BitDepth { get; set; }
+        public int SampleRate { get; set; }
+        public int Channels { get; set; }
+        public int BitDepth { get; set; }
 
         public string Length { get; set; } = "0";
         public Single DurationSeconds { get; set; }

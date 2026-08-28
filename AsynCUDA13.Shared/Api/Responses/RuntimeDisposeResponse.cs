@@ -9,7 +9,7 @@ namespace AsynCUDA13.Shared.Api.Responses
         public Boolean Success { get; set; } = false;
         public string? FreedMemoryBytes { get; set; } = null;   // Null if none were freed before dispose
 
-        public Int32 ElapsedMs { get; set; } = -1;
+        public int ElapsedMs { get; set; } = -1;
 
 
     }

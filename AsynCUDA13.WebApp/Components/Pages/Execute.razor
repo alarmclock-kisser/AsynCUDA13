@@ -19,38 +19,82 @@
                             Placeholder="@L["SelectKernel"]"
                             Data="@VM.CompiledKernels"
                             TextProperty="FunctionName" ValueProperty="FunctionName"
-                            Change="@(args => VM.PrepareArguments(VM.GetSelectedKernel()))"
                             ShowClear="true"
+                            Change="@VM.OnSelectedKernelChanged"
                             Disabled="@(!VM.IsBackendInitialized)" />
 
-            @if (VM.GetSelectedKernel() is { } selectedKernel && selectedKernel.ArgumentNames.Length > 0)
-            {
-                <h6 class="mt-3">@L["KernelArguments"]</h6>
-                <div class="row g-3">
-                    @for (int i = 0; i < selectedKernel.ArgumentNames.Length; i++)
+            <RadzenCard Class="mt-3">
+                <RadzenHeader>
+                    <h5>@L["KernelParameters"]</h5>
+                </RadzenHeader>
+                <RadzenBody>
+                    @if (VM.SelectedKernelInfo != null)
                     {
-                        var argumentType = i < selectedKernel.ArgumentTypes.Length ? selectedKernel.ArgumentTypes[i] : "unknown";
-                        <div class="col-md-6">
-                            <RadzenLabel Text="@($"{selectedKernel.ArgumentNames[i]} ({argumentType})")" />
-                            <RadzenTextBox Value="@VM.GetArgumentValue(i)" Change="@(args => VM.SetArgumentValue(i, args?.ToString()))" />
+                        <div class="row g-3">
+                            @for (int i = 0; i < VM.SelectedKernelInfo.ArgumentsCount; i++)
+                            {
+                                string argName = VM.SelectedKernelInfo.ArgumentNames[i];
+                                string argType = VM.SelectedKernelInfo.ArgumentTypes[i];
+                                string argSignature = $"'{argName}' <{argType}>";
+                                string? ptrType = VM.SelectedKernelInfo.IsPointerArgument(argName);
+
+                                <RadzenLabel Text="@argSignature" Class="col-md-2 col-form-label" />
+
+                                if (!string.IsNullOrEmpty(ptrType))
+                                {
+                                    <RadzenDropDown TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    Placeholder="@L["SelectMemObject"]"
+                                    Data="@VM.GetPointersForArgumentType(ptrType)"
+                                    TextProperty="IndexPointer" ValueProperty="IndexPointer"
+                                    ShowClear="true"
+                                    Disabled="@(!VM.IsBackendInitialized)" />
+                                }
+                                else if (VM.SelectedKernelInfo.IsBooleanArgument(argName) == true)
+                                {
+                                    <RadzenCheckBox TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    Disabled="@(!VM.IsBackendInitialized)" />
+                                }
+                                else if (VM.SelectedKernelInfo.IsIntegerArgument(argName) == true)
+                                {
+                                    <RadzenNumeric TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    Step="@VM.SelectedKernelInfo.GetStepSize(argName)"
+                                    Min="@VM.SelectedKernelInfo.GetMinimumValue(argName)"
+                                    Max="@VM.SelectedKernelInfo.GetMaximumValue(argName)"
+                                    Disabled="@(!VM.IsBackendInitialized)" />
+                                }
+                                else if (VM.SelectedKernelInfo.IsDecimalArgument(argName) == true)
+                                {
+                                    <RadzenNumeric TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    Step="@VM.SelectedKernelInfo.GetStepSize(argName)"
+                                    Min="@VM.SelectedKernelInfo.GetMinimumValue(argName)"
+                                    Max="@VM.SelectedKernelInfo.GetMaximumValue(argName)"
+                                    Disabled="@(!VM.IsBackendInitialized)" />
+                                }
+                                else if (VM.SelectedKernelInfo.IsStructArgument(argName) == true)
+                                {
+                                    <RadzenTextBox TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    Placeholder="@L["EnterStructData"]"
+                                    Disabled="@(!VM.IsBackendInitialized)" />
+                                }
+                                else
+                                {
+                                    string valueErrMsg = L["UnsupportedArgumentType"] + $"#{i}: '{argName}' <{argType}>";
+                                    <RadzenLabel Text="@valueErrMsg" Class="col-md-10 col-form-label text-danger" />
+                                }
+                            }
                         </div>
                     }
-                </div>
-            }
-
-            @if (VM.GetSelectedKernel() is { } kernel2)
-            {
-                <div class="mt-3">
-                    <RadzenSwitch @bind-Value="VM.IsInPlace" />
-                    <span class="ms-2">@(VM.IsInPlace ? L["InPlace"] : L["OutOfPlace"])</span>
-                </div>
-            }
-
+                    else
+                    {
+                        <p class="text-muted">@L["NoParametersForSelectedKernel"]</p>
+                    }
+                </RadzenBody>
+            </RadzenCard>
             <RadzenButton Text="@L["Execute"]" 
                           ButtonStyle="ButtonStyle.Primary" 
                           Class="mt-3" 
                           Click="VM.ExecuteKernelAsync" 
-                          Disabled="@(!VM.IsBackendInitialized || string.IsNullOrEmpty(VM.SelectedKernelName))" />
+                          Disabled="@(!VM.CanExecute)" />
         </RadzenCard>
     </RadzenCard>
 
@@ -73,7 +117,6 @@
 @code {
     protected override async Task LoadViewModelAsync()
     {
-        await VM.LoadKernelsAsync();
-        await VM.LoadMemoryListAsync();
+        await VM.LoadKernelsAndMemoryInfosAsync();
     }
 }

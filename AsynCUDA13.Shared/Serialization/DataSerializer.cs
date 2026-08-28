@@ -10,7 +10,7 @@ namespace AsynCUDA13.Shared.Serialization
 {
     public static class DataSerializer
     {
-        public static Int32 ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
+        public static int ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
         // --------------------------------------------------------------------------------
         // 1D Serialization (Sektor-Aufteilung über Threads)
@@ -29,8 +29,8 @@ namespace AsynCUDA13.Shared.Serialization
                 };
             }
 
-            Int32 degreeOfParallelism = Math.Max(1, ParallelThreads);
-            Int32 totalItems = items.Length;
+            int degreeOfParallelism = Math.Max(1, ParallelThreads);
+            int totalItems = items.Length;
 
             if (totalItems < degreeOfParallelism)
             {
@@ -39,13 +39,13 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Ausrichtung berechnen: Byte-Länge pro Sektor muss durch 3 teilbar sein,
             // damit beim Zusammensetzen der Base64-strings keine Padding-Fehler '=' entstehen.
-            Int32 elementSize = Unsafe.SizeOf<T>();
-            Int32 alignment = 3 / GreatCommonDivisor(3, elementSize); // Z. B. 3 Elemente bei float/int, 3 bei double
+            int elementSize = Unsafe.SizeOf<T>();
+            int alignment = 3 / GreatCommonDivisor(3, elementSize); // Z. B. 3 Elemente bei float/int, 3 bei double
 
-            Int32 itemsPerChunk = (Int32) Math.Ceiling((double) totalItems / degreeOfParallelism);
+            int itemsPerChunk = (Int32) Math.Ceiling((double) totalItems / degreeOfParallelism);
             itemsPerChunk = ((itemsPerChunk + alignment - 1) / alignment) * alignment;
 
-            Int32 actualChunkCount = (Int32) Math.Ceiling((double) totalItems / itemsPerChunk);
+            int actualChunkCount = (Int32) Math.Ceiling((double) totalItems / itemsPerChunk);
             string[] sectorResults = new string[actualChunkCount];
 
             // Non-blocking Ausführung auf dem ThreadPool
@@ -53,8 +53,8 @@ namespace AsynCUDA13.Shared.Serialization
             {
                 Parallel.For(0, actualChunkCount, new ParallelOptions { MaxDegreeOfParallelism = degreeOfParallelism }, sectorIdx =>
                 {
-                    Int32 start = sectorIdx * itemsPerChunk;
-                    Int32 count = Math.Min(itemsPerChunk, totalItems - start);
+                    int start = sectorIdx * itemsPerChunk;
+                    int count = Math.Min(itemsPerChunk, totalItems - start);
 
                     if (count <= 0)
                     {
@@ -121,15 +121,16 @@ namespace AsynCUDA13.Shared.Serialization
             };
         }
 
-        public static Int32 GreatCommonDivisor(Int32 a, Int32 b)
+        public static int GreatCommonDivisor(Int32 a, int b)
         {
             while (b != 0)
             {
-                Int32 temp = b;
+                int temp = b;
                 b = a % b;
                 a = temp;
             }
             return a;
         }
+
     }
 }

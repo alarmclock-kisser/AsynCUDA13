@@ -11,6 +11,6 @@ namespace AsynCUDA13.Shared.Api.Responses
 
         public string? BuildLog { get; set; } = null;
 
-        public Int32 ElapsedMs { get; set; } = -1;  // -1 if failed
+        public int ElapsedMs { get; set; } = -1;  // -1 if failed
     }
 }

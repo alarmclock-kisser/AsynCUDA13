@@ -700,15 +700,18 @@ namespace AsynCUDA13.OpenClBackend
                 return arguments;
             }
 
+            string[] argNames = ExtractArgumentNames(this.GetKernelCode(kernel));
+            string[] argTypes = ExtractArgumentTypes(this.GetKernelCode(kernel));
+
             int argCount = CL.GetKernelInfo(clK.Value, KernelInfo.NumberOfArguments, out byte[] count) == CLResultCode.Success ? BitConverter.ToInt32(count, 0) : 0;
             for (int i = 0; i < argCount; i++)
             {
                 string argName = CL.GetKernelArgInfo(clK.Value, (uint)i, KernelArgInfo.Name, out byte[] nameBytes) == CLResultCode.Success
                     ? Encoding.ASCII.GetString(nameBytes).TrimEnd('\0')
-                    : $"arg{i}";
+                    : argNames[i];
                 string argTypeStr = CL.GetKernelArgInfo(clK.Value, (uint)i, KernelArgInfo.TypeName, out byte[] typeBytes) == CLResultCode.Success
                     ? Encoding.ASCII.GetString(typeBytes).TrimEnd('\0')
-                    : "unknown";
+                    : argTypes[i];
                 Type argType = MapOpenClTypeToCSharp(argTypeStr);
                 arguments[argName] = argType;
             }
@@ -1052,21 +1055,26 @@ namespace AsynCUDA13.OpenClBackend
         // Static helpers
         public static Type MapOpenClTypeToCSharp(string openClType)
         {
-            bool isPointer = openClType.EndsWith("*");
-            openClType = openClType.Replace('*', ' ').Trim().ToLowerInvariant();
-
-            Type baseType = openClType switch
+            if (string.IsNullOrWhiteSpace(openClType))
             {
-                "char" => typeof(sbyte),
-                "uchar" => typeof(byte),
-                "short" => typeof(short),
-                "ushort" => typeof(ushort),
-                "int" => typeof(int),
-                "uint" => typeof(uint),
-                "long" => typeof(long),
-                "ulong" => typeof(ulong),
-                "float" => typeof(float),
-                "double" => typeof(double),
+                return typeof(object);
+            }
+
+            bool isPointer = openClType.Contains('*');
+            string typeLower = openClType.ToLowerInvariant();
+
+            Type baseType = typeLower switch
+            {
+                var t when t.Contains("uchar") => typeof(byte),
+                var t when t.Contains("sbyte") || (t.Contains("char") && !t.Contains("uchar")) => typeof(sbyte),
+                var t when t.Contains("ushort") => typeof(ushort),
+                var t when t.Contains("short") => typeof(short),
+                var t when t.Contains("uint") => typeof(uint),
+                var t when t.Contains("int") => typeof(int),
+                var t when t.Contains("ulong") => typeof(ulong),
+                var t when t.Contains("long") => typeof(long),
+                var t when t.Contains("float") => typeof(float),
+                var t when t.Contains("double") => typeof(double),
                 _ => typeof(object),
             };
 
@@ -1076,6 +1084,53 @@ namespace AsynCUDA13.OpenClBackend
         public static bool IsNullPointer(IntPtr? pointer)
         {
             return !pointer.HasValue || pointer.Value == IntPtr.Zero;
+        }
+
+        public static string[] ExtractArgumentNames(string? sourceCode)
+        {
+            if (string.IsNullOrWhiteSpace(sourceCode))
+            {
+                return [];
+            }
+            // Sucht nach Mustern wie: kernel void myKernel(const float* input, float* output)
+            // Dies ist eine vereinfachte Regex; echte C-Parser sind komplexer
+            var match = Regex.Match(sourceCode, @"kernel\s+void\s+\w+\s*\((.*?)\)", RegexOptions.Singleline);
+            if (!match.Success)
+            {
+                return [];
+            }
+
+            var argsString = match.Groups[1].Value;
+            var args = argsString.Split(',');
+
+            return args.Select(a => {
+                // Entferne Typen, Qualifier (const, restrict) und das Komma
+                // Nimmt das letzte Wort vor dem Komma/Klammer als Namen
+                var parts = a.Trim().Split(' ');
+                return parts.Last().TrimEnd('*').Trim();
+            }).ToArray();
+        }
+
+        public static string[] ExtractArgumentTypes(string? sourceCode)
+        {
+            if (string.IsNullOrWhiteSpace(sourceCode))
+            {
+                return [];
+            }
+            // Sucht nach Mustern wie: kernel void myKernel(const float* input, float* output)
+            var match = Regex.Match(sourceCode, @"kernel\s+void\s+\w+\s*\((.*?)\)", RegexOptions.Singleline);
+            if (!match.Success)
+            {
+                return [];
+            }
+            var argsString = match.Groups[1].Value;
+            var args = argsString.Split(',');
+            return args.Select(a =>
+            {
+                // Entferne Qualifier (const, restrict) und das Komma
+                var parts = a.Trim().Split(' ');
+                return string.Join(" ", parts.Take(parts.Length - 1)).Trim();
+            }).ToArray();
         }
     }
 }

@@ -11,7 +11,7 @@ namespace AsynCUDA13.Shared.Api.Responses
 
         public Boolean Success => this.ContextInfo != null && this.ContextInfo.DeviceInfo != null;
 
-        public Int32 ElapsedMs { get; set; } = -1;
+        public int ElapsedMs { get; set; } = -1;
 
     }
 }

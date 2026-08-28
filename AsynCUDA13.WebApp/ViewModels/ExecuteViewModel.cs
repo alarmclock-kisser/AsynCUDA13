@@ -13,84 +13,68 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
         }
 
-        public string GetArgumentValue(int index)
-        {
-            return (uint) index < (uint) this.ArgumentValues.Length ? this.ArgumentValues[index] : string.Empty;
-        }
-
         public RuntimeKernelInfo[]? CompiledKernels { get; set; }
         public RuntimeMemInfo[]? MemoryInfos { get; set; }
 
-        public string? SelectedKernelName { get; set; }
-        public string? SelectedIndexPointer { get; set; }
-        public bool IsInPlace { get; set; } = false;
-        public string[] ArgumentValues { get; private set; } = [];
+        public RuntimeKernelInfo? SelectedKernelInfo { get; set; }
+        public bool CanExecute => this.SelectedKernelInfo?.ArgumentsCount >= 0;
 
-        public async Task LoadKernelsAsync()
+        public RuntimeExecuteRequest ExecuteRequest { get; set; } = new();
+        public RuntimeExecuteResponse? ExecuteResponse { get; set; } = null;
+
+        public string? SelectedKernelName
         {
+            get;
+            set
+            {
+                this.SelectedKernelInfo = this.CompiledKernels?.FirstOrDefault(k => k.FunctionName.Equals(value, StringComparison.OrdinalIgnoreCase));
+                this.ExecuteRequest.KernelInfo = this.SelectedKernelInfo;
+                field = value;
+            }
+        }
+
+
+        public async Task LoadKernelsAndMemoryInfosAsync()
+        {
+            this.MemoryInfos = await this.Api.GetMemoryListAsync();
             this.CompiledKernels = await this.Api.GetKernelsAsync(true);
             await this.NotifyStateChangedAsync();
         }
 
-        public void PrepareArguments(RuntimeKernelInfo? kernel)
+        public async Task OnSelectedKernelChanged()
         {
-            this.ArgumentValues = kernel?.ArgumentNames.Select((_, index) =>
-                index < this.ArgumentValues.Length ? this.ArgumentValues[index] : string.Empty).ToArray() ?? [];
-        }
-
-        public void SetArgumentValue(int index, string? value)
-        {
-            if ((uint) index < (uint) this.ArgumentValues.Length)
+            if (this.SelectedKernelInfo == null)
             {
-                this.ArgumentValues[index] = value ?? string.Empty;
-            }
-        }
-
-        public async Task LoadMemoryListAsync()
-        {
-            this.MemoryInfos = await this.Api.GetMemoryListAsync();
-            this.NotifyStateChanged();
-        }
-
-        public RuntimeKernelInfo? GetSelectedKernel()
-        {
-            if (string.IsNullOrEmpty(this.SelectedKernelName))
-            {
-                return null;
+                await this.PutInfoMessageAsync("No kernel selected. Please select a kernel to execute.", "warning", true, 5);
             }
 
-            return this.CompiledKernels?.FirstOrDefault(k => k.FunctionName.Equals(this.SelectedKernelName, StringComparison.OrdinalIgnoreCase));
+            await this.NotifyStateChangedAsync(false);
         }
 
-        public RuntimeMemInfo[] GetAvailablePointersForKernel(RuntimeKernelInfo kernel)
+
+        public RuntimeMemInfo[] GetPointersForArgumentType(string argType)
         {
-            if (this.MemoryInfos == null || kernel.ArgumentTypes == null || kernel.ArgumentTypes.Length == 0)
+            if (string.IsNullOrWhiteSpace(argType) || this.MemoryInfos == null || this.MemoryInfos.Length == 0)
             {
                 return [];
             }
 
-            // Filter pointers by the element type of the first argument
-            var firstArgType = kernel.ArgumentTypes.FirstOrDefault();
-            if (string.IsNullOrEmpty(firstArgType))
-            {
-                return [];
-            }
-
-            return this.MemoryInfos
-                .Where(m => m.ElementType.Equals(firstArgType, StringComparison.OrdinalIgnoreCase))
-                .ToArray();
+            return this.MemoryInfos.Where(m => m.ElementType.Equals(argType.Replace("*", "").Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
         }
 
-        public async Task<string?> ExecuteKernelAsync()
+
+
+
+
+        public async Task ExecuteKernelAsync()
         {
-            var kernel = this.GetSelectedKernel();
-            if (kernel == null)
+            if (this.SelectedKernelInfo == null)
             {
-                return null;
+                await this.UpdateInfoMessageAsync("No kernel selected. Please select a kernel to execute.", "warning", true, 5, true);
+                return;
             }
 
-            var response = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelName ?? string.Empty, this.ArgumentValues, false);
-            return response?.ResultPointer?.ToString();
+            this.ExecuteResponse = await this.Api.ExecuteGenericKernelAsync(this.SelectedKernelInfo.FunctionName, this.ExecuteRequest.ArgumentValues, false);
         }
     }
 }

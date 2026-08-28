@@ -141,15 +141,18 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 cuPaths = cuPaths.Where(cu => service.Compiler.GetCompiledFiles().Any(ptx => Path.GetFileNameWithoutExtension(ptx) == Path.GetFileNameWithoutExtension(cu))).ToArray() ?? [];
             }
 
-            var infos = cuPaths.Select(kernel => new RuntimeKernelInfo
-            {
-                SourcePath = service.Compiler.GetSourceFiles().FirstOrDefault(src => Path.GetFileNameWithoutExtension(src) == Path.GetFileNameWithoutExtension(kernel))?.ToString() ?? string.Empty,
-                PtxPath = service.Compiler.GetCompiledFiles().FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == Path.GetFileNameWithoutExtension(kernel))?.ToString(),
-                KernelCode = service.Compiler.GetKernelCode(kernel) ?? string.Empty,
-                FunctionName = service.Compiler.GetFunctionName(kernel) ?? string.Empty,
-                ArgumentNames = service.Compiler.GetArguments(kernel).Keys.ToArray(),
-                ArgumentTypes = service.Compiler.GetArguments(kernel).Values.Select(type => type.Name).ToArray()
+            var infos = cuPaths.Select(kernel => {
+                var args = service.Compiler.GetArguments(kernel);
+                return new RuntimeKernelInfo
+                {
+                    SourcePath = service.Compiler.GetSourceFiles().FirstOrDefault(src => Path.GetFileNameWithoutExtension(src) == Path.GetFileNameWithoutExtension(kernel))?.ToString() ?? string.Empty,
+                    PtxPath = service.Compiler.GetCompiledFiles().FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == Path.GetFileNameWithoutExtension(kernel))?.ToString(),
+                    KernelCode = service.Compiler.GetKernelCode(kernel) ?? string.Empty,
+                    FunctionName = service.Compiler.GetFunctionName(kernel) ?? string.Empty,
+                    ArgumentNames = args.Keys.ToArray(),
+                    ArgumentTypes = args.Values.Select(type => type.Name).ToArray()
 
+                };
             }).ToArray() ?? [];
 
             return infos;
@@ -166,14 +169,15 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             {
                 return null;
             }
+            var args = service.Compiler.GetArguments(srcPath);
             var info = new RuntimeKernelInfo
             {
                 SourcePath = srcPath,
                 PtxPath = service.Compiler.GetCompiledFiles().FirstOrDefault(comp => Path.GetFileNameWithoutExtension(comp) == kernelName)?.ToString(),
                 KernelCode = service.Compiler.GetKernelCode(srcPath) ?? string.Empty,
-                FunctionName = kernelName,
-                ArgumentNames = service.Compiler.GetArguments(service.Compiler.GetKernelCode(srcPath) ?? string.Empty).Keys.ToArray(),
-                ArgumentTypes = service.Compiler.GetArguments(service.Compiler.GetKernelCode(srcPath) ?? string.Empty).Values.Select(type => type.Name).ToArray()
+                FunctionName = service.Compiler.GetFunctionName(srcPath) ?? string.Empty,
+                ArgumentNames = args.Keys.ToArray(),
+                ArgumentTypes = args.Values.Select(type => type.Name).ToArray()
             };
             return info;
         }

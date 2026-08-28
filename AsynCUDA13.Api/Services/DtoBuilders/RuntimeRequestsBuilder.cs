@@ -89,7 +89,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             return new RuntimeExecuteRequest
             {
                 KernelInfo = kernelInfo,
-                ArgumentValues = argumentValues ?? [],
+                ArgumentValues = argumentValues?.ToArray() ?? [],
                 AsyncCall = asyncCall
             };
         }

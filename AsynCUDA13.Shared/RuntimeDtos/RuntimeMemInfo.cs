@@ -14,7 +14,7 @@ namespace AsynCUDA13.Shared.RuntimeDtos
         public string ElementType { get; set; } = string.Empty;
         public string IndexLength => this.Lengths.Length == 0 ? "null" : (this.Lengths.All(l => l == this.Lengths[0]) ? this.Lengths[0] : "N/A");
 
-        public Int32 ElementSize
+        public int ElementSize
         {
             get
             {
@@ -40,7 +40,7 @@ namespace AsynCUDA13.Shared.RuntimeDtos
                 return Marshal.SizeOf(Type.GetType(this.ElementType) ?? typeof(void));
             }
         }
-        public Int32? Count => (this.Pointers.LongLength == this.Lengths.LongLength) ? (global::System.Int32) this.Pointers.LongLength : null;
+        public int? Count => (this.Pointers.LongLength == this.Lengths.LongLength) ? (global::System.Int32) this.Pointers.LongLength : null;
         public string LongCount => this.Pointers.LongLength == this.Lengths.LongLength ? this.Pointers.LongLength.ToString() : "N/A";
         public string TotalLength => this.Lengths.Sum(l => long.TryParse(l, out Int64 len) ? len : 0).ToString();
         public string TotalSize => (long.TryParse(this.TotalLength, out Int64 totalLen) ? totalLen : 0 * this.ElementSize).ToString();

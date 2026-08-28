@@ -559,7 +559,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <returns>The number of bytes freed, or 0 if no matching allocation was found.</returns>
         public long FreeMemory(IntPtr indexPointer)
         {
-            if (this[indexPointer] is not IRuntimeMem mem)
+            if (this[indexPointer] is not OpenClMem mem)
             {
                 return 0;
             }
@@ -575,7 +575,7 @@ namespace AsynCUDA13.OpenClBackend
         /// <returns>The number of bytes freed, or 0 if no matching allocation was found.</returns>
         public long FreeMemory(Guid id)
         {
-            if (this[id] is not IRuntimeMem mem)
+            if (this[id] is not OpenClMem mem)
             {
                 return 0;
             }
@@ -589,9 +589,9 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         /// <param name="mem">The allocation to free.</param>
         /// <returns>The number of bytes freed, or 0 if the allocation was not tracked.</returns>
-        public long FreeMemory(Shared.Interfaces.IRuntimeMem mem)
+        public long FreeMemory(IRuntimeMem mem)
         {
-            if (mem as IRuntimeMem is not IRuntimeMem openClMem)
+            if (mem as OpenClMem is not OpenClMem openClMem)
             {
                 return 0;
             }

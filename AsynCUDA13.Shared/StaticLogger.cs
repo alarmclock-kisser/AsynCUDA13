@@ -107,7 +107,7 @@ namespace AsynCUDA13.Shared
         /// <param name="logDirectory">The directory where log files are stored.</param>
         /// <param name="createLogFile">Whether to create a new log file.</param>
         /// <param name="maxPreviousLogFiles">The maximum number of previous log files to retain.</param>
-        public static void InitializeLogFiles(string? logDirectory = null, Boolean createLogFile = false, Int32 maxPreviousLogFiles = 3)
+        public static void InitializeLogFiles(string? logDirectory = null, Boolean createLogFile = false, int maxPreviousLogFiles = 3)
         {
             if (!string.IsNullOrEmpty(logDirectory))
             {
@@ -459,7 +459,7 @@ namespace AsynCUDA13.Shared
         /// <summary>
         /// The maximum number of saved log files to retain in the repository log directory.
         /// </summary>
-        public const Int32 MaxRepositoryLogFiles = 16;
+        public const int MaxRepositoryLogFiles = 16;
 
         /// <summary>
         /// Deletes the oldest saved log files so at most <see cref="MaxRepositoryLogFiles"/> remain.
@@ -557,7 +557,7 @@ namespace AsynCUDA13.Shared
             string message = $"Message: {ex.Message}";
 
             Exception? inner = ex.InnerException;
-            Int32 count = 0;
+            int count = 0;
             while (inner != null)
             {
                 message = message + $"{separator}{openingBracket}{inner.Message}";
