@@ -43,7 +43,7 @@ namespace AsynCUDA13.Shared.Api.Requests
                     // Initialize all new elements with string.Empty
                     for (int i = this._argumentValues.Length - 1; i >= 0; i--)
                     {
-                        this._argumentValues[i] ??= string.Empty;
+                        this._argumentValues[i] ??= this.KernelInfo?.GetDefaultValue(i) ?? string.Empty;
                     }
                 }
 
@@ -64,11 +64,11 @@ namespace AsynCUDA13.Shared.Api.Requests
                     Array.Resize(ref this._argumentValues, maxArgs);
                     for (int i = this._argumentValues.Length - 1; i >= 0; i--)
                     {
-                        this._argumentValues[i] ??= string.Empty;
+                        this._argumentValues[i] ??= this.KernelInfo?.GetDefaultValue(i) ?? string.Empty;
                     }
                 }
 
-                this._argumentValues[index] = value.ToString() ?? string.Empty;
+                this._argumentValues[index] = value;
             }
         }
 

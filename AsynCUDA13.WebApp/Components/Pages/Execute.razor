@@ -33,6 +33,7 @@
                         <div class="row g-3">
                             @for (int i = 0; i < VM.SelectedKernelInfo.ArgumentsCount; i++)
                             {
+                                int index = i;
                                 string argName = VM.SelectedKernelInfo.ArgumentNames[i];
                                 string argType = VM.SelectedKernelInfo.ArgumentTypes[i];
                                 string argSignature = $"'{argName}' <{argType}>";
@@ -42,7 +43,7 @@
 
                                 if (!string.IsNullOrEmpty(ptrType))
                                 {
-                                    <RadzenDropDown TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    <RadzenDropDown TValue="string" @bind-Value="VM.ExecuteRequest[index]"
                                     Placeholder="@L["SelectMemObject"]"
                                     Data="@VM.GetPointersForArgumentType(ptrType)"
                                     TextProperty="IndexPointer" ValueProperty="IndexPointer"
@@ -51,12 +52,12 @@
                                 }
                                 else if (VM.SelectedKernelInfo.IsBooleanArgument(argName) == true)
                                 {
-                                    <RadzenCheckBox TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    <RadzenCheckBox TValue="string" @bind-Value="VM.ExecuteRequest[index]"
                                     Disabled="@(!VM.IsBackendInitialized)" />
                                 }
                                 else if (VM.SelectedKernelInfo.IsIntegerArgument(argName) == true)
                                 {
-                                    <RadzenNumeric TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    <RadzenNumeric TValue="string" @bind-Value="VM.ExecuteRequest[index]"
                                     Step="@VM.SelectedKernelInfo.GetStepSize(argName)"
                                     Min="@VM.SelectedKernelInfo.GetMinimumValue(argName)"
                                     Max="@VM.SelectedKernelInfo.GetMaximumValue(argName)"
@@ -64,7 +65,7 @@
                                 }
                                 else if (VM.SelectedKernelInfo.IsDecimalArgument(argName) == true)
                                 {
-                                    <RadzenNumeric TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    <RadzenNumeric TValue="string" @bind-Value="VM.ExecuteRequest[index]"
                                     Step="@VM.SelectedKernelInfo.GetStepSize(argName)"
                                     Min="@VM.SelectedKernelInfo.GetMinimumValue(argName)"
                                     Max="@VM.SelectedKernelInfo.GetMaximumValue(argName)"
@@ -72,13 +73,13 @@
                                 }
                                 else if (VM.SelectedKernelInfo.IsStructArgument(argName) == true)
                                 {
-                                    <RadzenTextBox TValue="string" @bind-Value="VM.ExecuteRequest[i]"
+                                    <RadzenTextBox TValue="string" @bind-Value="VM.ExecuteRequest[index]"
                                     Placeholder="@L["EnterStructData"]"
                                     Disabled="@(!VM.IsBackendInitialized)" />
                                 }
                                 else
                                 {
-                                    string valueErrMsg = L["UnsupportedArgumentType"] + $"#{i}: '{argName}' <{argType}>";
+                                    string valueErrMsg = L["UnsupportedArgumentType"] + $"#{index}: '{argName}' <{argType}>";
                                     <RadzenLabel Text="@valueErrMsg" Class="col-md-10 col-form-label text-danger" />
                                 }
                             }

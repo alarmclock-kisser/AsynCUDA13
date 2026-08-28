@@ -95,7 +95,7 @@ namespace AsynCUDA13.Shared.RuntimeDtos
             }
             else if (IntegerTypes.Contains(type))
             {
-                return 1.0m.ToString(); // Step size for integer types
+                return 1.ToString(); // Step size for integer types
             }
             else if (DecimalTypes.Contains(type))
             {
@@ -252,6 +252,39 @@ namespace AsynCUDA13.Shared.RuntimeDtos
             return this.GetMinimumValue(this.ArgumentNames.IndexOf(argumentName));
         }
 
+        public string GetDefaultValue(string? argumentName)
+        {
+            return this.GetDefaultValue(this.ArgumentNames.IndexOf(argumentName));
+        }
+
+        public string GetDefaultValue(int index)
+        {
+            if (index < 0 || index >= this.ArgumentTypes.Length)
+            {
+                throw new IndexOutOfRangeException($"Index {index} is out of the defined kernel arguments (Max: {this.ArgumentTypes.Length - 1}, Names: {string.Join(", ", this.ArgumentNames)}, Types: {string.Join(", ", this.ArgumentTypes)}).");
+            }
+            string type = this.ArgumentTypes[index];
+            if (BooleanTypes.Contains(type))
+            {
+                return "false"; // Default value for boolean types
+            }
+            else if (IntegerTypes.Contains(type))
+            {
+                return "0"; // Default value for integer types
+            }
+            else if (DecimalTypes.Contains(type))
+            {
+                return "0.0"; // Default value for decimal types
+            }
+            else if (StructTypes.Contains(type))
+            {
+                return "{}"; // Default value for struct types
+            }
+            else
+            {
+                return "null"; // Unknown type, default to null
+            }
+        }
 
 
     }
