@@ -9,7 +9,16 @@ namespace AsynCUDA13.Shared.Api.Requests
 {
     public class RuntimeExecuteRequest
     {
-        public RuntimeKernelInfo? KernelInfo { get; set; } = null;
+        public RuntimeKernelInfo? KernelInfo
+        {
+            get;
+            set
+            {
+                this.KernelInfo = value;
+                this._argumentValues = new string[value?.ArgumentsCount ?? 0];
+                field = value;
+            }
+        }
 
         private string[] _argumentValues = [];
 

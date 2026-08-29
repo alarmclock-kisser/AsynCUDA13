@@ -8,14 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="ViewModels\FractalsViewModel.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="ViewModels\FractalsViewModel.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Radzen.Blazor" Version="11.2.5" />
   </ItemGroup>

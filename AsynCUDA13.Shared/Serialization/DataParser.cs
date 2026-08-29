@@ -323,6 +323,15 @@ namespace AsynCUDA13.Shared.Serialization
             }).ToArray() ?? [];
         }
 
+        public static Type[] ParseArgumentTypes(IEnumerable<string> typeNames)
+        {
+            return typeNames.Select(typeName =>
+            {
+                Type? t = Type.GetType(typeName, throwOnError: false, ignoreCase: true);
+                return t ?? typeof(object); // Fallback to object if type resolution fails
+            }).ToArray();
+        }
+
         // --------------------------------------------------------------------------------
         // Kernel Name Extraction from Source Code
         // --------------------------------------------------------------------------------

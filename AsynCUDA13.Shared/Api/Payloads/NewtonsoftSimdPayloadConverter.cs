@@ -8,7 +8,10 @@ namespace AsynCUDA13.Shared.Api.Payloads
     {
         public override ISimdPayload? ReadJson(JsonReader reader, Type objectType, ISimdPayload? existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+            {
+                return null;
+            }
 
             JObject jsonObject = JObject.Load(reader);
             bool is2D = jsonObject.GetValue("data2D", StringComparison.OrdinalIgnoreCase) != null ||

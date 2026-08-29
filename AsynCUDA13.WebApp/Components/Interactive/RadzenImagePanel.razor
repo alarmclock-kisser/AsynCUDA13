@@ -1,0 +1,106 @@
+@using Radzen.Blazor
+@using AsynCUDA13.WebApp.Services
+@using Microsoft.AspNetCore.Components.Web
+
+<RadzenPanel Text="@Text" Style.$width="@Options.Width" Style.$height="@Options.Height" Style.$margin="@Options.Margin">
+    <div @onmousedown="HandleMouseDown" 
+         @onmousemove="HandleMouseMove" 
+         @onmouseup="HandleMouseUp" 
+         @onwheel="HandleWheel" 
+         @onclick="HandleClick" 
+         @ondblclick="HandleDoubleClick"
+         style="position: relative; overflow: hidden; width: 100%; height: 100%; cursor: @(Options.CanDrag ? "grab" : "default");">
+
+        <RadzenImage Path="@(string.IsNullOrEmpty(ImagePath) ? "" : ImagePath)" 
+                     Style.$width="100%" 
+                     Style.$height="100%" 
+                     ObjectFit="ObjectFit.Contain" />
+
+        @if (Options.HasDraggableAnker)
+        {
+            <div @onmousedown="HandleResizeStart" 
+                 style="position: absolute; right: 0; bottom: 0; width: 15px; height: 15px; cursor: nwse-resize; background: rgba(0,0,0,0.2); border-radius: 2px 0 0 0;">
+            </div>
+        }
+    </div>
+</RadzenPanel>
+
+@code {
+    [Parameter] public string Text { get; set; } = "Image Panel";
+    [Parameter] public string ImagePath { get; set; } = "";
+    [Parameter] public RadzenImagePanelOptions Options { get; set; } = new();
+
+    private bool isDragging = false;
+    private bool isResizing = false;
+
+    private async Task HandleResizeStart(MouseEventArgs e)
+    {
+        isResizing = true;
+        if (Options.OnMouseDown.HasDelegate)
+        {
+            await Options.OnMouseDown.InvokeAsync(e);
+        }
+    }
+
+    private async Task HandleMouseDown(MouseEventArgs e)
+    {
+        if (isResizing) return;
+        if (Options.CanDrag)
+        {
+            isDragging = true;
+        }
+        if (Options.OnMouseDown.HasDelegate)
+        {
+            await Options.OnMouseDown.InvokeAsync(e);
+        }
+    }
+
+    private async Task HandleMouseMove(MouseEventArgs e)
+    {
+        if (isResizing || (isDragging && Options.CanDrag))
+        {
+            // Logic handled by VM via OnMouseMove
+        }
+        if (Options.OnMouseMove.HasDelegate)
+        {
+            await Options.OnMouseMove.InvokeAsync(e);
+        }
+    }
+
+    private async Task HandleMouseUp(MouseEventArgs e)
+    {
+        isDragging = false;
+        isResizing = false;
+        if (Options.OnMouseUp.HasDelegate)
+        {
+            await Options.OnMouseUp.InvokeAsync(e);
+        }
+    }
+
+    private async Task HandleWheel(WheelEventArgs e)
+    {
+        if (Options.CanScrollZoom || e.CtrlKey)
+        {
+            if (Options.OnWheel.HasDelegate)
+            {
+                await Options.OnWheel.InvokeAsync(e);
+            }
+        }
+    }
+
+    private async Task HandleClick(MouseEventArgs e)
+    {
+        if (Options.OnClick.HasDelegate)
+        {
+            await Options.OnClick.InvokeAsync(e);
+        }
+    }
+
+    private async Task HandleDoubleClick(MouseEventArgs e)
+    {
+        if (Options.OnDoubleClick.HasDelegate)
+        {
+            await Options.OnDoubleClick.InvokeAsync(e);
+        }
+    }
+}

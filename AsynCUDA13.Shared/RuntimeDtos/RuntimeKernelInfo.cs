@@ -21,6 +21,23 @@ namespace AsynCUDA13.Shared.RuntimeDtos
         public string[] ArgumentTypes { get; set; } = [];
 
         public int? ArgumentsCount => this.ArgumentNames.Length == this.ArgumentTypes.Length ? this.ArgumentNames.Length : null;
+        public int? PointerArgumentsCount => this.PointerArgumentTypes.Keys.Any(k => k >= this.ArgumentsCount) ? null : this.PointerArgumentTypes.Count;
+
+        public Dictionary<int, string> PointerArgumentTypes
+        {
+            get
+            {
+                Dictionary<int, string> pointerArgTypes = [];
+                for (int i = 0; i < this.ArgumentTypes.Length; i++)
+                {
+                    if (this.ArgumentTypes[i].EndsWith("*"))
+                    {
+                        pointerArgTypes[i] = this.ArgumentTypes[i];
+                    }
+                }
+                return pointerArgTypes;
+            }
+        }
 
 
         public string? IsPointerArgument(int index, bool returnPointerType = true)
