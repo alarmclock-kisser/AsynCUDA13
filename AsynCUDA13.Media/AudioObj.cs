@@ -6,16 +6,17 @@ using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using System.Globalization;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace AsynCUDA13.Media
 {
-    public class AudioObj : IDisposable
+    public class AudioObj : IDisposable, IMediaObj
     {
-        public readonly Guid Id = Guid.NewGuid();
-        public readonly DateTime CreatedAt = DateTime.UtcNow;
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public string FilePath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -495,7 +496,7 @@ namespace AsynCUDA13.Media
 
         public string? ExportWav(string? outputDirectory = null, string? fileName = null, int bits = 16)
         {
-            outputDirectory ??= AudioCollection.ExportDirectory;
+            outputDirectory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "SharpAI_AudioExports");
             if (string.IsNullOrEmpty(outputDirectory))
             {
                 StaticLogger.Log("Export directory is not set.");

@@ -123,7 +123,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             {
                 return;
             }
-            
+
 
             await this.PushAssetAsync(this.SelectedAssetId.Value.ToString());
 
@@ -189,12 +189,7 @@ namespace AsynCUDA13.WebApp.ViewModels
                 return $"{bytes / (1024.0 * 1024.0):F2} MB";
             }
 
-            if (bytes >= 1024)
-            {
-                return $"{bytes / 1024.0:F2} kB";
-            }
-
-            return $"{bytes} B";
+            return bytes >= 1024 ? $"{bytes / 1024.0:F2} kB" : $"{bytes} B";
         }
 
 
@@ -293,12 +288,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
 
             var audio = this.AudioInfos.FirstOrDefault(a => a.IdMatch(assetId.Value));
-            if (audio != null)
-            {
-                return audio.Name;
-            }
-
-            return null;
+            return audio != null ? audio.Name :  null;
         }
 
         private bool IsAssetAudio(Guid? assetId = null)

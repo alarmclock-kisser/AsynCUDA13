@@ -44,11 +44,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>The currently loaded CUDA kernel, or <c>null</c> if no kernel is loaded or the name does not match.</returns>
         public object? GetKernel(string name)
         {
-            if (this.Kernel != null && string.Equals(this.KernelName, name, StringComparison.OrdinalIgnoreCase))
-            {
-                return this.Kernel;
-            }
-            return null;
+            return this.Kernel != null && string.Equals(this.KernelName, name, StringComparison.OrdinalIgnoreCase) ?  this.Kernel : (Object?) null;
         }
 
         /// <summary>
@@ -121,11 +117,7 @@ namespace AsynCUDA13.Runtime
             }
 
             string cuPath = Path.Combine(KernelPath, "CU", name + ".cu");
-            if (File.Exists(cuPath))
-            {
-                return cuPath;
-            }
-            return null;
+            return File.Exists(cuPath) ? cuPath :  null;
         }
 
         /// <summary>

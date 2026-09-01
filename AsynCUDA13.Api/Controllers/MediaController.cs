@@ -2,7 +2,6 @@
 using AsynCUDA13.Media;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared.Interfaces;
-using AsynCUDA13.Shared.MediaDtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AsynCUDA13.Api.Controllers
@@ -14,46 +13,28 @@ namespace AsynCUDA13.Api.Controllers
         private readonly ImageCollection images;
         private readonly AudioCollection audios;
 
-        public MediaController(IRuntimeService cudaService, ImageCollection images, AudioCollection audios)
-            : base(cudaService)
+        public MediaController(IRuntimeService cudaService, ImageCollection images, AudioCollection audios, IRollingFileMemoryLogger logger)
+            : base(cudaService, logger)
         {
             this.images = images;
             this.audios = audios;
         }
 
-        [HttpGet("images")]
-        public ActionResult<IEnumerable<ImageInfo>> GetImages()
+        [HttpGet("media-infos")]
+        public ActionResult<IEnumerable<IMediaInfo>> GetMediaInfos()
         {
             try
             {
-                var imageInfos = this.images.Images.Select(MediaInfosBuilder.BuildImageInfo).ToList();
-                return this.Ok(imageInfos);
+                var imageInfos = this.images.Images.Select(MediaInfosBuilder.BuildImageInfo).Cast<IMediaInfo>();
+                var audioInfos = this.audios.Audios.Select(MediaInfosBuilder.BuildAudioInfo).Cast<IMediaInfo>();
+                var allInfos = imageInfos.Concat(audioInfos).ToList();
+                return this.Ok(allInfos);
             }
             catch (Exception ex)
             {
                 var pd = new ProblemDetails
                 {
-                    Title = "Error retrieving images",
-                    Detail = ex.Message,
-                    Status = 500
-                };
-                return this.StatusCode(500, pd);
-            }
-        }
-
-        [HttpGet("audios")]
-        public ActionResult<IEnumerable<AudioInfo>> GetAudios()
-        {
-            try
-            {
-                var audioInfos = this.audios.Audios.Select(MediaInfosBuilder.BuildAudioInfo).ToList();
-                return this.Ok(audioInfos);
-            }
-            catch (Exception ex)
-            {
-                var pd = new ProblemDetails
-                {
-                    Title = "Error retrieving audios",
+                    Title = "Error retrieving media infos",
                     Detail = ex.Message,
                     Status = 500
                 };
@@ -237,30 +218,37 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-        [HttpGet("image-data/{idOrName}")]
-        public ActionResult<ImageData?> GetImageData(string idOrName, string format = "png", bool keepData = true)
+        [HttpGet("media-data/{idOrName}")]
+        public ActionResult<IMediaData?> GetMediaData(string idOrName, string format = "png", int chunkSize = 0, float overlap = 0.5f, bool keepData = true)
         {
             try
             {
                 var image = Guid.TryParse(idOrName, out var guid) ? this.images[guid] : this.images[idOrName];
-                if (image == null)
+                if (image != null)
                 {
-                    return this.NotFound(new ProblemDetails
-                    {
-                        Title = "Image not found",
-                        Detail = $"No image found with ID or name '{idOrName}'.",
-                        Status = 404
-                    });
+                    var mediaData = MediaDatasBuilder.BuildImageData(image, format, keepData);
+                    return this.Ok(mediaData);
                 }
 
-                var imageData = MediaDatasBuilder.BuildImageData(image, format, keepData);
-                return this.Ok(imageData);
+                var audio = Guid.TryParse(idOrName, out guid) ? this.audios[guid] : this.audios[idOrName];
+                if (audio != null)
+                {
+                    var mediaData = MediaDatasBuilder.BuildAudioData(audio, chunkSize, overlap, keepData);
+                    return this.Ok(mediaData);
+                }
+
+                return this.NotFound(new ProblemDetails
+                {
+                    Title = "Media not found",
+                    Detail = $"No media found with ID or name '{idOrName}'.",
+                    Status = 404
+                });
             }
             catch (Exception ex)
             {
                 var pd = new ProblemDetails
                 {
-                    Title = "Error retrieving image data",
+                    Title = "Error retrieving media data",
                     Detail = ex.Message,
                     Status = 500
                 };
@@ -268,91 +256,37 @@ namespace AsynCUDA13.Api.Controllers
             }
         }
 
-        [HttpGet("image-preview/{idOrName}")]
-        public ActionResult<ImageData?> GetImagePreview(string idOrName, int maxDimenions = 256)
+        [HttpGet("media-preview/{idOrName}")]
+        public ActionResult<IMediaData?> GetMediaPreview(string idOrName, int maxDimenions = 256, int width = 512, int height = 128)
         {
             try
             {
                 var image = Guid.TryParse(idOrName, out var guid) ? this.images[guid] : this.images[idOrName];
-                if (image == null)
+                if (image != null)
                 {
-                    return this.NotFound(new ProblemDetails
-                    {
-                        Title = "Image not found",
-                        Detail = $"No image found with ID or name '{idOrName}'.",
-                        Status = 404
-                    });
+                    var mediaPreview = MediaDatasBuilder.BuildImagePreview(image, maxDimenions);
+                    return this.Ok(mediaPreview);
                 }
 
-                var imagePreview = MediaDatasBuilder.BuildImagePreview(image, maxDimenions);
-                return this.Ok(imagePreview);
+                var audio = Guid.TryParse(idOrName, out guid) ? this.audios[guid] : this.audios[idOrName];
+                if (audio != null)
+                {
+                    var mediaPreview = MediaDatasBuilder.BuildAudioPreview(audio, width, height);
+                    return this.Ok(mediaPreview);
+                }
+
+                return this.NotFound(new ProblemDetails
+                {
+                    Title = "Media not found",
+                    Detail = $"No media found with ID or name '{idOrName}'.",
+                    Status = 404
+                });
             }
             catch (Exception ex)
             {
                 var pd = new ProblemDetails
                 {
-                    Title = "Error retrieving image preview",
-                    Detail = ex.Message,
-                    Status = 500
-                };
-                return this.StatusCode(500, pd);
-            }
-        }
-
-        [HttpGet("audio-data/{idOrName}")]
-        public ActionResult<AudioData?> GetAudioData(string idOrName, int chunkSize = 0, float overlap = 0.5f, bool keepData = true)
-        {
-            try
-            {
-                var audio = Guid.TryParse(idOrName, out var guid) ? this.audios[guid] : this.audios[idOrName];
-                if (audio == null)
-                {
-                    return this.NotFound(new ProblemDetails
-                    {
-                        Title = "Audio not found",
-                        Detail = $"No audio found with ID or name '{idOrName}'.",
-                        Status = 404
-                    });
-                }
-
-                var audioData = MediaDatasBuilder.BuildAudioData(audio, chunkSize, overlap, keepData);
-                return this.Ok(audioData);
-            }
-            catch (Exception ex)
-            {
-                var pd = new ProblemDetails
-                {
-                    Title = "Error retrieving audio data",
-                    Detail = ex.Message,
-                    Status = 500
-                };
-                return this.StatusCode(500, pd);
-            }
-        }
-
-        [HttpGet("audio-preview/{idOrName}")]
-        public ActionResult<ImageData?> GetAudioPreview(string idOrName, int width = 512, int height = 128)
-        {
-            try
-            {
-                var audio = Guid.TryParse(idOrName, out var guid) ? this.audios[guid] : this.audios[idOrName];
-                if (audio == null)
-                {
-                    return this.NotFound(new ProblemDetails
-                    {
-                        Title = "Audio not found",
-                        Detail = $"No audio found with ID or name '{idOrName}'.",
-                        Status = 404
-                    });
-                }
-                var audioPreview = MediaDatasBuilder.BuildAudioPreview(audio, width, height);
-                return this.Ok(audioPreview);
-            }
-            catch (Exception ex)
-            {
-                var pd = new ProblemDetails
-                {
-                    Title = "Error retrieving audio preview",
+                    Title = "Error retrieving media preview",
                     Detail = ex.Message,
                     Status = 500
                 };
@@ -376,16 +310,14 @@ namespace AsynCUDA13.Api.Controllers
                     guid = this.images[idOrName]?.Id ?? this.audios[idOrName]?.Id ?? Guid.Empty;
                     deleted = this.images.Remove(guid) || this.audios.RemoveAudio(idOrName);
                 }
-                if (!deleted)
-                {
-                    return this.NotFound(new ProblemDetails
+                return !deleted
+                    ?  this.NotFound(new ProblemDetails
                     {
                         Title = "Media not found",
                         Detail = $"No media found with ID or name '{idOrName}'.",
                         Status = 404
-                    });
-                }
-                return this.NoContent();
+                    })
+                    :  this.NoContent();
             }
             catch (Exception ex)
             {

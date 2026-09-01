@@ -14,6 +14,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using System.Linq;
+using AsynCUDA13.Shared.Utils;
 
 namespace AsynCUDA13.Client
 {
@@ -499,7 +500,7 @@ namespace AsynCUDA13.Client
 
                 if (serverSided)
                 {
-                    response = await this.internalClient.PushAssetAsync(verifiedAssetId.Value.ToString(),format, chunkSize, overlap, keepData);
+                    response = await this.internalClient.PushAssetAsync(verifiedAssetId.Value.ToString(), format, chunkSize, overlap, keepData);
                 }
 
                 else
@@ -509,17 +510,17 @@ namespace AsynCUDA13.Client
 
                     if (isAudioAsset == false)
                     {
-                        var imageData = await this.internalClient.ImageDataAsync(assetIdOrName, format, keepData);
+                        var imageData = await this.internalClient.MediaDataAsync(assetIdOrName, format, chunkSize, overlap, keepData);
                         payload = await DataSerializer.SerializeAsync(imageData?.Base64Data ?? "", true);
                     }
                     else
                     {
-                        var audioData = await this.internalClient.AudioDataAsync(assetIdOrName, chunkSize, overlap, keepData);
-                        if (audioData.AudioDataFloats?.LongLength > 0)
+                        var audioData = await this.internalClient.MediaDataAsync(assetIdOrName, format, chunkSize, overlap, keepData) as AudioData;
+                        if (audioData?.AudioDataFloats?.LongLength > 0)
                         {
                             payload = await DataSerializer.SerializeAsync(audioData.AudioDataFloats, true);
                         }
-                        else if (audioData.AudioDataFloatChunks?.LongLength > 0)
+                        else if (audioData?.AudioDataFloatChunks?.LongLength > 0)
                         {
                             payload = await DataSerializer.SerializeAsync(audioData.AudioDataFloatChunks, true);
                         }
@@ -628,6 +629,7 @@ namespace AsynCUDA13.Client
             }
         }
 
+
         // BackendFourierController
         public async Task<RuntimeFourierResponse?> PerformFourierTransformAsync(string indexPointerOrId, bool? inverse = null, bool keepBuffer = false)
         {
@@ -706,11 +708,7 @@ namespace AsynCUDA13.Client
             }
             catch (ApiException apiEx)
             {
-                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
-                {
-                    return [];
-                }
-                return [];
+                return apiEx.StatusCode == 404 || apiEx.StatusCode == 204 ?  [] :  [];
             }
             catch (Exception ex)
             {
@@ -902,7 +900,7 @@ namespace AsynCUDA13.Client
             int count = 0;
             try
             {
-                var images = await this.internalClient.ImagesAsync();
+                var images = (await this.internalClient.MediaInfosAsync()).OfType<ImageInfo>().ToArray();
                 if (!string.IsNullOrEmpty(nameSearch))
                 {
                     images = images.Where(i => i.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -912,11 +910,7 @@ namespace AsynCUDA13.Client
             }
             catch (ApiException apiEx)
             {
-                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
-                {
-                    return [];
-                }
-                return [];
+                return apiEx.StatusCode == 404 || apiEx.StatusCode == 204 ?  [] :  [];
             }
             catch (Exception ex)
             {
@@ -938,7 +932,7 @@ namespace AsynCUDA13.Client
             int count = 0;
             try
             {
-                var audios = await this.internalClient.AudiosAsync();
+                var audios = (await this.internalClient.MediaInfosAsync()).OfType<AudioInfo>().ToArray();
                 if (!string.IsNullOrEmpty(nameSearch))
                 {
                     audios = audios.Where(a => a.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -948,11 +942,7 @@ namespace AsynCUDA13.Client
             }
             catch (ApiException apiEx)
             {
-                if (apiEx.StatusCode == 404 || apiEx.StatusCode == 204)
-                {
-                    return [];
-                }
-                return [];
+                return apiEx.StatusCode == 404 || apiEx.StatusCode == 204 ?  [] :  [];
             }
             catch (Exception ex)
             {
@@ -1005,7 +995,7 @@ namespace AsynCUDA13.Client
             bool hasValue = false;
             try
             {
-                var imageData = await this.internalClient.ImageDataAsync(idOrName, format, keepData);
+                var imageData = await this.internalClient.MediaDataAsync(idOrName, format, 0, 0, keepData) as ImageData;
                 hasValue = imageData != null;
                 return imageData;
             }
@@ -1029,7 +1019,7 @@ namespace AsynCUDA13.Client
             bool hasValue = false;
             try
             {
-                var audioData = await this.internalClient.AudioDataAsync(idOrName, chunkSize, overlap, keepData);
+                var audioData = await this.internalClient.MediaDataAsync(idOrName, "wav", chunkSize, overlap, keepData) as AudioData;
                 hasValue = audioData != null;
                 return audioData;
             }
@@ -1053,7 +1043,7 @@ namespace AsynCUDA13.Client
             bool hasValue = false;
             try
             {
-                var result = await this.internalClient.ImagePreviewAsync(idOrName, maxDimensions);
+                var result = await this.internalClient.MediaPreviewAsync(idOrName, maxDimensions, maxDimensions, maxDimensions) as ImageData;
                 hasValue = result != null;
                 return result;
             }
@@ -1092,7 +1082,7 @@ namespace AsynCUDA13.Client
                 {
                     try
                     {
-                        var imageData = await this.internalClient.ImagePreviewAsync(idOrName, maxDimensions);
+                        var imageData = await this.internalClient.MediaPreviewAsync(idOrName, maxDimensions, maxDimensions, maxDimensions) as ImageData;
                         if (imageData != null)
                         {
                             if (result.TryAdd(DateTime.Now, imageData))
@@ -1131,7 +1121,7 @@ namespace AsynCUDA13.Client
             bool hasValue = false;
             try
             {
-                var result = await this.internalClient.AudioPreviewAsync(idOrName, width, height);
+                var result = await this.internalClient.MediaPreviewAsync(idOrName, width, height, width) as ImageData;
                 hasValue = result != null;
                 return result;
             }
@@ -1169,7 +1159,7 @@ namespace AsynCUDA13.Client
                 {
                     try
                     {
-                        var imageData = await this.internalClient.AudioPreviewAsync(idOrName, width, height);
+                        var imageData = await this.internalClient.MediaPreviewAsync(idOrName, width, height, width) as ImageData;
                         if (imageData != null)
                         {
                             if (result.TryAdd(DateTime.Now, imageData))
@@ -1680,15 +1670,12 @@ namespace AsynCUDA13.Client
                 return [];
             }
 
-            if (Guid.TryParse(assedId, out var guid) && !guid.Equals(Guid.Empty))
-            {
-                return (await this.GetMemoryListAsync())
+            return Guid.TryParse(assedId, out var guid) && !guid.Equals(Guid.Empty)
+                ? (await this.GetMemoryListAsync())
                     .Where(m => (m.AssetReferenceIds ?? []).Contains(guid) || m.AssetReferenceId == guid)
                     .Select(rm => rm.IndexPointer)
-                    .ToArray();
-            }
-
-            return [];
+                    .ToArray()
+                :  [];
         }
 
         /// <summary>

@@ -287,12 +287,9 @@ namespace AsynCUDA13.OpenClBackend
 
         internal Dictionary<string, string> GetDeviceProperties(CLDevice? clDevice, int clDeviceIndex = 0)
         {
-            if (clDevice.HasValue)
-            {
-                return OpenClDevicePropertyFormatter.GetProperties(clDevice.Value);
-            }
-
-            return OpenClDevicePropertyFormatter.GetProperties(clDeviceIndex);
+            return clDevice.HasValue
+                ? OpenClDevicePropertyFormatter.GetProperties(clDevice.Value)
+                : OpenClDevicePropertyFormatter.GetProperties(clDeviceIndex);
         }
 
 

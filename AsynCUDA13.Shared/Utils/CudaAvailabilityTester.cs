@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace AsynCUDA13.Shared
+namespace AsynCUDA13.Shared.Utils
 {
     /// <summary>
     /// Checks the configured Windows environment paths for a CUDA runtime.

@@ -52,19 +52,16 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
 
         public static RuntimeDeviceInfo[] BuildRuntimeAllDeviceInfos(IRuntimeService service)
         {
-            if (!service.GetType().IsAssignableTo(typeof(ICudaService)) && !service.GetType().IsAssignableTo(typeof(IOpenClService)))
-            {
-                throw new ArgumentException("IRuntimeService service must be a type that implements IRuntimeService and is either ICudaService or IOpenClService.");
-            }
-
-            return (service.TotalAvailableDeviceProperties.Select((props, index) => new RuntimeDeviceInfo
+            return !service.GetType().IsAssignableTo(typeof(ICudaService)) && !service.GetType().IsAssignableTo(typeof(IOpenClService))
+                ? throw new ArgumentException("IRuntimeService service must be a type that implements IRuntimeService and is either ICudaService or IOpenClService.")
+                : service.TotalAvailableDeviceProperties.Select((props, index) => new RuntimeDeviceInfo
             {
                 RuntimeType = service.RuntimeType,
                 DeviceId = index,
                 DeviceName = props.Value.FirstOrDefault(kv => kv.Key.Contains("Name", StringComparison.OrdinalIgnoreCase)).Value,
                 Properties = props.Value
 
-            }).ToArray() ?? []);
+            }).ToArray() ?? [];
         }
 
         public static RuntimeUsageInfo? BuildRuntimeUsageInfo(IRuntimeService service)

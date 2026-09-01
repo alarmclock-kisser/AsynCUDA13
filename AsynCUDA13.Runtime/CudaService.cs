@@ -8,6 +8,7 @@ using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Api.Payloads;
 using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.RuntimeDtos;
+using AsynCUDA13.Shared.Utils;
 using ManagedCuda;
 
 namespace AsynCUDA13.Runtime

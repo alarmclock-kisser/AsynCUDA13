@@ -16,8 +16,8 @@ namespace AsynCUDA13.Api.Controllers
     {
         private readonly IAssetProvider assetProvider;
 
-        public RuntimeKernelController(IRuntimeService runtime, IAssetProvider assets)
-            : base(runtime)
+        public RuntimeKernelController(IRuntimeService runtime, IAssetProvider assets, IRollingFileMemoryLogger logger)
+            : base(runtime, logger)
         {
             this.assetProvider = assets;
         }

@@ -23,8 +23,8 @@ namespace AsynCUDA13.Api.Controllers
         private readonly IAssetProvider assetProvider;
 
 
-        public RuntimeMemoryController(IRuntimeService cuda, IAssetProvider assetProvider)
-            : base(cuda)
+        public RuntimeMemoryController(IRuntimeService cuda, IAssetProvider assetProvider, IRollingFileMemoryLogger logger)
+            : base(cuda, logger)
         {
             this.assetProvider = assetProvider;
         }
@@ -81,17 +81,14 @@ namespace AsynCUDA13.Api.Controllers
                     });
                 }
                 var memoryInfo = RuntimeInfosBuilder.BuildRuntimeMemoryInfos(this.backend, indexPointerOrId)?.FirstOrDefault();
-                if (memoryInfo == null)
-                {
-                    return this.StatusCode(404, new ProblemDetails
+                return memoryInfo == null
+                    ? (ActionResult<RuntimeMemInfo?>) this.StatusCode(404, new ProblemDetails
                     {
                         Title = $"{this.RuntimeType} memory not found",
                         Detail = $"No {this.RuntimeType} memory object found for index/pointer/ID: {indexPointerOrId}.",
                         Status = 404
-                    });
-                }
-
-                return this.Ok(memoryInfo);
+                    })
+                    : (ActionResult<RuntimeMemInfo?>) this.Ok(memoryInfo);
             }
             catch (Exception ex)
             {
@@ -438,7 +435,7 @@ namespace AsynCUDA13.Api.Controllers
 
                         if (existingAudio == null || (existingAudio.Pointer != 0 && existingAudio.Pointer != currentMemPtr))
                         {
-                            audio = this.assetProvider.CreateFromInfo(audioInfo);
+                            audio = this.assetProvider.CreateFromInfo(audioInfo) as AudioObj;
                             if (audio != null)
                             {
                                 audio.Pointer = currentMemPtr; // WICHTIG: Pointer am neu erstellten AudioObj setzen!
@@ -465,7 +462,7 @@ namespace AsynCUDA13.Api.Controllers
 
                             if (existingImage == null || (existingImage.Pointer != 0 && existingImage.Pointer != currentMemPtr))
                             {
-                                image = this.assetProvider.CreateFromInfo(imageInfo);
+                                image = this.assetProvider.CreateFromInfo(imageInfo) as ImageObj;
                                 if (image != null)
                                 {
                                     image.Pointer = currentMemPtr; // WICHTIG: Pointer am neu erstellten ImageObj setzen!

@@ -15,12 +15,14 @@ namespace AsynCUDA13.Api.Controllers
         protected readonly IRuntimeService backend;
         protected readonly ICudaService? cuda;
         protected readonly IOpenClService? opencl;
+        protected readonly IRollingFileMemoryLogger logger;
         protected readonly string RuntimeType = "N/A";
 
         protected bool IsBackendAvailable => this.backend.TotalAvailableDeviceProperties.Count > 0;
 
-        protected ApiControllerBase(IRuntimeService backend)
+        protected ApiControllerBase(IRuntimeService backend, IRollingFileMemoryLogger logger)
         {
+            this.logger = logger;
             this.backend = backend;
             if (backend is ICudaService cudaService)
             {
@@ -41,7 +43,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             if (value is ProblemDetails pd)
             {
-                StaticLogger.Log($"ProblemDetails: Title={pd.Title}, Detail={pd.Detail}, Status={pd.Status}");
+                this.logger.Log($"ProblemDetails: Title={pd.Title}, Detail={pd.Detail}, Status={pd.Status}");
             }
             return base.StatusCode(statusCode, value);
         }
@@ -53,7 +55,7 @@ namespace AsynCUDA13.Api.Controllers
             string endpointPrefix = $"[{controllerName}::{actionName}]";
 
             string log = "No return value evaluated yet.";
-            
+
             try
             {
                 log = value switch
@@ -77,10 +79,10 @@ namespace AsynCUDA13.Api.Controllers
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex);
+                this.logger.Log(ex);
             }
 
-            StaticLogger.Log($"{endpointPrefix} {log}");
+            this.logger.Log($"{endpointPrefix} {log}");
 
             return base.Ok(value);
         }

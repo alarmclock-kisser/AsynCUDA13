@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
-using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Api.Hubs
 {
@@ -19,6 +19,7 @@ namespace AsynCUDA13.Api.Hubs
     public static class LogBroadcaster
     {
         private static IHubContext<LogHub>? _hubContext;
+        private static IRollingFileMemoryLogger? _logger;
         private static readonly object _lock = new();
         private static bool _isSubscribed = false;
 
@@ -30,13 +31,14 @@ namespace AsynCUDA13.Api.Hubs
             }
         }
 
-        public static void SubscribeToLogger()
+        public static void SubscribeToLogger(IRollingFileMemoryLogger logger)
         {
             lock (_lock)
             {
                 if (!_isSubscribed)
                 {
-                    StaticLogger.LogWritten += OnLogWritten;
+                    _logger = logger;
+                    logger.LogWritten += OnLogWritten;
                     _isSubscribed = true;
                 }
             }
@@ -48,7 +50,7 @@ namespace AsynCUDA13.Api.Hubs
             {
                 if (_isSubscribed)
                 {
-                    StaticLogger.LogWritten -= OnLogWritten;
+                    _logger?.LogWritten -= OnLogWritten;
                     _isSubscribed = false;
                 }
             }

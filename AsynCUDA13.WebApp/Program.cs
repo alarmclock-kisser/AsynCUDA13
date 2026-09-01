@@ -2,11 +2,15 @@ using AsynCUDA13.Client;
 using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.Client;
 using AsynCUDA13.Shared.Localization;
+using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.Options;
 using AsynCUDA13.WebApp.Components;
 using AsynCUDA13.WebApp.ViewModels;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Radzen;
 using System.Globalization;
 using System.Reflection;
@@ -18,6 +22,14 @@ namespace AsynCUDA13.WebApp
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Configure the DI-based rolling file memory logger from the "LoggerSettings" appsettings section.
+            builder.Services.Configure<RollingFileMemoryLoggerOptions>(builder.Configuration.GetSection("LoggerSettings"));
+            builder.Services.AddSingleton<IRollingFileMemoryLogger, RollingFileMemoryLogger>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<RollingFileMemoryLoggerOptions>>().Value;
+                return new RollingFileMemoryLogger(options, setGlobally: true);
+            });
 
             // Add services to the container.
             builder.Services.AddRazorComponents()
@@ -60,12 +72,31 @@ namespace AsynCUDA13.WebApp
             builder.Services.AddScoped<ExecuteViewModel>();
             builder.Services.AddScoped<FractalsViewModel>();
 
-            // Set UI context for StaticLogger before building the app
+            var app = builder.Build();
+
+            // Set UI context for the DI logger and start/stop background logging with the application lifetime.
+            var logger = app.Services.GetRequiredService<IRollingFileMemoryLogger>();
             var syncContext = new SynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(syncContext);
-            StaticLogger.SetUiContext(syncContext);
+            logger.SetUiContext(syncContext);
 
-            var app = builder.Build();
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                logger.LogInfo("AsynCUDA13.WebApp started.");
+                logger.StartBackgroundWriter(app.Lifetime.ApplicationStopping);
+            });
+            app.Lifetime.ApplicationStopped.Register(() =>
+            {
+                try
+                {
+                    logger.SaveToRepository(forceSave: true);
+                    logger.LogInfo("AsynCUDA13.WebApp stopped. Logs saved.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving logs on shutdown: {ex.Message}");
+                }
+            });
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())

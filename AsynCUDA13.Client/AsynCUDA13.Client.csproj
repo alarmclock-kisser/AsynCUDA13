@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	  <OpenApiReference Include="swagger.json" ClassName="InternalClient" Options="/generateDtoTypes:false /operationGenerationMode:SingleClientFromOperationId /generateClientClasses:true /generateResponseClasses:false /additionalNamespaceUsages:AsynCUDA13.Shared.Api.Payloads,AsynCUDA13.Shared.Api.Requests,AsynCUDA13.Shared.Api.Responses,AsynCUDA13.Shared.RuntimeDtos,AsynCUDA13.Shared.MediaDtos,Microsoft.AspNetCore.Mvc" />
+	  <OpenApiReference Include="swagger.json" ClassName="InternalClient" Options="/generateDtoTypes:false /operationGenerationMode:SingleClientFromOperationId /generateClientClasses:true /generateResponseClasses:false /additionalNamespaceUsages:AsynCUDA13.Shared.Interfaces,AsynCUDA13.Shared.Api.Payloads,AsynCUDA13.Shared.Api.Requests,AsynCUDA13.Shared.Api.Responses,AsynCUDA13.Shared.RuntimeDtos,AsynCUDA13.Shared.MediaDtos,Microsoft.AspNetCore.Mvc" />
   </ItemGroup>
 
   <ItemGroup>

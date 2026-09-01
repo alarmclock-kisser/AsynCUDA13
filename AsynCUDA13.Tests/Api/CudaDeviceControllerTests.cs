@@ -1,7 +1,7 @@
 using AsynCUDA13.Api.Controllers;
 using AsynCUDA13.Runtime;
-using AsynCUDA13.Shared;
 using AsynCUDA13.Shared.RuntimeDtos;
+using AsynCUDA13.Shared.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Shouldly;

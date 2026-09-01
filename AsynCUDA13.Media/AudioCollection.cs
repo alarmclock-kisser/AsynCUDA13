@@ -9,22 +9,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using NAudio.Wave;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.MediaDtos;
 
 namespace AsynCUDA13.Media
 {
-    public class AudioCollection : IAsyncDisposable
+    public class AudioCollection : IAsyncDisposable, IMediaCollection
     {
-        public static string ExportDirectory { get; set; } = Path.GetFullPath(Environment.GetEnvironmentVariable("SHARPAI_AUDIO_EXPORT_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "SharpAI_AudioExports"));
+        public string ExportDirectory { get; set; } = Path.GetFullPath(Environment.GetEnvironmentVariable("SHARPAI_AUDIO_EXPORT_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "SharpAI_AudioExports"));
 
         private readonly ConcurrentDictionary<Guid, AudioObj> _audios = [];
         public IReadOnlyCollection<AudioObj> Audios => this._audios.Values.ToList();
+        public IReadOnlyCollection<IMediaObj> Objects => this._audios.Values.Cast<IMediaObj>().ToList();
 
         private CancellationTokenSource? recordingCts;
 
 
         public AudioObj? this[Guid id] => this._audios.TryGetValue(id, out AudioObj? audioObj) ? audioObj : null;
+        IMediaObj? IMediaCollection.this[Guid id] => this[id];
         public AudioObj? this[int index] => (index >= 0 && index < this._audios.Count) ? this._audios.Values.ElementAt(index) : null;
+        IMediaObj? IMediaCollection.this[int index] => this[index];
         public AudioObj? this[string name, bool fuzzyMatch = true] => fuzzyMatch ? this._audios.Values.FirstOrDefault(a => a.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) : this._audios.Values.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
 
         public bool IsRecording => this.recordingCts != null && this.recordingCts?.IsCancellationRequested == false;
@@ -33,7 +37,7 @@ namespace AsynCUDA13.Media
         {
             if (!string.IsNullOrEmpty(customExportDir))
             {
-                ExportDirectory = Path.GetFullPath(customExportDir);
+                this.ExportDirectory = Path.GetFullPath(customExportDir);
             }
             if (additionalRessourcePaths != null)
             {

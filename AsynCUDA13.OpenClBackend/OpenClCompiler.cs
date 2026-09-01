@@ -99,11 +99,7 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             string clPath = Path.Combine(this.KernelDirectory, name + ".cl");
-            if (File.Exists(clPath))
-            {
-                return Path.GetFullPath(clPath);
-            }
-            return null;
+            return File.Exists(clPath) ? Path.GetFullPath(clPath) :  null;
         }
 
         /// <summary>
@@ -124,11 +120,7 @@ namespace AsynCUDA13.OpenClBackend
             }
 
             string filePath = Path.Combine(this.KernelDirectory, kernelName + ".cl");
-            if (File.Exists(filePath))
-            {
-                return File.ReadAllText(filePath);
-            }
-            return null;
+            return File.Exists(filePath) ? File.ReadAllText(filePath) :  null;
         }
 
         /// <summary>
@@ -299,12 +291,9 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         public string[] GetClFiles(bool recursive = true)
         {
-            if (!Directory.Exists(this.KernelDirectory))
-            {
-                return [];
-            }
-
-            return Directory.GetFiles(this.KernelDirectory, "*.cl", enumerationOptions: new EnumerationOptions { RecurseSubdirectories = recursive });
+            return !Directory.Exists(this.KernelDirectory)
+                ?  []
+                : Directory.GetFiles(this.KernelDirectory, "*.cl", enumerationOptions: new EnumerationOptions { RecurseSubdirectories = recursive });
         }
 
 
@@ -1109,12 +1098,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 var trimmedArg = a.Trim();
                 int lastSpaceIndex = trimmedArg.LastIndexOf(' ');
-                if (lastSpaceIndex == -1)
-                {
-                    return trimmedArg.TrimEnd('*').Trim();
-                }
-
-                return trimmedArg.Substring(lastSpaceIndex + 1).TrimEnd('*').Trim();
+                return lastSpaceIndex == -1 ? trimmedArg.TrimEnd('*').Trim() : trimmedArg.Substring(lastSpaceIndex + 1).TrimEnd('*').Trim();
             }).Where(n => !string.IsNullOrEmpty(n)).ToArray();
         }
 
@@ -1141,12 +1125,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 var trimmedArg = a.Trim();
                 int lastSpaceIndex = trimmedArg.LastIndexOf(' ');
-                if (lastSpaceIndex == -1)
-                {
-                    return trimmedArg;
-                }
-
-                return trimmedArg.Substring(0, lastSpaceIndex).Replace("unsigned ", "u").Trim();
+                return lastSpaceIndex == -1 ? trimmedArg : trimmedArg.Substring(0, lastSpaceIndex).Replace("unsigned ", "u").Trim();
             }).Where(t => !string.IsNullOrEmpty(t)).ToArray();
         }
 

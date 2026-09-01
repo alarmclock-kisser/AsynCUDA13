@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Shared.MediaDtos
 {
-    public class ImageData
+    public class ImageData : IMediaData
     {
         /// <summary>
         /// Gets or sets the image information, which includes metadata such as ID, dimensions, and pointer.
         /// </summary>
-        public required ImageInfo Info { get; set; }
+        public required IMediaInfo Info { get; set; }
 
         /// <summary>
         /// Gets the pointer associated with the image, which can be used for GPU memory management or other purposes.
@@ -35,6 +36,11 @@ namespace AsynCUDA13.Shared.MediaDtos
         /// Gets the size of the Base64-encoded image data in megabytes.
         /// </summary>
         public float DataSizeMb => this.Base64Data.LongCount() * 4f / 3f / 1024f / 1024f;
+
+        /// <summary>
+        /// Determines whether the image data is on GPU based on the pointer value.
+        /// </summary>
+        public bool OnGpu => !string.IsNullOrEmpty(this.Pointer) && !this.Pointer.Equals("null", StringComparison.OrdinalIgnoreCase) && !this.Pointer.Equals(IntPtr.Zero.ToString(), StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Determines whether the image ID matches the specified ID, optionally requiring the image to be on the GPU.

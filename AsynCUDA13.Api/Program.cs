@@ -3,10 +3,13 @@ using AsynCUDA13.Media;
 using AsynCUDA13.OpenClBackend;
 using AsynCUDA13.Runtime;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Options;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Newtonsoft.Json;
 using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.Utils;
 
 namespace AsynCUDA13.Api
 {
@@ -16,23 +19,13 @@ namespace AsynCUDA13.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Setup StaticLogger with appsettings
-            string? logDirectory = builder.Configuration.GetValue<string>("LogDirectory");
-            bool createLogFile = builder.Configuration.GetValue<bool>("CreateLogFile");
-            int maxLogFiles = builder.Configuration.GetValue<int>("MaxLogFiles");
-            string? filterPhrase = builder.Configuration.GetValue<string>("FilterPhrase");
-            bool? echoToConsole = builder.Configuration.GetValue<bool?>("EchoToConsole", null);
-            string[] echoToConsoleKeyPhrases = builder.Configuration.GetValue<string[]>("EchoToConsoleKeyPhrases", ["[[["]);
-            string innerExOpeningBracket = builder.Configuration.GetValue<string>("InnerExOpeningBracket", "(");
-            string innerExClosingBracket = builder.Configuration.GetValue<string>("InnerExClosingBracket", ")");
-            string innerExSeparator = builder.Configuration.GetValue<string>("InnerExSeparator", " ");
-            StaticLogger.FilterPhrase = filterPhrase;
-            StaticLogger.EchoToConsole = echoToConsole.HasValue ? echoToConsole.Value : null;
-            StaticLogger.EchoToConsoleKeyPhrases = echoToConsoleKeyPhrases;
-            StaticLogger.InnerExceptionOpeningBracket = innerExOpeningBracket;
-            StaticLogger.InnerExceptionClosingBracket = innerExClosingBracket;
-            StaticLogger.InnerExceptionSeparator = innerExSeparator;
-            StaticLogger.InitializeLogFiles(logDirectory, createLogFile, maxLogFiles);
+            // Configure the DI-based rolling file memory logger from the "LoggerSettings" appsettings section.
+            builder.Services.Configure<RollingFileMemoryLoggerOptions>(builder.Configuration.GetSection("LoggerSettings"));
+            builder.Services.AddSingleton<IRollingFileMemoryLogger, RollingFileMemoryLogger>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<RollingFileMemoryLoggerOptions>>().Value;
+                return new RollingFileMemoryLogger(options, setGlobally: true);
+            });
 
             // Select the compute backend ({this.RuntimeType} or OpenCL). The chosen backend is registered as both its
             // dedicated service interface (IRuntimeService / IOpenClService) and the interchangeable
@@ -48,19 +41,12 @@ namespace AsynCUDA13.Api
                 if (cudaAvailable.Value)
                 {
                     builder.Services.AddSingleton<IRuntimeService, CudaService>();
-                    StaticLogger.LogInfo("CUDA backend selected and available. --> " + apiName);
                 }
             }
-
-            if (switchIfUnavailable || string.Equals(backend, "OpenCL", StringComparison.OrdinalIgnoreCase))
+            else if (switchIfUnavailable || string.Equals(backend, "OpenCL", StringComparison.OrdinalIgnoreCase))
             {
-                if (cudaAvailable == false)
-                {
-                    StaticLogger.LogWarning("CUDA backend is not available. Switching to OpenCL backend.");
-                }
                 builder.Services.AddSingleton<IRuntimeService, OpenClService>();
                 apiName = "AsynCL.API";
-                StaticLogger.LogInfo("OpenCL backend selected. --> " + apiName);
             }
             else
             {
@@ -101,6 +87,26 @@ namespace AsynCUDA13.Api
 
             var app = builder.Build();
 
+            // Start the background log writer when the application starts and flush/save on shutdown.
+            var logger = app.Services.GetRequiredService<IRollingFileMemoryLogger>();
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                logger.LogInfo($"{apiName} started.");
+                logger.StartBackgroundWriter(app.Lifetime.ApplicationStopping);
+            });
+            app.Lifetime.ApplicationStopped.Register(() =>
+            {
+                try
+                {
+                    logger.SaveToRepository(forceSave: true);
+                    logger.LogInfo($"{apiName} stopped. Logs saved.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving logs on shutdown: {ex.Message}");
+                }
+            });
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -118,10 +124,10 @@ namespace AsynCUDA13.Api
 
             app.UseAuthorization();
 
-            // Initialize LogBroadcaster with the HubContext
+            // Initialize LogBroadcaster with the HubContext and the DI logger's event.
             var hubContext = app.Services.GetRequiredService<IHubContext<Hubs.LogHub>>();
             Hubs.LogBroadcaster.SetHubContext(hubContext);
-            Hubs.LogBroadcaster.SubscribeToLogger();
+            Hubs.LogBroadcaster.SubscribeToLogger(logger);
 
             app.MapControllers();
             app.MapHub<Hubs.LogHub>("/logHub")

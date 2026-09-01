@@ -1,5 +1,6 @@
 using AsynCUDA13.Api.Services.DtoBuilders;
 using AsynCUDA13.Media;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.MediaDtos;
 
 namespace AsynCUDA13.Api.Services
@@ -35,44 +36,39 @@ namespace AsynCUDA13.Api.Services
             return this.audios[name, false];
         }
 
-        public ImageInfo GetImageInfo(ImageObj image)
+        public IMediaInfo GetImageInfo(ImageObj image)
         {
             return MediaInfosBuilder.BuildImageInfo(image);
         }
 
-        public AudioInfo GetAudioInfo(AudioObj audio)
+        public IMediaInfo GetAudioInfo(AudioObj audio)
         {
             return MediaInfosBuilder.BuildAudioInfo(audio);
         }
 
-        public ImageInfo? GetImageInfo(Guid imageId)
+        public IMediaInfo? GetImageInfo(Guid imageId)
         {
             var obj = this.images[imageId];
-            if (obj != null)
-            {
-                return this.GetImageInfo(obj);
-            }
-            return null;
+            return obj != null ? this.GetImageInfo(obj) :  null;
         }
 
-        public AudioInfo? GetAudioInfo(Guid audioId)
+        public IMediaInfo? GetAudioInfo(Guid audioId)
         {
             var obj = this.audios[audioId];
-            if (obj != null)
+            return obj != null ? this.GetAudioInfo(obj) :  null;
+        }
+
+        public IMediaObj? CreateFromInfo(IMediaInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
+        {
+            if (info is AudioInfo audioInfo)
             {
-                return this.GetAudioInfo(obj);
+                return this.audios.CreateFromInfo(audioInfo, tryAdd, disposeIfFailedToAdd, emptyData, pointer);
+            }
+            else if (info is ImageInfo imageInfo)
+            {
+                return this.images.CreateFromInfo(imageInfo, tryAdd, disposeIfFailedToAdd, emptyData, pointer);
             }
             return null;
-        }
-
-        public AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
-        {
-            return this.audios.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd, emptyData, pointer);
-        }
-
-        public ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0)
-        {
-            return this.images.CreateFromInfo(info, tryAdd, disposeIfFailedToAdd, emptyData, pointer);
         }
 
         public Guid? VerifyAssetId(Guid id)
@@ -99,12 +95,9 @@ namespace AsynCUDA13.Api.Services
 
         public Guid[] VerifyAssetIds(IEnumerable<Guid> ids)
         {
-            if (ids == null)
-            {
-                return [];
-            }
-
-            return ids
+            return ids == null
+                ?  []
+                : ids
                 .Select(this.VerifyAssetId)
                 .OfType<Guid>()
                 .Where(g => g != Guid.Empty)
@@ -134,12 +127,9 @@ namespace AsynCUDA13.Api.Services
 
         public Guid[] GetAssetIdsByPointers(IEnumerable<long> pointers)
         {
-            if (pointers == null)
-            {
-                return [];
-            }
-
-            return pointers
+            return pointers == null
+                ?  []
+                : pointers
                 .Select(this.GetAssetIdByPointer)
                 .OfType<Guid>()
                 .Where(g => g != Guid.Empty)

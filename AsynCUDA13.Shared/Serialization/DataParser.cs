@@ -73,12 +73,7 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         public static async Task<T[]?> ParseAsync<T>(SimdPayload1D payload) where T : unmanaged
         {
-            if (payload == null || string.IsNullOrEmpty(payload.Data))
-            {
-                return [];
-            }
-
-            return await Parse1DAsync<T>(payload.Data);
+            return payload == null || string.IsNullOrEmpty(payload.Data) ?  [] : await Parse1DAsync<T>(payload.Data);
         }
 
         public static async Task<T[]> Parse1DAsync<T>(string base64Data) where T : unmanaged
@@ -140,12 +135,7 @@ namespace AsynCUDA13.Shared.Serialization
         // --------------------------------------------------------------------------------
         public static async Task<T[][]?> ParseAsync<T>(SimdPayload2D payload) where T : unmanaged
         {
-            if (payload == null || payload.DataChunks == null)
-            {
-                return [];
-            }
-
-            return await Parse2DAsync<T>(payload.DataChunks);
+            return payload == null || payload.DataChunks == null ?  [] : await Parse2DAsync<T>(payload.DataChunks);
         }
 
         public static async Task<T[][]> Parse2DAsync<T>(IEnumerable<string> chunks) where T : unmanaged
@@ -344,12 +334,7 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Simple regex to find the kernel name in the code
             var match = System.Text.RegularExpressions.Regex.Match(kernelCode, @"__global__\s+void\s+(\w+)\s*\(");
-            if (match.Success && match.Groups.Count > 1)
-            {
-                return match.Groups[1].Value;
-            }
-
-            return null;
+            return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value :  null;
         }
 
         // --------------------------------------------------------------------------------

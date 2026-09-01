@@ -248,12 +248,7 @@ namespace AsynCUDA13.Tests
                 }
             }
 
-            if (messageLines.Count > 0)
-            {
-                return string.Join(" ", messageLines.Select(l => l.Trim()));
-            }
-
-            return string.Empty;
+            return messageLines.Count > 0 ? string.Join(" ", messageLines.Select(l => l.Trim())) : string.Empty;
         }
 
         private static void WriteFailedReport(TestResultEntry[] failedTests)
@@ -331,12 +326,7 @@ namespace AsynCUDA13.Tests
             }
 
             // Fallback: Zeige die Fehlermeldung aus dem Stacktrace an
-            if (!string.IsNullOrEmpty(errorMessage))
-            {
-                return errorMessage.Trim();
-            }
-
-            return "Test failed";
+            return !string.IsNullOrEmpty(errorMessage) ? errorMessage.Trim() : "Test failed";
         }
 
         /// <summary>

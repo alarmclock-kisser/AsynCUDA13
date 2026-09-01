@@ -14,8 +14,8 @@ namespace AsynCUDA13.Api.Controllers
     [Route("api/[controller]")]
     public class RuntimeContextController : ApiControllerBase
     {
-        public RuntimeContextController(IRuntimeService backend)
-            : base(backend)
+        public RuntimeContextController(IRuntimeService backend, IRollingFileMemoryLogger logger)
+            : base(backend, logger)
         {
 
         }

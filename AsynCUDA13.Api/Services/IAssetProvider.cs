@@ -1,4 +1,5 @@
 using AsynCUDA13.Media;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.MediaDtos;
 
 namespace AsynCUDA13.Api.Services
@@ -10,13 +11,12 @@ namespace AsynCUDA13.Api.Services
         AudioObj? GetAudio(Guid id);
         AudioObj? GetAudio(string name);
 
-        ImageInfo GetImageInfo(ImageObj image);
-        AudioInfo GetAudioInfo(AudioObj audio);
-        ImageInfo? GetImageInfo(Guid imageId);
-        AudioInfo? GetAudioInfo(Guid audioId);
+        IMediaInfo GetImageInfo(ImageObj image);
+        IMediaInfo GetAudioInfo(AudioObj audio);
+        IMediaInfo? GetImageInfo(Guid imageId);
+        IMediaInfo? GetAudioInfo(Guid audioId);
 
-        AudioObj? CreateFromInfo(AudioInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0);
-        ImageObj? CreateFromInfo(ImageInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0);
+        IMediaObj? CreateFromInfo(IMediaInfo info, bool tryAdd = true, bool disposeIfFailedToAdd = true, bool emptyData = false, long? pointer = 0);
 
         Guid? VerifyAssetId(Guid assetId);
         Guid[] VerifyAssetIds(IEnumerable<Guid> ids);

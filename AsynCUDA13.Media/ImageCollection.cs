@@ -2,20 +2,26 @@
 using SixLabors.ImageSharp.PixelFormats;
 using System.Collections.Concurrent;
 using System.Drawing;
+using System.IO;
 using System.Reflection;
+using AsynCUDA13.Shared.Interfaces;
 using Color = SixLabors.ImageSharp.Color;
 using Size = SixLabors.ImageSharp.Size;
 
 namespace AsynCUDA13.Media
 {
-    public class ImageCollection : IDisposable
+    public class ImageCollection : IDisposable, IMediaCollection
     {
         private readonly ConcurrentDictionary<Guid, ImageObj> images = [];
         private readonly object lockObj = new();
 
+        public string ExportDirectory { get; set; } = Path.GetFullPath(Environment.GetEnvironmentVariable("SHARPAI_IMAGE_EXPORT_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "SharpAI_ImageExports"));
+
         public IReadOnlyCollection<ImageObj> Images => this.images.Values.ToList();
+        public IReadOnlyCollection<IMediaObj> Objects => this.images.Values.Cast<IMediaObj>().ToList();
 
         public ImageObj? this[Guid guid] => this.images.TryGetValue(guid, out ImageObj? imageObj) ? imageObj : null;
+        IMediaObj? IMediaCollection.this[Guid id] => this[id];
 
         public ImageObj? this[string name]
         {
@@ -38,6 +44,8 @@ namespace AsynCUDA13.Media
                 }
             }
         }
+
+        IMediaObj? IMediaCollection.this[int index] => this[index];
 
         // Options
         public string ImportPath { get; set; } = string.Empty;
@@ -100,7 +108,7 @@ namespace AsynCUDA13.Media
                 Bitdepth = info.BitDepth,
                 Channels = info.Channels,
                 CreatedAt = info.CreatedAt,
-                Filepath = info.FilePath,
+                FilePath = info.FilePath,
                 Name = info.Name,
                 Height = info.Height,
                 Width = info.Width,
@@ -393,12 +401,7 @@ namespace AsynCUDA13.Media
         {
             exportPath ??= this.ExportPath;
             ImageObj? obj = this[guid];
-            if (obj != null)
-            {
-                return await obj.ExportAsync(exportPath, format);
-            }
-
-            return null;
+            return obj != null ? await obj.ExportAsync(exportPath, format) :  null;
         }
 
         public async Task<int> CleanupOldImagesAsync(int maxImages = 1)
@@ -442,12 +445,7 @@ namespace AsynCUDA13.Media
 
         public static Color? GetSharpColor(System.Drawing.Color color)
         {
-            if (color == System.Drawing.Color.Empty)
-            {
-                return null;
-            }
-
-            return SixLabors.ImageSharp.Color.FromRgba(color.R, color.G, color.B, color.A);
+            return color == System.Drawing.Color.Empty ?  null :  SixLabors.ImageSharp.Color.FromRgba(color.R, color.G, color.B, color.A);
         }
 
         public static Color GetSharpColor(string hexColor = "#00000000")
@@ -549,12 +547,7 @@ namespace AsynCUDA13.Media
 
         public async Task<int> ApplyImagesLimitAsync()
         {
-            if (this.MaxImages > 0 && this.images.Count > this.MaxImages)
-            {
-                return await this.CleanupOldImagesAsync(this.MaxImages);
-            }
-
-            return 0;
+            return this.MaxImages > 0 && this.images.Count > this.MaxImages ? await this.CleanupOldImagesAsync(this.MaxImages) : 0;
         }
 
 

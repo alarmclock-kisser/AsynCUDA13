@@ -240,13 +240,11 @@ namespace AsynCUDA13.Shared
             {
                 return true;
             }
-            else if (EchoToConsole == false)
-            {
-                return false;
-            }
             else
             {
-                return EchoToConsoleKeyPhrases.Any(phrase => logEntry.Contains(phrase, StringComparison.OrdinalIgnoreCase));
+                return EchoToConsole == false
+                    ? false
+                    : EchoToConsoleKeyPhrases.Any(phrase => logEntry.Contains(phrase, StringComparison.OrdinalIgnoreCase));
             }
         }
 

@@ -19,8 +19,8 @@ namespace AsynCUDA13.Api.Controllers
         private readonly AudioCollection audios;
 
 
-        public RuntimeFourierController(IRuntimeService cuda, AudioCollection audios)
-            : base(cuda)
+        public RuntimeFourierController(IRuntimeService cuda, AudioCollection audios, IRollingFileMemoryLogger logger)
+            : base(cuda, logger)
         {
             this.audios = audios;
         }

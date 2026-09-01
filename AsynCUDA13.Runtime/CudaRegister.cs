@@ -174,13 +174,9 @@ namespace AsynCUDA13.Runtime
                 {
                     return this[id];
                 }
-                else if (nint.TryParse(indexPointerOrId, out IntPtr ptr))
-                {
-                    return this[ptr];
-                }
                 else
                 {
-                    return null;
+                    return nint.TryParse(indexPointerOrId, out IntPtr ptr) ? this[ptr] : null;
                 }
             }
         }
@@ -1009,7 +1005,7 @@ namespace AsynCUDA13.Runtime
         /// <returns>A task producing the registered <see cref="CudaMem"/>, or <c>null</c> on failure.</returns>
         public async Task<IRuntimeMem?> PushDataAsync<T>(IEnumerable<T> data) where T : unmanaged
         {
-            return await this.PushDataAsync((IEnumerable<T>) data);
+            return await this.PushDataAsync(data, id: null);
         }
 
         /// <summary>

@@ -1,6 +1,8 @@
-﻿@implements IDisposable
+﻿@using AsynCUDA13.Shared.Interfaces
+@implements IDisposable
 @inject ApiClient ApiClient
 @inject IJSRuntime JS
+@inject IRollingFileMemoryLogger Logger
 
 <aside class="app-sidebar @(SidebarOpen ? string.Empty : "is-collapsed")" @ref="sidebarRef">
     <div class="sidebar-brand">
@@ -57,7 +59,7 @@
     protected override async Task OnInitializedAsync()
     {
         // Registriere das lokale LogWritten Event für Frontend-Logs
-        StaticLogger.LogWritten += OnLocalLogWritten;
+        Logger.LogWritten += OnLocalLogWritten;
         await ConnectToSignalRAsync();
     }
 
@@ -101,7 +103,7 @@
         }
         catch (Exception ex)
         {
-            await StaticLogger.LogAsync(ex);
+            await Logger.LogAsync(ex);
         }
     }
 
@@ -153,7 +155,7 @@
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await Logger.LogAsync(ex);
             }
         }
 
@@ -167,7 +169,7 @@
         }
         catch (Exception ex)
         {
-            await StaticLogger.LogAsync(ex);
+            await Logger.LogAsync(ex);
         }
     }
 
@@ -185,7 +187,7 @@
     {
         LogRefreshCancellation.Cancel();
         LogRefreshCancellation.Dispose();
-        StaticLogger.LogWritten -= OnLocalLogWritten;
+        Logger.LogWritten -= OnLocalLogWritten;
         _ = ApiClient.StopSignalRConnectionAsync();
         ApiClient.LogWritten -= OnSignalRLogWritten;
     }

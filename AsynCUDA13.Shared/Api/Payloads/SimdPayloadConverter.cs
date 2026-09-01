@@ -26,12 +26,9 @@ namespace AsynCUDA13.Shared.Api.Payloads
             }
 
             // 2. Fallback-Erkennung anhand der JSON-Eigenschaften
-            if (root.TryGetProperty("Data2D", out _) || root.TryGetProperty("data2D", out _) || root.TryGetProperty("Chunks", out _))
-            {
-                return root.Deserialize<SimdPayload2D>(options);
-            }
-
-            return root.Deserialize<SimdPayload1D>(options);
+            return root.TryGetProperty("Data2D", out _) || root.TryGetProperty("data2D", out _) || root.TryGetProperty("Chunks", out _)
+                ?  root.Deserialize<SimdPayload2D>(options)
+                :  root.Deserialize<SimdPayload1D>(options);
         }
 
         public override void Write(Utf8JsonWriter writer, ISimdPayload value, JsonSerializerOptions options)

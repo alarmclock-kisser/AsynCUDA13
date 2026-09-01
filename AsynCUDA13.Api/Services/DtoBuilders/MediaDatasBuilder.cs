@@ -1,11 +1,12 @@
 ﻿using AsynCUDA13.Media;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.MediaDtos;
 
 namespace AsynCUDA13.Api.Services.DtoBuilders
 {
     public static class MediaDatasBuilder
     {
-        public static ImageData BuildImageData(ImageObj imageObj, string format = "bmp", bool keepData = true)
+        public static IMediaData BuildImageData(ImageObj imageObj, string format = "bmp", bool keepData = true)
         {
             return new ImageData()
             {
@@ -15,7 +16,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static AudioData BuildAudioData(AudioObj audioObj, int chunkSize = 0, float overlap = 0.5f, bool keepData = true)
+        public static IMediaData BuildAudioData(AudioObj audioObj, int chunkSize = 0, float overlap = 0.5f, bool keepData = true)
         {
             return new AudioData()
             {
@@ -25,7 +26,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static ImageData BuildImagePreview(ImageObj image, int maxDimenions, string format = "jpg")
+        public static IMediaData BuildImagePreview(ImageObj image, int maxDimenions, string format = "jpg")
         {
             format = format.ToLower() switch
             {
@@ -42,7 +43,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
                 Base64Data = image.GetPreview(maxDimenions, format)
             };
         }
-        public static ImageData BuildAudioPreview(AudioObj audio, int width, int height, string format = "jpg")
+        public static IMediaData BuildAudioPreview(AudioObj audio, int width, int height, string format = "jpg")
         {
             format = format.ToLower() switch
             {

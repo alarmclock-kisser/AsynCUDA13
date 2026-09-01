@@ -1,5 +1,5 @@
 using AsynCUDA13.Runtime;
-using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Utils;
 using ManagedCuda.VectorTypes;
 using Shouldly;
 

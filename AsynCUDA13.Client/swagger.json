@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.4",
   "info": {
-    "title": "AsynCL.API v1",
+    "title": "AsynCUDA13.API v1",
     "version": "v1"
   },
   "paths": {
@@ -60,17 +60,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               }
             }
@@ -329,7 +329,7 @@
         }
       }
     },
-    "/api/Media/images": {
+    "/api/Media/media-infos": {
       "get": {
         "tags": [
           "Media"
@@ -342,7 +342,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ImageInfo"
+                    "$ref": "#/components/schemas/IMediaInfo"
                   }
                 }
               },
@@ -350,7 +350,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ImageInfo"
+                    "$ref": "#/components/schemas/IMediaInfo"
                   }
                 }
               },
@@ -358,45 +358,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ImageInfo"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Media/audios": {
-      "get": {
-        "tags": [
-          "Media"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AudioInfo"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AudioInfo"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AudioInfo"
+                    "$ref": "#/components/schemas/IMediaInfo"
                   }
                 }
               }
@@ -568,7 +530,7 @@
         }
       }
     },
-    "/api/Media/image-data/{idOrName}": {
+    "/api/Media/media-data/{idOrName}": {
       "get": {
         "tags": [
           "Media"
@@ -588,101 +550,6 @@
             "schema": {
               "type": "string",
               "default": "png"
-            }
-          },
-          {
-            "name": "keepData",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": true
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageData"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageData"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageData"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Media/image-preview/{idOrName}": {
-      "get": {
-        "tags": [
-          "Media"
-        ],
-        "parameters": [
-          {
-            "name": "idOrName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "maxDimenions",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 256
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageData"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageData"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageData"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Media/audio-data/{idOrName}": {
-      "get": {
-        "tags": [
-          "Media"
-        ],
-        "parameters": [
-          {
-            "name": "idOrName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -718,17 +585,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/AudioData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AudioData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AudioData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               }
             }
@@ -736,7 +603,7 @@
         }
       }
     },
-    "/api/Media/audio-preview/{idOrName}": {
+    "/api/Media/media-preview/{idOrName}": {
       "get": {
         "tags": [
           "Media"
@@ -748,6 +615,15 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "maxDimenions",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 256
             }
           },
           {
@@ -775,17 +651,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageData"
+                  "$ref": "#/components/schemas/IMediaData"
                 }
               }
             }
@@ -1908,53 +1784,34 @@
   },
   "components": {
     "schemas": {
-      "AudioData": {
-        "required": [
-          "info"
-        ],
+      "IMediaData": {
         "type": "object",
         "properties": {
           "info": {
-            "$ref": "#/components/schemas/AudioInfo"
+            "$ref": "#/components/schemas/IMediaInfo"
           },
           "pointer": {
             "type": "string",
             "nullable": true,
             "readOnly": true
           },
-          "audioDataFloats": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "float"
-            },
-            "nullable": true
-          },
-          "audioDataFloatChunks": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "number",
-                "format": "float"
-              }
-            },
-            "nullable": true
-          },
-          "chunkSize": {
-            "type": "integer",
-            "format": "int32",
+          "mimeType": {
+            "type": "string",
+            "nullable": true,
             "readOnly": true
           },
-          "dataSizeMb": {
-            "type": "number",
-            "format": "float",
+          "base64Data": {
+            "type": "string",
+            "nullable": true
+          },
+          "onGpu": {
+            "type": "boolean",
             "readOnly": true
           }
         },
         "additionalProperties": false
       },
-      "AudioInfo": {
+      "IMediaInfo": {
         "type": "object",
         "properties": {
           "id": {
@@ -1973,50 +1830,9 @@
             "type": "string",
             "nullable": true
           },
-          "mediaType": {
-            "type": "string",
-            "nullable": true
-          },
-          "sampleRate": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "channels": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "bitDepth": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "length": {
-            "type": "string",
-            "nullable": true
-          },
-          "durationSeconds": {
-            "type": "number",
-            "format": "float"
-          },
-          "bpm": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
-          },
           "pointer": {
             "type": "string",
             "nullable": true
-          },
-          "chunkSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "overlap": {
-            "type": "number",
-            "format": "float"
-          },
-          "onGpu": {
-            "type": "boolean",
-            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -2030,104 +1846,6 @@
           },
           "asyncCall": {
             "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "ImageData": {
-        "required": [
-          "info"
-        ],
-        "type": "object",
-        "properties": {
-          "info": {
-            "$ref": "#/components/schemas/ImageInfo"
-          },
-          "pointer": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "mimeType": {
-            "type": "string",
-            "nullable": true
-          },
-          "base64Data": {
-            "type": "string",
-            "nullable": true
-          },
-          "base64Image": {
-            "type": "string",
-            "nullable": true,
-            "readOnly": true
-          },
-          "dataSizeMb": {
-            "type": "number",
-            "format": "float",
-            "readOnly": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "ImageInfo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "filePath": {
-            "type": "string",
-            "nullable": true
-          },
-          "mediaType": {
-            "type": "string",
-            "nullable": true
-          },
-          "meta": {
-            "type": "string",
-            "nullable": true
-          },
-          "width": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "height": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "channels": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "bitDepth": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "bitsPerChannel": {
-            "type": "integer",
-            "format": "int32",
-            "readOnly": true
-          },
-          "originalSizeMb": {
-            "type": "number",
-            "format": "float"
-          },
-          "pointer": {
-            "type": "string",
-            "nullable": true
-          },
-          "onGpu": {
-            "type": "boolean",
-            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -2465,6 +2183,20 @@
           "argumentsCount": {
             "type": "integer",
             "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "pointerArgumentsCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "readOnly": true
+          },
+          "pointerArgumentTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
             "nullable": true,
             "readOnly": true
           }

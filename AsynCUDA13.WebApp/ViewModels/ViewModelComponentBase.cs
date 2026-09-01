@@ -47,19 +47,11 @@ namespace AsynCUDA13.WebApp.ViewModels
         {
             if (value > oldValue)
             {
-                if (oldValue == 0)
-                {
-                    return Math.Clamp(1, min, max);
-                }
-                return Math.Clamp(oldValue * 2, min, max);
-            }
-            else if (value < oldValue)
-            {
-                return Math.Clamp(oldValue / 2, min, max);
+                return oldValue == 0 ? Math.Clamp(1, min, max) : Math.Clamp(oldValue * 2, min, max);
             }
             else
             {
-                return oldValue;
+                return value < oldValue ? Math.Clamp(oldValue / 2, min, max) : oldValue;
             }
         }
     }

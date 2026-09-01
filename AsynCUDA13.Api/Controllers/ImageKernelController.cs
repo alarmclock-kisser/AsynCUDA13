@@ -13,14 +13,14 @@ namespace AsynCUDA13.Api.Controllers
     {
         private readonly ImageCollection images;
 
-        public ImageKernelController(IRuntimeService backend, ImageCollection images)
-            : base(backend)
+        public ImageKernelController(IRuntimeService backend, ImageCollection images, IRollingFileMemoryLogger logger)
+            : base(backend, logger)
         {
             this.images = images;
         }
 
         [HttpPost("execute-image/{kernelName}/{imageIdOrNameOrPath}")]
-        public async Task<ActionResult<ImageData?>> ExecuteImageAsync(string imageIdOrNameOrPath, string kernelName, IEnumerable<string> argumentValues, bool overwriteImage = true, bool unloadKernelAfterExecution = false)
+        public async Task<ActionResult<IMediaData?>> ExecuteImageAsync(string imageIdOrNameOrPath, string kernelName, IEnumerable<string> argumentValues, bool overwriteImage = true, bool unloadKernelAfterExecution = false)
         {
             if (!this.backend.Online || this.backend.Compiler == null || this.backend.Launcher == null)
             {
@@ -109,7 +109,7 @@ namespace AsynCUDA13.Api.Controllers
                     imageObj = new ImageObj(await this.backend.Register.PullDataAsync<byte>(outputMem.IndexPointer) ?? throw new InvalidOperationException("Failed to pull data from GPU."), imageObj.Width, imageObj.Height, imageObj.Name + "_" + kernelName);
                 }
 
-                return MediaDatasBuilder.BuildImageData(imageObj);
+                return this.Ok(MediaDatasBuilder.BuildImageData(imageObj));
             }
             catch (Exception ex)
             {
@@ -249,7 +249,7 @@ namespace AsynCUDA13.Api.Controllers
                 var pd = new ProblemDetails
                 {
                     Title = "Error executing image kernel",
-                    Detail = StaticLogger.GetAllInnerExceptionsRecursively(ex),
+                    Detail = this.logger.GetInnerExceptionsRecursively(ex),
                     Status = 500
                 };
                 return this.StatusCode(500, pd);

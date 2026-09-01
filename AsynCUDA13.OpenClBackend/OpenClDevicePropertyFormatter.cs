@@ -189,12 +189,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             int nullIndex = Array.IndexOf(bytes, (byte) 0);
             int length = nullIndex >= 0 ? nullIndex : bytes.Length;
-            if (length == 0)
-            {
-                return "<null>";
-            }
-
-            return Encoding.UTF8.GetString(bytes, 0, length).Trim();
+            return length == 0 ? "<null>" : Encoding.UTF8.GetString(bytes, 0, length).Trim();
         }
 
         private static string FormatFpConfig(ulong flags)
@@ -248,11 +243,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 return $"{val} ({val / (1024.0 * 1024.0):F2} MB)";
             }
-            if (val >= 1024)
-            {
-                return $"{val} ({val / 1024.0:F2} KB)";
-            }
-            return $"{val} Bytes";
+            return val >= 1024 ? $"{val} ({val / 1024.0:F2} KB)" : $"{val} Bytes";
         }
 
         private static string FormatSizeTArray(byte[] bytes)

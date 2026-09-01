@@ -47,11 +47,7 @@ namespace AsynCUDA13.Shared.RuntimeDtos
                 return null;
             }
             string type = this.ArgumentTypes[index];
-            if (type.EndsWith("*"))
-            {
-                return returnPointerType ? type : type.Replace("*", "").Trim();
-            }
-            return null;
+            return type.EndsWith("*") ? returnPointerType ? type : type.Replace("*", "").Trim() :  null;
         }
 
         public string? IsPointerArgument(string? argumentName, bool returnPointerType = true)

@@ -3,15 +3,16 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Media
 {
-    public class ImageObj : IDisposable
+    public class ImageObj : IDisposable, IMediaObj
     {
-        public Guid Id { get; private set; }
-        public DateTime CreatedAt { get; init; } = DateTime.Now;
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        public string Filepath { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
 
         public Image<Rgba32>? Img { get; set; } = null;
@@ -42,7 +43,7 @@ namespace AsynCUDA13.Media
         public ImageObj(string filePath)
         {
             this.Id = Guid.NewGuid();
-            this.Filepath = filePath;
+            this.FilePath = filePath;
             this.Name = Path.GetFileNameWithoutExtension(filePath);
 
             try
@@ -73,7 +74,7 @@ namespace AsynCUDA13.Media
             this.Channels = 4;
             this.Bitdepth = 32;
 
-            this.Filepath = string.Empty;
+            this.FilePath = string.Empty;
             this.ScalingFactor = 1.0f;
             try
             {
@@ -92,7 +93,7 @@ namespace AsynCUDA13.Media
         {
             this.Id = Guid.NewGuid();
             this.Name = name;
-            this.Filepath = string.Empty;
+            this.FilePath = string.Empty;
 
             try
             {
@@ -228,7 +229,7 @@ namespace AsynCUDA13.Media
             {
                 Id = Guid.NewGuid(),
                 CreatedAt = DateTime.Now,
-                Filepath = this.Filepath,
+                FilePath = this.FilePath,
                 Name = this.Name,
                 Channels = this.Channels,
                 Bitdepth = this.Bitdepth,

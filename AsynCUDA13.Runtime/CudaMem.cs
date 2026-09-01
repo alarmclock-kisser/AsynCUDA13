@@ -125,12 +125,7 @@ namespace AsynCUDA13.Runtime
             get
             {
                 int index = Array.IndexOf(this.Pointers, pointer);
-                if (index >= 0 && index < this.DevicePointers.Length)
-                {
-                    return this.DevicePointers[index];
-                }
-
-                return null;
+                return index >= 0 && index < this.DevicePointers.Length ?  this.DevicePointers[index] :  null;
             }
         }
 

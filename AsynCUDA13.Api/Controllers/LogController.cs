@@ -1,16 +1,24 @@
-﻿using AsynCUDA13.Shared;
+﻿using AsynCUDA13.Shared.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AsynCUDA13.Api.Controllers
 {
     public class LogController : Controller
     {
+        private readonly IRollingFileMemoryLogger _logger;
+
+        public LogController(IRollingFileMemoryLogger logger)
+        {
+            this._logger = logger;
+        }
+
         [HttpGet("log-lines")]
         public ActionResult<IEnumerable<string>> GetLogLines(int? nLastMax = null)
         {
             try
             {
-                return this.Ok(StaticLogger.LogEntries.OrderBy(e => e.Key).TakeLast(nLastMax ?? StaticLogger.LogEntries.Count).Select(e => e.Value));
+                var lines = this._logger.GetLogLines();
+                return this.Ok(lines.TakeLast(nLastMax ?? lines.Count));
             }
             catch
             {
@@ -23,7 +31,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                var logLines = StaticLogger.LogEntries.Values;
+                var logLines = this._logger.GetLogLines();
                 return this.File(System.Text.Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, logLines)), "text/plain", "application.log");
             }
             catch (Exception ex)
@@ -43,7 +51,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                StaticLogger.Log(comment);
+                this._logger.Log(comment);
                 return this.Ok();
             }
             catch (Exception ex)
@@ -63,7 +71,7 @@ namespace AsynCUDA13.Api.Controllers
         {
             try
             {
-                StaticLogger.ClearLogs();
+                this._logger.ClearLogs();
                 return this.Ok();
             }
             catch (Exception ex)

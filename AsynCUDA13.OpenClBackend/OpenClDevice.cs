@@ -207,12 +207,7 @@ namespace AsynCUDA13.OpenClBackend
                     return BitConverter.ToUInt64(bytes, 0);
                 }
 
-                if (bytes.Length >= 4)
-                {
-                    return BitConverter.ToUInt32(bytes, 0);
-                }
-
-                return 0;
+                return bytes.Length >= 4 ?  BitConverter.ToUInt32(bytes, 0) : (UInt64) 0;
             }
             catch
             {

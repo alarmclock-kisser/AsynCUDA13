@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
+using AsynCUDA13.Shared.Interfaces;
 
 namespace AsynCUDA13.Shared.MediaDtos
 {
-    public class AudioInfo
+    public class AudioInfo : IMediaInfo
     {
         public AudioInfo()
         {

@@ -93,7 +93,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
             if (this.ExecuteRequest[index] == null)
             {
-               
+
             }
 
             if (typedValues[index] is double currentVal)
@@ -102,7 +102,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
             else if (typedValues[index] is float fVal)
             {
-                this.ExecuteRequest.ArgumentValues[index] = (fVal + (float)delta).ToString();
+                this.ExecuteRequest.ArgumentValues[index] = (fVal + (float) delta).ToString();
             }
             else if (typedValues[index] is long lVal)
             {
@@ -110,7 +110,7 @@ namespace AsynCUDA13.WebApp.ViewModels
             }
             else if (typedValues[index] is int iVal)
             {
-                this.ExecuteRequest.ArgumentValues[index] = (iVal + (int)Math.Round(delta)).ToString();
+                this.ExecuteRequest.ArgumentValues[index] = (iVal + (int) Math.Round(delta)).ToString();
             }
             else
             {
@@ -120,7 +120,7 @@ namespace AsynCUDA13.WebApp.ViewModels
 
         private async Task ExecuteAndRefreshAsync()
         {
-            try 
+            try
             {
                 var response = await this.ExecuteAsync();
                 if (response?.ResultPointers?.Length > 0)

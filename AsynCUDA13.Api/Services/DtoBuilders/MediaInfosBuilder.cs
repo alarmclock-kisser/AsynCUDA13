@@ -1,16 +1,17 @@
 ﻿using AsynCUDA13.Media;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.MediaDtos;
 
 namespace AsynCUDA13.Api.Services.DtoBuilders
 {
     public static class MediaInfosBuilder
     {
-        public static ImageInfo BuildImageInfo(ImageObj imageObj)
+        public static IMediaInfo BuildImageInfo(ImageObj imageObj)
         {
             return new ImageInfo()
             {
                 Id = imageObj.Id,
-                FilePath = imageObj.Filepath,
+                FilePath = imageObj.FilePath,
                 CreatedAt = imageObj.CreatedAt,
                 Name = imageObj.Name,
                 Pointer = imageObj.Pointer.ToString(),
@@ -23,7 +24,7 @@ namespace AsynCUDA13.Api.Services.DtoBuilders
             };
         }
 
-        public static AudioInfo BuildAudioInfo(AudioObj audioObj)
+        public static IMediaInfo BuildAudioInfo(AudioObj audioObj)
         {
             return new AudioInfo()
             {
