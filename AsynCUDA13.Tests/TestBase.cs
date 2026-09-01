@@ -1,6 +1,9 @@
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
+using AsynCUDA13.Shared.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AsynCUDA13.Tests
@@ -11,6 +14,9 @@ namespace AsynCUDA13.Tests
     /// </summary>
     public abstract class TestBase
     {
+        protected readonly IRollingFileMemoryLogger Logger = new RollingFileMemoryLogger(
+            new RollingFileMemoryLoggerOptions { Silent = true });
+
         private TestContext? _testContext;
         private Exception? _lastException;
 

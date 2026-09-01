@@ -107,7 +107,6 @@ namespace AsynCUDA13.Media
                 Img = emptyData ? null : new Image<Rgba32>(info.Width, info.Height),
                 Bitdepth = info.BitDepth,
                 Channels = info.Channels,
-                CreatedAt = info.CreatedAt,
                 FilePath = info.FilePath,
                 Name = info.Name,
                 Height = info.Height,

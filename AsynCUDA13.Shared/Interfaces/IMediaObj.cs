@@ -9,14 +9,14 @@ namespace AsynCUDA13.Shared.Interfaces
     public interface IMediaObj
     {
         /// <summary>
-        /// Gets or sets the unique identifier for the media object.
+        /// Gets the unique identifier assigned when the media object is created.
         /// </summary>
-        Guid Id { get; set; }
+        Guid Id { get; }
 
         /// <summary>
-        /// Gets or sets the creation timestamp of the media.
+        /// Gets the timestamp assigned when the media object is created.
         /// </summary>
-        DateTime CreatedAt { get; set; }
+        DateTime CreatedAt { get; }
 
         /// <summary>
         /// Gets or sets the name of the media file.

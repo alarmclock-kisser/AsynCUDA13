@@ -20,6 +20,8 @@ namespace AsynCUDA13.Runtime
     /// </summary>
     internal class CudaRegister : IRuntimeRegister, IDisposable
     {
+        private readonly IRollingFileMemoryLogger Logger;
+
         // Fields
         /// <summary>All registered memory objects keyed by their unique id.</summary>
         private readonly ConcurrentDictionary<Guid, CudaMem> Memory = [];
@@ -191,9 +193,10 @@ namespace AsynCUDA13.Runtime
         /// Initializes a new instance of the <see cref="CudaRegister"/> class and makes the supplied context current.
         /// </summary>
         /// <param name="ctx">The CUDA primary context this registry manages memory and streams for.</param>
-        internal CudaRegister(PrimaryContext ctx)
+        internal CudaRegister(PrimaryContext ctx, IRollingFileMemoryLogger logger)
         {
             this.Context = ctx;
+            this.Logger = logger;
 
             this.Context.SetCurrent();
         }
@@ -213,7 +216,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error binding CUDA context to current thread");
+                this.Logger.Log(ex, preText: "Error binding CUDA context to current thread");
             }
         }
 
@@ -239,7 +242,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log("Error freeing memory", ex);
+                    this.Logger.Log("Error freeing memory", ex);
                 }
             }
 
@@ -285,7 +288,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log(ex, "Error freeing memory");
+                    this.Logger.Log(ex, preText: "Error freeing memory");
                 }
             }
 
@@ -331,7 +334,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log(ex, "Error freeing memory");
+                    this.Logger.Log(ex, preText: "Error freeing memory");
                 }
             }
 
@@ -382,7 +385,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error creating stream");
+                this.Logger.Log(ex, preText: "Error creating stream");
                 return null;
             }
         }
@@ -427,7 +430,7 @@ namespace AsynCUDA13.Runtime
 
             if (stream == null)
             {
-                StaticLogger.Log($"No available stream found or created.{(id.HasValue ? $" ID was {id}" : string.Empty)}");
+                this.Logger.Log($"No available stream found or created.{(id.HasValue ? $" ID was {id}" : string.Empty)}");
             }
 
             return stream;
@@ -480,7 +483,7 @@ namespace AsynCUDA13.Runtime
 
             if (created.Any(s => s == null))
             {
-                StaticLogger.Log("Some streams could not be created or retrieved.");
+                this.Logger.Log("Some streams could not be created or retrieved.");
                 return null;
             }
 
@@ -539,7 +542,7 @@ namespace AsynCUDA13.Runtime
 
             if (added == 0)
             {
-                StaticLogger.Log("No streams could be created or retrieved.");
+                this.Logger.Log("No streams could be created or retrieved.");
                 return null;
             }
 
@@ -590,13 +593,13 @@ namespace AsynCUDA13.Runtime
                 {
                     devVariable.Dispose();
                     mem.Dispose();
-                    StaticLogger.Log($"Failed to allocate memory for {typeof(T).Name} of length {length}.");
+                    this.Logger.Log($"Failed to allocate memory for {typeof(T).Name} of length {length}.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, $"Error allocating float memory");
+                this.Logger.Log(ex, preText: $"Error allocating float memory");
                 return null;
             }
         }
@@ -616,7 +619,7 @@ namespace AsynCUDA13.Runtime
 
             if (this.Context == null)
             {
-                StaticLogger.Log("Error allocating float memory (async): context is null");
+                this.Logger.Log("Error allocating float memory (async): context is null");
                 return null;
             }
 
@@ -641,13 +644,13 @@ namespace AsynCUDA13.Runtime
                         {
                             devVariable.Dispose();
                             mem.Dispose();
-                            StaticLogger.Log($"Failed to allocate memory for {typeof(T).Name} of length {length}.");
+                            this.Logger.Log($"Failed to allocate memory for {typeof(T).Name} of length {length}.");
                             return null;
                         }
                     }
                     catch (Exception ex)
                     {
-                        StaticLogger.Log(ex, $"Error allocating float memory (async)");
+                        this.Logger.Log(ex, preText: $"Error allocating float memory (async)");
                         return null;
                     }
                 });
@@ -714,13 +717,13 @@ namespace AsynCUDA13.Runtime
                         devVariable.Dispose();
                     }
                     mem.Dispose();
-                    StaticLogger.Log($"Failed to allocate grouped memory for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
+                    this.Logger.Log($"Failed to allocate grouped memory for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error allocating grouped memory");
+                this.Logger.Log(ex, preText: "Error allocating grouped memory");
                 return null;
             }
             finally
@@ -746,7 +749,7 @@ namespace AsynCUDA13.Runtime
             }
             if (this.Context == null)
             {
-                StaticLogger.Log("Error allocating grouped memory (async): context is null");
+                this.Logger.Log("Error allocating grouped memory (async): context is null");
                 return null;
             }
 
@@ -779,13 +782,13 @@ namespace AsynCUDA13.Runtime
                                 devVariable.Dispose();
                             }
                             mem.Dispose();
-                            StaticLogger.Log($"Failed to allocate grouped memory for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}");
+                            this.Logger.Log($"Failed to allocate grouped memory for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}");
                             return null;
                         }
                     }
                     catch (Exception ex)
                     {
-                        StaticLogger.Log(ex, "Error allocating grouped memory (async)");
+                        this.Logger.Log(ex, preText: "Error allocating grouped memory (async)");
                         return null;
                     }
                 });
@@ -845,20 +848,20 @@ namespace AsynCUDA13.Runtime
                     GC.SuppressFinalize(devVariable);
                     this.AddMemorySize(mem.TotalSize);
                     this.RefreshMemoryList();
-                    StaticLogger.Log($"[DIAG] PushData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} bytes={mem.TotalSize} registered={this.Memory.Count}.");
+                    this.Logger.Log($"[DIAG] PushData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} bytes={mem.TotalSize} registered={this.Memory.Count}.");
                     return mem;
                 }
                 else
                 {
                     devVariable.Dispose();
                     mem.Dispose();
-                    StaticLogger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
+                    this.Logger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error pushing data");
+                this.Logger.Log(ex, preText: "Error pushing data");
                 return null;
             }
             finally
@@ -922,13 +925,13 @@ namespace AsynCUDA13.Runtime
                         devVariable.Dispose();
                     }
                     mem.Dispose();
-                    StaticLogger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
+                    this.Logger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error pushing chunks");
+                this.Logger.Log(ex, preText: "Error pushing chunks");
                 return null;
             }
             finally
@@ -975,7 +978,7 @@ namespace AsynCUDA13.Runtime
                 {
                     devVariable.Dispose();
                     mem.Dispose();
-                    StaticLogger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
+                    this.Logger.Log($"Failed to push data for {typeof(T).Name} of length {length}.");
                     mem = null;
                 }
                 else
@@ -987,7 +990,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, $"Error pushing data (async)");
+                this.Logger.Log(ex, preText: $"Error pushing data (async)");
             }
             finally
             {
@@ -1049,7 +1052,7 @@ namespace AsynCUDA13.Runtime
                     }
 
                     mem.Dispose();
-                    StaticLogger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
+                    this.Logger.Log($"Failed to push chunks for {typeof(T).Name} with lengths {(lengths.LongLength + "x " + lengths.FirstOrDefault())}.");
                     mem = null;
                 }
                 else
@@ -1064,7 +1067,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, $"Error pushing chunks (async)");
+                this.Logger.Log(ex, preText: $"Error pushing chunks (async)");
             }
             finally
             {
@@ -1097,7 +1100,7 @@ namespace AsynCUDA13.Runtime
         {
             if (this[indexPointer] is not CudaMem mem || mem.PointerIds.Length == 0 || mem.PointerLengths.Length == 0)
             {
-                StaticLogger.Log($"[DIAG] PullData<{typeof(T).Name}> lookup MISS for ptr=0x{indexPointer:X} (registered={this.Memory.Count}). Returning empty.");
+                this.Logger.Log($"[DIAG] PullData<{typeof(T).Name}> lookup MISS for ptr=0x{indexPointer:X} (registered={this.Memory.Count}). Returning empty.");
                 return [];
             }
 
@@ -1116,7 +1119,7 @@ namespace AsynCUDA13.Runtime
                 this.Context.Synchronize();
                 this.Context.CopyToHost(data, devVariable.DevicePointer);
 
-                StaticLogger.Log($"[DIAG] PullData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} first=[{string.Join(", ", data.Take(4))}] keep={keep}.");
+                this.Logger.Log($"[DIAG] PullData<{typeof(T).Name}> ptr=0x{mem.IndexPointer:X} len={mem.IndexLength} first=[{string.Join(", ", data.Take(4))}] keep={keep}.");
 
                 if (!keep)
                 {
@@ -1127,7 +1130,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error pulling data");
+                this.Logger.Log(ex, preText: "Error pulling data");
                 return [];
             }
         }
@@ -1173,7 +1176,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error pulling chunks");
+                this.Logger.Log(ex, preText: "Error pulling chunks");
                 return [];
             }
         }
@@ -1243,7 +1246,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error pulling data (async)");
+                this.Logger.Log(ex, preText: "Error pulling data (async)");
                 return [];
             }
             finally
@@ -1287,7 +1290,7 @@ namespace AsynCUDA13.Runtime
                 var stream = this.GetStream(id);
                 if (stream == null)
                 {
-                    StaticLogger.Log("No stream available for async pull, falling back to synchronous copy.");
+                    this.Logger.Log("No stream available for async pull, falling back to synchronous copy.");
                     return this.PullChunks<T>(indexPointer, keep);
                 }
                 this.Streams[stream] = this.Streams.GetValueOrDefault(stream, 0) + 1;
@@ -1336,7 +1339,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error pulling chunks (async)");
+                this.Logger.Log(ex, preText: "Error pulling chunks (async)");
                 return [];
             }
             finally
@@ -1380,7 +1383,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log("Error freeing memory during dispose", ex);
+                    this.Logger.Log("Error freeing memory during dispose", ex);
                 }
             }
             this.Memory.Clear();

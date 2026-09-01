@@ -1,0 +1,69 @@
+=== Fehlgeschlagene Tests ===
+Datum: 2026-09-01 10:10:01
+Anzahl: 13
+============================================================
+
+Test: GetDevices_ReturnsValidDeviceInfoStructure
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetDevices_WhenCudaNotAvailable_Returns503
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetDevices_WhenCudaAvailableButNoDevices_Returns404
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: FreeAllMemoryAsync_WhenExceptionThrown_Returns500
+Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: PullAsync_WhenIndexPointerNull_Returns400
+Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetDevices_WhenCudaAvailable_Returns200WithDevices
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetMemoryList_WhenOnlineButEmpty_Returns404
+Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: PullAsync_WhenExceptionThrown_Returns500
+Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: FreeAllMemoryAsync_WhenOnlineWithMemory_Returns200
+Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetDevices_MultipleDevices_ReturnsAll
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetDevices_DeviceIdsAreUnique
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: PushAsync_WhenPayloadNull_Returns400
+Klasse: AsynCUDA13.Tests.Api.CudaMemoryControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------
+
+Test: GetDevices_WhenExceptionThrown_Returns500
+Klasse: AsynCUDA13.Tests.Api.CudaDeviceControllerTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------

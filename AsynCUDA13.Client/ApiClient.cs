@@ -14,12 +14,14 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using System.Linq;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.Utils;
 
 namespace AsynCUDA13.Client
 {
     public class ApiClient
     {
+        private readonly IRollingFileMemoryLogger logger;
         private readonly InternalClient internalClient;
         private readonly HttpClient httpClient;
         private readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNameCaseInsensitive = true };
@@ -34,7 +36,7 @@ namespace AsynCUDA13.Client
             get => this._logLevel;
             set
             {
-                StaticLogger.Silent = value == LogLevel.Silent;
+                this.logger.Settings.Silent = value == LogLevel.Silent;
                 this._logLevel = value;
             }
         }
@@ -50,22 +52,21 @@ namespace AsynCUDA13.Client
 
 
         public bool Initialized { get; private set; }
-        public ApiClient(ApiClientConfiguration configuration, LanguageService languageService)
+        public ApiClient(ApiClientConfiguration configuration, LanguageService languageService, IRollingFileMemoryLogger logger, HttpClient? httpClient = null)
         {
+            this.logger = logger;
             this.BaseUrl = configuration.ApiBaseUrl;
             this.L = languageService;
-            this.httpClient = new HttpClient()
-            {
-                BaseAddress = new Uri(this.BaseUrl),
-                Timeout = TimeSpan.FromMinutes(10),
-                MaxResponseContentBufferSize = int.MaxValue
-            };
+            this.httpClient = httpClient ?? new HttpClient();
+            this.httpClient.BaseAddress ??= new Uri(this.BaseUrl);
+            this.httpClient.Timeout = TimeSpan.FromMinutes(10);
+            this.httpClient.MaxResponseContentBufferSize = int.MaxValue;
             this.internalClient = new(this.BaseUrl, this.httpClient);
             this.LogLevel = (LogLevel) configuration.LogLevel;
 
             if ((int) this.LogLevel >= 5)
             {
-                StaticLogger.Log($"ApiClient created with log level: {this.LogLevel}, URL='{this.BaseUrl}'");
+                this.logger.Log($"ApiClient created with log level: {this.LogLevel}, URL='{this.BaseUrl}'");
             }
         }
         public async Task InitializeAsync()
@@ -80,7 +81,7 @@ namespace AsynCUDA13.Client
             this.L.Runtime = this.BackendType;
             this.Initialized = true;
 
-            await StaticLogger.LogAsync($"ApiClient initialized. BackendType='{this.BackendType}', IsCudaAvailable={this.IsCudaAvailable}");
+            await this.logger.LogAsync($"ApiClient initialized. BackendType='{this.BackendType}', IsCudaAvailable={this.IsCudaAvailable}");
         }
 
 
@@ -144,20 +145,23 @@ namespace AsynCUDA13.Client
             int count = 0;
             try
             {
-                var logLines = frontendLog ? StaticLogger.LogEntries.OrderBy(e => e.Key).TakeLast(nLastMax <= 0 ? StaticLogger.LogEntries.Count : nLastMax).Select(e => e.Value) : await this.internalClient.LogLinesAsync(nLastMax);
+                var frontendLogLines = this.logger.GetLogLines();
+                var logLines = frontendLog
+                    ? frontendLogLines.TakeLast(nLastMax <= 0 ? frontendLogLines.Count : nLastMax)
+                    : await this.internalClient.LogLinesAsync(nLastMax);
                 count = logLines.Count();
                 return logLines.ToArray();
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetLogListAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetLogListAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -171,13 +175,13 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : ClearLogAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : ClearLogAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -187,17 +191,17 @@ namespace AsynCUDA13.Client
             DateTime started = DateTime.Now;
             try
             {
-                StaticLogger.AddComment(capturedAt, comment);
+                this.logger.AddComment(capturedAt, comment: comment);
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : CommentLogAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : CommentLogAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -207,7 +211,7 @@ namespace AsynCUDA13.Client
             DateTime started = DateTime.Now;
             try
             {
-                string logFileName = StaticLogger.GetPreviousLogFilePath(previousIndex ?? 0) ?? throw new FileNotFoundException($"Log file not found for the specified index {previousIndex}.");
+                string logFileName = this.logger.GetPreviousLogFilePath(previousIndex ?? 0) ?? throw new FileNotFoundException($"Log file not found for the specified index {previousIndex}.");
 
                 using var sr = new StreamReader(logFileName);
                 var fileStream = sr.BaseStream;
@@ -227,14 +231,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : DownloadLogFileAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : DownloadLogFileAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -253,14 +257,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetRuntimeDevicesAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetRuntimeDevicesAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -277,14 +281,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetRuntimeDeviceAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetRuntimeDeviceAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -303,14 +307,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetRuntimeContextInfoAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetRuntimeContextInfoAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -334,14 +338,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : InitializeRuntimeAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : InitializeRuntimeAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -363,14 +367,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : DisposeRuntimeAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : DisposeRuntimeAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -389,14 +393,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetMemoryListAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetMemoryListAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -422,14 +426,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetMemoryInfoAsync(indexPointerOrId='{indexPointerOrId}') (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetMemoryInfoAsync(indexPointerOrId='{indexPointerOrId}') (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -446,14 +450,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : FreeMemoryAsync() (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(value) ? "returned NULL" : $"returned '{value}'")}");
+                    await this.logger.LogAsync($"[ApiClient] : FreeMemoryAsync() (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(value) ? "returned NULL" : $"returned '{value}'")}");
                 }
             }
         }
@@ -470,14 +474,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : FreeAllMemoryAsync() (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(value) ? "returned NULL" : $"returned '{value}'")}");
+                    await this.logger.LogAsync($"[ApiClient] : FreeAllMemoryAsync() (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(value) ? "returned NULL" : $"returned '{value}'")}");
                 }
             }
         }
@@ -493,7 +497,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Asset '{assetIdOrName}' does not exist or could not determine if it is an audio asset. PushAsync() aborted.");
+                        await this.logger.LogAsync($"Asset '{assetIdOrName}' does not exist or could not determine if it is an audio asset. PushAsync() aborted.");
                     }
                     return null;
                 }
@@ -528,7 +532,7 @@ namespace AsynCUDA13.Client
 
                     if (payload == null)
                     {
-                        await StaticLogger.LogAsync($"Failed to serialize data for asset '{assetIdOrName}'.");
+                        await this.logger.LogAsync($"Failed to serialize data for asset '{assetIdOrName}'.");
                         return null;
                     }
 
@@ -551,14 +555,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PushAsync() (elapsed={DateTime.Now - started}), {(response != null ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : PushAsync() (elapsed={DateTime.Now - started}), {(response != null ? "returned DTO" : "returned NULL")}");
                 }
             }
 
@@ -611,20 +615,20 @@ namespace AsynCUDA13.Client
             catch (ApiException apiEx)
             {
                 hadValue = false;
-                await StaticLogger.LogAsync($"[ApiClient] PullAsync Deserialization Error (Status {apiEx.StatusCode}): {apiEx.Message}");
+                await this.logger.LogAsync($"[ApiClient] PullAsync Deserialization Error (Status {apiEx.StatusCode}): {apiEx.Message}");
                 return null;
             }
             catch (Exception ex)
             {
                 hadValue = false;
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PullAsync(indexPointerOrId='{indexPointerOrId}', serverSided={serverSided}, freeBuffer={freeBuffer}) (elapsed={DateTime.Now - started}), {(hadValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : PullAsync(indexPointerOrId='{indexPointerOrId}', serverSided={serverSided}, freeBuffer={freeBuffer}) (elapsed={DateTime.Now - started}), {(hadValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -636,7 +640,7 @@ namespace AsynCUDA13.Client
             var memInfo = await this.GetMemoryInfoAsync(indexPointerOrId);
             if (memInfo == null)
             {
-                await StaticLogger.LogAsync($"Memory info not found for index pointer or ID: {indexPointerOrId}");
+                await this.logger.LogAsync($"Memory info not found for index pointer or ID: {indexPointerOrId}");
                 return null;
             }
 
@@ -658,14 +662,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PerformFourierTransformAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : PerformFourierTransformAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -682,14 +686,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : PerformFourierOnAudioAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : PerformFourierOnAudioAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -712,14 +716,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetKernelsAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetKernelsAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -729,7 +733,7 @@ namespace AsynCUDA13.Client
             string? kernelName = DataParser.ExtractKernelName(kernelCode);
             if (string.IsNullOrEmpty(kernelName))
             {
-                await StaticLogger.LogAsync("Failed to extract kernel name from the provided kernel code.");
+                await this.logger.LogAsync("Failed to extract kernel name from the provided kernel code.");
                 return null;
             }
 
@@ -751,14 +755,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : CompileKernelAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : CompileKernelAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -768,7 +772,7 @@ namespace AsynCUDA13.Client
             RuntimeKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
             if (kernelInfo == null)
             {
-                await StaticLogger.LogAsync($"Kernel '{kernelName}' not found or not compiled.");
+                await this.logger.LogAsync($"Kernel '{kernelName}' not found or not compiled.");
                 return null;
             }
 
@@ -793,14 +797,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : ExecuteGenericKernelAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : ExecuteGenericKernelAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -810,7 +814,7 @@ namespace AsynCUDA13.Client
             RuntimeKernelInfo? kernelInfo = (await this.internalClient.KernelsAsync(true)).FirstOrDefault(k => k.FunctionName.Equals(kernelName, StringComparison.OrdinalIgnoreCase));
             if (kernelInfo == null)
             {
-                await StaticLogger.LogAsync($"Kernel '{kernelName}' not found or not compiled.");
+                await this.logger.LogAsync($"Kernel '{kernelName}' not found or not compiled.");
                 return null;
             }
 
@@ -832,14 +836,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : ExecuteLinearKernelAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : ExecuteLinearKernelAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -858,14 +862,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : UploadMediaAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : UploadMediaAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -882,14 +886,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : DownloadMediaAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : DownloadMediaAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -914,14 +918,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetImageInfosAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetImageInfosAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -946,14 +950,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAudioInfosAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetAudioInfosAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -977,14 +981,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAllAssetIdsAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : GetAllAssetIdsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -1001,14 +1005,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetImageDataAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetImageDataAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -1025,14 +1029,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAudioDataAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetAudioDataAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -1049,14 +1053,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetImagePreviewAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetImagePreviewAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -1071,7 +1075,7 @@ namespace AsynCUDA13.Client
                 {
                     if (this.LogLevel >= LogLevel.Debug)
                     {
-                        await StaticLogger.LogAsync("No image IDs or names provided for preview retrieval.");
+                        await this.logger.LogAsync("No image IDs or names provided for preview retrieval.");
                     }
                     return [];
                 }
@@ -1093,7 +1097,7 @@ namespace AsynCUDA13.Client
                     }
                     catch (Exception ex)
                     {
-                        await StaticLogger.LogAsync(ex);
+                        await this.logger.LogAsync(ex);
                     }
                 });
 
@@ -1103,14 +1107,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetImagePreviewsAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetImagePreviewsAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -1127,14 +1131,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAudioWaveformAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetAudioWaveformAsync() (elapsed={DateTime.Now - started}), {(hasValue ? "returned DTO" : "returned NULL")}");
                 }
             }
         }
@@ -1149,7 +1153,7 @@ namespace AsynCUDA13.Client
                 {
                     if (this.LogLevel >= LogLevel.Debug)
                     {
-                        await StaticLogger.LogAsync("No audio IDs or names provided for waveform retrieval.");
+                        await this.logger.LogAsync("No audio IDs or names provided for waveform retrieval.");
                     }
                     return [];
                 }
@@ -1170,7 +1174,7 @@ namespace AsynCUDA13.Client
                     }
                     catch (Exception ex)
                     {
-                        await StaticLogger.LogAsync(ex);
+                        await this.logger.LogAsync(ex);
                     }
                 });
 
@@ -1179,14 +1183,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAudioWaveformsAsync() (elapsed={DateTime.Now - started}, count={count})");
+                    await this.logger.LogAsync($"[ApiClient] : GetAudioWaveformsAsync() (elapsed={DateTime.Now - started}, count={count})");
                 }
             }
         }
@@ -1203,14 +1207,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return false;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : DeleteMediaAsync() (elapsed={DateTime.Now - started}), {(value ? "returned TRUE" : "returned FALSE")}");
+                    await this.logger.LogAsync($"[ApiClient] : DeleteMediaAsync() (elapsed={DateTime.Now - started}), {(value ? "returned TRUE" : "returned FALSE")}");
                 }
             }
         }
@@ -1224,13 +1228,13 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : ClearAllMediaAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : ClearAllMediaAsync() (elapsed={DateTime.Now - started})");
                 }
             }
 
@@ -1254,7 +1258,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find a CudaMem-obj allocated with IndexPointer={indexPointer}");
+                        await this.logger.LogAsync($"Could not find a CudaMem-obj allocated with IndexPointer={indexPointer}");
                     }
                     return null;
                 }
@@ -1275,14 +1279,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAssetIdForIndexPointer(indexPointer='{indexPointer}') (elapsed={DateTime.Now - started}), {(assetId.HasValue ? $"returned assetId={assetId}" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetAssetIdForIndexPointer(indexPointer='{indexPointer}') (elapsed={DateTime.Now - started}), {(assetId.HasValue ? $"returned assetId={assetId}" : "returned NULL")}");
                 }
             }
         }
@@ -1311,14 +1315,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetAssetIdsForIndexPointers() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : GetAssetIdsForIndexPointers() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -1345,14 +1349,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdExistsAsync(id={id}) (elapsed={DateTime.Now - started}), {(guid.HasValue ? $"returned assetId={guid}" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : VerifyAssetIdExistsAsync(id={id}) (elapsed={DateTime.Now - started}), {(guid.HasValue ? $"returned assetId={guid}" : "returned NULL")}");
                 }
             }
         }
@@ -1365,7 +1369,7 @@ namespace AsynCUDA13.Client
             {
                 if ((int) this.LogLevel >= 4)
                 {
-                    await StaticLogger.LogAsync($"VerifyAssetIdExistsAsync() called with null or empty idOrName.");
+                    await this.logger.LogAsync($"VerifyAssetIdExistsAsync() called with null or empty idOrName.");
                 }
                 return null;
             }
@@ -1380,7 +1384,7 @@ namespace AsynCUDA13.Client
                     guid = (await this.GetAudioInfosAsync()).FirstOrDefault(a => a.Name.Equals(idOrName, StringComparison.OrdinalIgnoreCase) || a.Id.ToString().Equals(idOrName, StringComparison.OrdinalIgnoreCase))?.Id ?? (await this.GetImageInfosAsync()).FirstOrDefault(i => i.Name.Equals(idOrName, StringComparison.OrdinalIgnoreCase) || i.Id.ToString().Equals(idOrName, StringComparison.OrdinalIgnoreCase))?.Id;
                     if ((int) this.LogLevel >= 5)
                     {
-                        await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdExistsAsync() (elapsed={DateTime.Now - started}, assetId={guid})");
+                        await this.logger.LogAsync($"[ApiClient] : VerifyAssetIdExistsAsync() (elapsed={DateTime.Now - started}, assetId={guid})");
                     }
                 }
                 return guid;
@@ -1395,7 +1399,7 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
         }
@@ -1421,14 +1425,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdsExistsAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : VerifyAssetIdsExistsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -1452,14 +1456,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : VerifyAssetIdsExistsAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : VerifyAssetIdsExistsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -1475,7 +1479,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId}");
+                        await this.logger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId}");
                     }
                     return null;
                 }
@@ -1485,7 +1489,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId} that has a Pointer");
+                        await this.logger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId} that has a Pointer");
                     }
                     return null;
                 }
@@ -1495,7 +1499,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId} that has a Pointer which can be found in any CudaMemInfo-obj allocated");
+                        await this.logger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId} that has a Pointer which can be found in any CudaMemInfo-obj allocated");
                     }
                 }
 
@@ -1511,14 +1515,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointerForAssetIdAsync(assetId={assetId}) (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(verifiedPtr) ? "returned NULL" : $"returned indexPointer='{verifiedPtr}'")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetIndexPointerForAssetIdAsync(assetId={assetId}) (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(verifiedPtr) ? "returned NULL" : $"returned indexPointer='{verifiedPtr}'")}");
                 }
             }
         }
@@ -1534,7 +1538,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id or Name={idOrName}");
+                        await this.logger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id or Name={idOrName}");
                     }
                     return null;
                 }
@@ -1551,14 +1555,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointerForAssetIdAsync(idOrName='{idOrName}') (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(indexPointer) ? "returned NULL" : $"returned indexPointer='{indexPointer}'")}");
+                    await this.logger.LogAsync($"[ApiClient] : GetIndexPointerForAssetIdAsync(idOrName='{idOrName}') (elapsed={DateTime.Now - started}), {(string.IsNullOrEmpty(indexPointer) ? "returned NULL" : $"returned indexPointer='{indexPointer}'")}");
                 }
             }
         }
@@ -1573,7 +1577,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"One or more provided assetIds do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", assetIds.Where(i => !verifiedIds.Contains(i)))}]");
+                        await this.logger.LogAsync($"One or more provided assetIds do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", assetIds.Where(i => !verifiedIds.Contains(i)))}]");
                     }
                     return [];
                 }
@@ -1583,7 +1587,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Lengths mismatching for verifiedIds and assetPtrs ({verifiedIds.Length} != {assetPtrs.Count()})");
+                        await this.logger.LogAsync($"Lengths mismatching for verifiedIds and assetPtrs ({verifiedIds.Length} != {assetPtrs.Count()})");
                         return [];
                     }
                     return [];
@@ -1594,7 +1598,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Lengths mismatching for verifiedPtrs and assetPtrs ({verifiedPtrs.Count()} != {assetPtrs.Count()})");
+                        await this.logger.LogAsync($"Lengths mismatching for verifiedPtrs and assetPtrs ({verifiedPtrs.Count()} != {assetPtrs.Count()})");
                         return [];
                     }
                     return [];
@@ -1612,14 +1616,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointesrForAssetIdsAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : GetIndexPointesrForAssetIdsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -1634,7 +1638,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"One or more provided idsOrNames do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", idsOrNames.Select(i => Guid.TryParse(i, out var g) ? g : (Guid?) null)?.Where(v => v.HasValue && !verifiedIds.Contains(v.Value)) ?? [])}]");
+                        await this.logger.LogAsync($"One or more provided idsOrNames do not exist as an Asset (ImageObj/AudioObj) or equal Guid.Empty, which is invalid: Ids=[{string.Join(" ,", idsOrNames.Select(i => Guid.TryParse(i, out var g) ? g : (Guid?) null)?.Where(v => v.HasValue && !verifiedIds.Contains(v.Value)) ?? [])}]");
                     }
                     return [];
                 }
@@ -1651,14 +1655,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return [];
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : GetIndexPointersForAssetIdsAsync() (elapsed={DateTime.Now - started})");
+                    await this.logger.LogAsync($"[ApiClient] : GetIndexPointersForAssetIdsAsync() (elapsed={DateTime.Now - started})");
                 }
             }
         }
@@ -1735,7 +1739,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Null or empty assetId provided: {assetId}");
+                        await this.logger.LogAsync($"Null or empty assetId provided: {assetId}");
                     }
                     return null;
                 }
@@ -1745,7 +1749,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId}");
+                        await this.logger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id={assetId}");
                     }
                     return null;
                 }
@@ -1762,14 +1766,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : IsAssetAudioAsync(assetId={assetId}) (elapsed={DateTime.Now - started}), {(isAudio.HasValue ? $"returned {isAudio}" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : IsAssetAudioAsync(assetId={assetId}) (elapsed={DateTime.Now - started}), {(isAudio.HasValue ? $"returned {isAudio}" : "returned NULL")}");
                 }
             }
         }
@@ -1784,7 +1788,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Null or empty assetIdOrName provided: {assetIdOrName}");
+                        await this.logger.LogAsync($"Null or empty assetIdOrName provided: {assetIdOrName}");
                     }
                     return null;
                 }
@@ -1794,7 +1798,7 @@ namespace AsynCUDA13.Client
                 {
                     if ((int) this.LogLevel >= 4)
                     {
-                        await StaticLogger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id or Name={assetIdOrName}");
+                        await this.logger.LogAsync($"Could not find an Asset-obj in Audios nor Images with Id or Name={assetIdOrName}");
                     }
                     return null;
                 }
@@ -1812,14 +1816,14 @@ namespace AsynCUDA13.Client
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync(ex);
+                await this.logger.LogAsync(ex);
                 return null;
             }
             finally
             {
                 if ((int) this.LogLevel >= 5)
                 {
-                    await StaticLogger.LogAsync($"[ApiClient] : IsAssetAudioAsync(assetIdOrName='{assetIdOrName}') (elapsed={DateTime.Now - started}), {(isAudio.HasValue ? $"returned {isAudio}" : "returned NULL")}");
+                    await this.logger.LogAsync($"[ApiClient] : IsAssetAudioAsync(assetIdOrName='{assetIdOrName}') (elapsed={DateTime.Now - started}), {(isAudio.HasValue ? $"returned {isAudio}" : "returned NULL")}");
                 }
             }
         }

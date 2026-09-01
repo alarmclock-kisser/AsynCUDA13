@@ -1,0 +1,9 @@
+=== Fehlgeschlagene Tests ===
+Datum: 2026-09-01 10:38:03
+Anzahl: 1
+============================================================
+
+Test: Execute_WithInvalidPointerArgumentType_ReturnsFailureAndLogsArgumentError
+Klasse: AsynCUDA13.Tests.OpenClLauncherIntegrationTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------

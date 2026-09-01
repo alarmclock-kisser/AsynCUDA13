@@ -9,8 +9,8 @@ namespace AsynCUDA13.Media
 {
     public class ImageObj : IDisposable, IMediaObj
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public Guid Id { get; } = Guid.NewGuid();
+        public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
         public string FilePath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -42,7 +42,6 @@ namespace AsynCUDA13.Media
 
         public ImageObj(string filePath)
         {
-            this.Id = Guid.NewGuid();
             this.FilePath = filePath;
             this.Name = Path.GetFileNameWithoutExtension(filePath);
 
@@ -66,7 +65,6 @@ namespace AsynCUDA13.Media
 
         public ImageObj(int width, int height, string hexColor = "#00000000")
         {
-            this.Id = Guid.NewGuid();
             this.Name = "image_" + this.Id.ToString();
 
             this.Width = width;
@@ -91,7 +89,6 @@ namespace AsynCUDA13.Media
 
         public ImageObj(IEnumerable<Byte> rawPixelData, int width, int height, string name = "UnbenanntesBild")
         {
-            this.Id = Guid.NewGuid();
             this.Name = name;
             this.FilePath = string.Empty;
 
@@ -227,8 +224,6 @@ namespace AsynCUDA13.Media
         {
             ImageObj clone = new(this.Width, this.Height)
             {
-                Id = Guid.NewGuid(),
-                CreatedAt = DateTime.Now,
                 FilePath = this.FilePath,
                 Name = this.Name,
                 Channels = this.Channels,

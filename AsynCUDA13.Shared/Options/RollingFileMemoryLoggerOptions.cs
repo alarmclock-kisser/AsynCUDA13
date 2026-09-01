@@ -96,25 +96,5 @@ namespace AsynCUDA13.Shared.Options
         /// </summary>
         public ExceptionPrintOptions ExceptionPrintSettings { get; set; } = new ExceptionPrintOptions();
 
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RollingFileMemoryLoggerOptions"/> class with default settings. If a custom timestamp format is provided, it verifies the format string and logs a warning if the format is invalid, reverting to the default format.
-        /// </summary>
-        public RollingFileMemoryLoggerOptions()
-        {
-            if (!string.IsNullOrEmpty(this.LogTimestampFormat))
-            {
-                string original = this.LogTimestampFormat;
-                this.LogTimestampFormat = this.LogTimestampFormat.VerifyFormatString(out string? err);
-                if (!string.IsNullOrEmpty(err))
-                {
-                    try
-                    {
-                        RollingFileMemoryLogger.Instance.Log($"[WARN] Invalid TimestampFormat '{original}' in StaticLoggerSettings. Reverting to default format 'HH:mm:ss.fff'. Error: {err}");
-                    }
-                    catch { }
-                }
-            }
-        }
     }
 }

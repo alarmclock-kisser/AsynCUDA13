@@ -35,16 +35,18 @@ namespace AsynCUDA13.OpenClBackend
 
         private readonly OpenClRegister _register;
         private readonly OpenClLauncher _launcher;
+        private readonly IRollingFileMemoryLogger _logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OpenClFourier"/> class.
         /// </summary>
         /// <param name="register">The memory registry used for buffer allocation and transfers.</param>
         /// <param name="launcher">The launcher used to execute the Fourier kernels.</param>
-        internal OpenClFourier(OpenClRegister register, OpenClLauncher launcher)
+        internal OpenClFourier(OpenClRegister register, OpenClLauncher launcher, IRollingFileMemoryLogger logger)
         {
             this._register = register;
             this._launcher = launcher;
+            this._logger = logger;
         }
 
         /// <summary>
@@ -157,7 +159,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (data == null || data.Length == 0)
             {
-                StaticLogger.LogError("Fft: data is null or empty.");
+                this._logger.LogError("Fft: data is null or empty.");
                 return null;
             }
 
@@ -194,7 +196,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (data == null || data.Length == 0)
             {
-                StaticLogger.LogError("Ifft: data is null or empty.");
+                this._logger.LogError("Ifft: data is null or empty.");
                 return null;
             }
 
@@ -311,23 +313,23 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Validates a chunked transform request: non-empty input, power-of-two chunk size, length divisible by it.
         /// </summary>
-        private static bool ValidateChunked<T>(T[] data, int chunkSize)
+        private bool ValidateChunked<T>(T[] data, int chunkSize)
         {
             if (data == null || data.Length == 0)
             {
-                StaticLogger.LogError("Chunked transform: data is null or empty.");
+                this._logger.LogError("Chunked transform: data is null or empty.");
                 return false;
             }
 
             if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
             {
-                StaticLogger.LogError($"Chunked transform: chunkSize {chunkSize} must be a positive power of two.");
+                this._logger.LogError($"Chunked transform: chunkSize {chunkSize} must be a positive power of two.");
                 return false;
             }
 
             if (data.Length % chunkSize != 0)
             {
-                StaticLogger.LogError($"Chunked transform: data length {data.Length} must be a multiple of chunkSize {chunkSize}.");
+                this._logger.LogError($"Chunked transform: data length {data.Length} must be a multiple of chunkSize {chunkSize}.");
                 return false;
             }
 

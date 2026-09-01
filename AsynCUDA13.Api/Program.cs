@@ -24,7 +24,7 @@ namespace AsynCUDA13.Api
             builder.Services.AddSingleton<IRollingFileMemoryLogger, RollingFileMemoryLogger>(sp =>
             {
                 var options = sp.GetRequiredService<IOptions<RollingFileMemoryLoggerOptions>>().Value;
-                return new RollingFileMemoryLogger(options, setGlobally: true);
+                return new RollingFileMemoryLogger(options);
             });
 
             // Select the compute backend ({this.RuntimeType} or OpenCL). The chosen backend is registered as both its
@@ -33,7 +33,7 @@ namespace AsynCUDA13.Api
             string backend = builder.Configuration.GetValue<string>("Backend") ?? "CUDA";
             bool switchIfUnavailable = builder.Configuration.GetValue<bool>("SwitchBackendIfUnavailable", true);
 
-            string apiName = "AsynCUDA13.API";
+            string apiName = "AsynCPU.Api";
             bool? cudaAvailable = null;
             if (string.Equals(backend, "CUDA", StringComparison.OrdinalIgnoreCase))
             {
@@ -41,6 +41,7 @@ namespace AsynCUDA13.Api
                 if (cudaAvailable.Value)
                 {
                     builder.Services.AddSingleton<IRuntimeService, CudaService>();
+                    apiName = "AsynCUDA13.API";
                 }
             }
             else if (switchIfUnavailable || string.Equals(backend, "OpenCL", StringComparison.OrdinalIgnoreCase))
@@ -80,6 +81,7 @@ namespace AsynCUDA13.Api
             {
                 options.EnableDetailedErrors = true;
             });
+            builder.Services.AddSingleton<Hubs.LogBroadcaster>();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new() { Title = $"{apiName} v1", Version = "v1" });
@@ -124,10 +126,7 @@ namespace AsynCUDA13.Api
 
             app.UseAuthorization();
 
-            // Initialize LogBroadcaster with the HubContext and the DI logger's event.
-            var hubContext = app.Services.GetRequiredService<IHubContext<Hubs.LogHub>>();
-            Hubs.LogBroadcaster.SetHubContext(hubContext);
-            Hubs.LogBroadcaster.SubscribeToLogger(logger);
+            _ = app.Services.GetRequiredService<Hubs.LogBroadcaster>();
 
             app.MapControllers();
             app.MapHub<Hubs.LogHub>("/logHub")

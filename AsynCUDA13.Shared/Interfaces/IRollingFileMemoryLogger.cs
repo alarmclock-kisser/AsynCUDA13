@@ -8,7 +8,7 @@ namespace AsynCUDA13.Shared.Interfaces
     public interface IRollingFileMemoryLogger
     {
         /// <summary>
-        /// Global settings for the StaticLogger.
+        /// Settings for this logger instance.
         /// </summary>
         public RollingFileMemoryLoggerOptions Settings { get; }
 
@@ -118,8 +118,7 @@ namespace AsynCUDA13.Shared.Interfaces
         /// <param name="onShutdown">Optional action to perform on shutdown (e.g. save logs to repository).</param>
         /// <param name="exitCancellationToken">Cancellation token for application shutdown.</param>
         /// <param name="synchronizationContext">UI synchronization context for thread-safe UI updates.</param>
-        /// <param name="setGlobally">If true, applies the settings globally to the singleton instance.</param>
-        public void InitializeLogger(RollingFileMemoryLoggerOptions? options = null, Action? onShutdown = null, CancellationToken? exitCancellationToken = null, SynchronizationContext? synchronizationContext = null, bool setGlobally = false);
+        public void InitializeLogger(RollingFileMemoryLoggerOptions? options = null, Action? onShutdown = null, CancellationToken? exitCancellationToken = null, SynchronizationContext? synchronizationContext = null);
 
         /// <summary>
         /// Logs an exception with an optional pre-text message. The exception's message and stack trace are included in the log entry. If a pre-text message is provided, it is logged before the exception details.
@@ -214,8 +213,7 @@ namespace AsynCUDA13.Shared.Interfaces
         /// </summary>
         /// <param name="onShutdown">The action to perform on shutdown.</param>
         /// <param name="cancellationToken">Cancellation token signalling application shutdown (e.g. app.Lifetime.ApplicationStopping).</param>
-        /// <param name="setGlobally">If true, applies the shutdown action globally to the singleton instance.</param>
-        public void SetOnShutdownAction(Action? onShutdown, CancellationToken cancellationToken = default, bool setGlobally = false);
+        public void SetOnShutdownAction(Action? onShutdown, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sets the UI synchronization context for updating the BindingList from the UI thread. This method should be called from the UI thread during application startup to ensure that log entries are added to the BindingList in a thread-safe manner.

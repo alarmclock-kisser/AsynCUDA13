@@ -1,0 +1,9 @@
+=== Fehlgeschlagene Tests ===
+Datum: 2026-09-01 10:40:13
+Anzahl: 1
+============================================================
+
+Test: Execute_WithUnsupportedScalarType_ReturnsFailureAndLogsArgumentError
+Klasse: AsynCUDA13.Tests.OpenClLauncherIntegrationTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------

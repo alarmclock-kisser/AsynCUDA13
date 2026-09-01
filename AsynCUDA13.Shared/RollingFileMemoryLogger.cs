@@ -22,36 +22,16 @@ namespace AsynCUDA13.Shared
         public RollingFileMemoryLoggerOptions Settings { get; private set; } = new();
 
 
-        public static readonly RollingFileMemoryLogger Instance = new();
-
-        public static bool ApplyInstanceSettingsGlobally { get; private set; } = true;
-
-        public static bool ApplyInstanceOnShutdownGlobally { get; private set; } = true;
-
-
-
-        public RollingFileMemoryLogger(RollingFileMemoryLoggerOptions? settings = null, bool? applyGlobalSettings = null, Action? onShutdown = null, CancellationToken? exitCancellationToken = null, SynchronizationContext? synchronizationContext = null, bool setGlobally = false)
+        public RollingFileMemoryLogger(RollingFileMemoryLoggerOptions? settings = null, Action? onShutdown = null, CancellationToken? exitCancellationToken = null, SynchronizationContext? synchronizationContext = null)
         {
             this.Settings = settings ?? new RollingFileMemoryLoggerOptions();
-
-            if (applyGlobalSettings == true)
-            {
-                if (ApplyInstanceSettingsGlobally)
-                {
-                    this.Settings = Instance.Settings;
-                }
-                if (ApplyInstanceOnShutdownGlobally)
-                {
-                    this.SetOnShutdownAction(Instance.SaveToRepositoryOnShutdown, Instance._logCts is not null ? Instance._logCts.Token : CancellationToken.None, false);
-                }
-            }
 
             this._logChannel = System.Threading.Channels.Channel.CreateBounded<string>(new System.Threading.Channels.BoundedChannelOptions(this.Settings.MaxLogEntries ?? 16384)
             {
                 FullMode = System.Threading.Channels.BoundedChannelFullMode.DropOldest
             });
 
-            this.InitializeLogger(this.Settings, onShutdown, exitCancellationToken, synchronizationContext, setGlobally);
+            this.InitializeLogger(this.Settings, onShutdown, exitCancellationToken, synchronizationContext);
         }
 
 
@@ -134,67 +114,46 @@ namespace AsynCUDA13.Shared
             this.Log($"[Logger] RollingFileMemoryLogger UI context set for project <{projectName}>");
         }
 
-        public void SetOnShutdownAction(Action? onShutdown, CancellationToken cancellationToken = default, bool setGlobally = false)
+        public void SetOnShutdownAction(Action? onShutdown, CancellationToken cancellationToken = default)
         {
             this.SaveToRepositoryOnShutdown = onShutdown;
-            if (setGlobally)
-            {
-                Instance.SetOnShutdownAction(onShutdown, cancellationToken, false);
-            }
 
             if (cancellationToken != default)
             {
                 cancellationToken.Register(() => this.SaveToRepositoryOnShutdown?.Invoke());
-                if (setGlobally)
-                {
-                    cancellationToken.Register(() => Instance.SaveToRepositoryOnShutdown?.Invoke());
-                }
             }
         }
 
 
-        public void InitializeLogger(RollingFileMemoryLoggerOptions? options = null, Action? onShutdown = null, CancellationToken? exitCancellationToken = null, SynchronizationContext? synchronizationContext = null, bool setGlobally = false)
+        public void InitializeLogger(RollingFileMemoryLoggerOptions? options = null, Action? onShutdown = null, CancellationToken? exitCancellationToken = null, SynchronizationContext? synchronizationContext = null)
         {
             options ??= new();
             string projectName = this.GetType().Namespace?.Split('.').FirstOrDefault() ?? "---";
+
+            string originalTimestampFormat = options.LogTimestampFormat;
+            options.LogTimestampFormat = options.LogTimestampFormat.VerifyFormatString(out string? timestampFormatError);
+            if (!string.IsNullOrEmpty(timestampFormatError))
+            {
+                this.LogWarning($"Invalid TimestampFormat '{originalTimestampFormat}'. Reverting to default format 'HH:mm:ss.fff'. Error: {timestampFormatError}");
+            }
 
             options.LogDirectory = Path.GetFullPath(string.IsNullOrEmpty(options.LogDirectory) ? Path.Combine(Assembly.GetAssembly(typeof(RollingFileMemoryLogger))?.Location ?? AppContext.BaseDirectory, "Logs") : options.LogDirectory);
             if (!string.IsNullOrEmpty(options.LogDirectory))
             {
                 this.Settings.LogDirectory = options.LogDirectory;
-                if (setGlobally)
-                {
-                    Instance.Settings.LogDirectory = options.LogDirectory;
-                }
             }
 
             onShutdown ??= () => { this.SaveToRepository(); };
             this.SaveToRepositoryOnShutdown = onShutdown;
-            if (setGlobally)
-            {
-                Instance.SaveToRepositoryOnShutdown = onShutdown;
-                ApplyInstanceOnShutdownGlobally = true;
-                Instance.Log($"[Logger] RollingFileMemoryLogger global shutdown action applied for project <{projectName}>");
-            }
 
             if (exitCancellationToken.HasValue && exitCancellationToken.Value != default)
             {
                 exitCancellationToken.Value.Register(() => this.SaveToRepositoryOnShutdown?.Invoke());
-                if (setGlobally)
-                {
-                    exitCancellationToken.Value.Register(() => Instance.SaveToRepositoryOnShutdown?.Invoke());
-                    ApplyInstanceOnShutdownGlobally = true;
-                    Instance.Log($"[Logger] RollingFileMemoryLogger global shutdown CancellationToken registered for project <{projectName}>");
-                }
             }
 
             if (synchronizationContext != null)
             {
                 this.SetUiContext(synchronizationContext);
-                if (setGlobally)
-                {
-                    Instance.SetUiContext(synchronizationContext);
-                }
             }
 
             try
@@ -225,13 +184,8 @@ namespace AsynCUDA13.Shared
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error deleting old log file '{oldLog.FullName}': {ex.Message}");
+                            this.LogError($"Error deleting old log file '{oldLog.FullName}': {ex.Message}");
                         }
-                    }
-
-                    if (setGlobally)
-                    {
-                        Instance.PruneOldRepositoryLogs(this.Settings.LogDirectory);
                     }
                 }
 
@@ -250,12 +204,6 @@ namespace AsynCUDA13.Shared
             {
                 this.Log($"[Logger] RollingFileMemoryLogger initialized for project <{projectName}>");
                 this.Settings = options;
-                if (setGlobally)
-                {
-                    Instance.Settings = options;
-                    ApplyInstanceSettingsGlobally = true;
-                    Instance.Log($"[Logger] RollingFileMemoryLogger global settings applied for project <{projectName}>");
-                }
             }
         }
 
@@ -268,10 +216,6 @@ namespace AsynCUDA13.Shared
             this.EnsureMaxLogEntriesWithOffloadAndBuffering();
 
             this.LogEntries[timestamp] = logEntry;
-            if (this.Settings.Silent)
-            {
-                return;
-            }
 
             if (string.IsNullOrEmpty(this.Settings.FilterPhrase) || !logEntry.Contains(this.Settings.FilterPhrase, StringComparison.OrdinalIgnoreCase))
             {
@@ -305,6 +249,11 @@ namespace AsynCUDA13.Shared
             }
 
             this.RaiseLogWritten(timestamp, logEntry);
+
+            if (this.Settings.Silent)
+            {
+                return;
+            }
 
             if (this.Settings.EchoToConsole == true || this.ShouldEchoToConsole(logEntry))
             {

@@ -11,7 +11,7 @@ namespace AsynCUDA13.Shared.Api.Payloads
     /// Discovers concrete implementations of the target interface via Reflection
     /// and selects the correct type based on configurable property-name heuristics.
     /// </summary>
-    public class NewtonsoftPolymorphicConverter<TInterface> : JsonConverter<TInterface>
+    public class NewtonsoftPolymorphicConverter<TInterface> : JsonConverter
         where TInterface : class
     {
         private static readonly Dictionary<string, List<Type>> _implementationCache = new();
@@ -48,20 +48,39 @@ namespace AsynCUDA13.Shared.Api.Payloads
             }
         }
 
-        public override TInterface? ReadJson(JsonReader reader, Type objectType, TInterface? existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(TInterface);
+        }
+
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             var token = JToken.Load(reader);
 
             var implementations = GetImplementations();
-            if (implementations.Count <= 1)
+            if (implementations.Count == 0)
             {
-                return serializer.Deserialize<TInterface>(reader);
+                throw new JsonSerializationException($"No concrete implementation of {typeof(TInterface).FullName} was found.");
             }
 
-            bool matchesFirst = this.HasMarker(token) || this.MatchesFallback(token);
+            Type target;
+            if (implementations.Count == 1)
+            {
+                target = implementations[0];
+            }
+            else
+            {
+                bool matchesFirst = this.HasMarker(token) || this.MatchesFallback(token);
+                target = matchesFirst ? implementations[0] : implementations[^1];
+            }
 
-            Type target = matchesFirst ? implementations[0] : implementations[^1];
-            return (TInterface?) serializer.Deserialize(reader, target);
+            var result = Activator.CreateInstance(target)
+                ?? throw new JsonSerializationException($"Could not create an instance of {target.FullName}.");
+
+            using var tokenReader = token.CreateReader();
+            serializer.Populate(tokenReader, result);
+
+            return result;
         }
 
         private bool HasMarker(JToken token)
@@ -105,7 +124,7 @@ namespace AsynCUDA13.Shared.Api.Payloads
             return prop?.Type == JTokenType.String && string.Equals((string?) prop, this._fallbackValue, StringComparison.OrdinalIgnoreCase);
         }
 
-        public override void WriteJson(JsonWriter writer, TInterface? value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             if (value == null)
             {

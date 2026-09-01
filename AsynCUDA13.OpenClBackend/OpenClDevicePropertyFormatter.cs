@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AsynCUDA13.Shared;
+using AsynCUDA13.Shared.Interfaces;
 using OpenTK.Compute.OpenCL;
 
 namespace AsynCUDA13.OpenClBackend
 {
     internal static class OpenClDevicePropertyFormatter
     {
-        public static Dictionary<string, string> GetProperties(int deviceId)
+        public static Dictionary<string, string> GetProperties(int deviceId, IRollingFileMemoryLogger logger)
         {
             var device = OpenClDevice.DiscoverAll().FirstOrDefault(d => d.Index == deviceId);
             if (device == null)
             {
-                StaticLogger.LogWarning($"OpenClDevicePropertyFormatter: Device Index <{deviceId}> not found.");
+                logger.LogWarning($"OpenClDevicePropertyFormatter: Device Index <{deviceId}> not found.");
                 return [];
             }
 

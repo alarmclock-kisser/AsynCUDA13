@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
     <PackageReference Include="MSTest" Version="4.3.2" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
@@ -15,7 +16,11 @@
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <Using Include="Shouldly" />
     <ProjectReference Include="..\AsynCUDA13.Api\AsynCUDA13.Api.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.Client\AsynCUDA13.Client.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.Media\AsynCUDA13.Media.csproj" />
+    <ProjectReference Include="..\AsynCUDA13.OpenClBackend\AsynCUDA13.OpenClBackend.csproj" />
     <ProjectReference Include="..\AsynCUDA13.Runtime\AsynCUDA13.Runtime.csproj" />
     <ProjectReference Include="..\AsynCUDA13.Shared\AsynCUDA13.Shared.csproj" />
   </ItemGroup>

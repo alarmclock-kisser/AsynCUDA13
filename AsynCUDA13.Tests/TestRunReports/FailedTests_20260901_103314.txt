@@ -1,0 +1,9 @@
+=== Fehlgeschlagene Tests ===
+Datum: 2026-09-01 10:33:14
+Anzahl: 1
+============================================================
+
+Test: CompileKernel_WithValidSource_RegistersKernelAndArguments
+Klasse: AsynCUDA13.Tests.OpenClCompilerIntegrationTests
+Fehler: Test failed (outcome: Failed)
+----------------------------------------

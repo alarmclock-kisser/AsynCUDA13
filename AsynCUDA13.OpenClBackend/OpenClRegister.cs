@@ -16,6 +16,7 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     public sealed class OpenClRegister : IRuntimeRegister, IDisposable
     {
+        private readonly IRollingFileMemoryLogger _logger;
         private readonly ConcurrentDictionary<Guid, IRuntimeMem> _allocations = new();
         private bool _disposed;
 
@@ -104,11 +105,12 @@ namespace AsynCUDA13.OpenClBackend
         /// <summary>
         /// Initializes a new instance of the <see cref="OpenClRegister"/> class for the given context, queue and device.
         /// </summary>
-        internal OpenClRegister(CLContext context, CLCommandQueue queue, CLDevice device)
+        internal OpenClRegister(CLContext context, CLCommandQueue queue, CLDevice device, IRollingFileMemoryLogger logger)
         {
             this.Context = context;
             this.Queue = queue;
             this.Device = device;
+            this._logger = logger;
         }
 
 
@@ -125,7 +127,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (length <= 0)
             {
-                StaticLogger.LogError($"AllocateSingle: invalid length {length}.");
+                this._logger.LogError($"AllocateSingle: invalid length {length}.");
                 return null;
             }
 
@@ -135,7 +137,7 @@ namespace AsynCUDA13.OpenClBackend
             CLBuffer buffer = CL.CreateBuffer(this.Context, flags, (nuint) size, IntPtr.Zero, out CLResultCode result);
             if (result != CLResultCode.Success)
             {
-                StaticLogger.LogError($"AllocateSingle: CreateBuffer failed ({result}).");
+                this._logger.LogError($"AllocateSingle: CreateBuffer failed ({result}).");
                 return null;
             }
 
@@ -160,7 +162,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (data == null || data.Length == 0)
             {
-                StaticLogger.LogError("PushData: data is null or empty.");
+                this._logger.LogError("PushData: data is null or empty.");
                 return null;
             }
 
@@ -172,7 +174,7 @@ namespace AsynCUDA13.OpenClBackend
             CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, ((OpenClMem) mem).IndexBuffer, true, 0, data, null, out _);
             if (result != CLResultCode.Success)
             {
-                StaticLogger.LogError($"PushData: EnqueueWriteBuffer failed ({result}).");
+                this._logger.LogError($"PushData: EnqueueWriteBuffer failed ({result}).");
                 this.Free(mem);
                 return null;
             }
@@ -195,7 +197,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (mem == null || mem.Count == 0)
             {
-                StaticLogger.LogError("PullData: allocation is null or empty.");
+                this._logger.LogError("PullData: allocation is null or empty.");
                 return null;
             }
 
@@ -203,7 +205,7 @@ namespace AsynCUDA13.OpenClBackend
             CLResultCode code = CL.EnqueueReadBuffer(this.Queue, ((OpenClMem) mem).IndexBuffer, true, 0, result, null, out _);
             if (code != CLResultCode.Success)
             {
-                StaticLogger.LogError($"PullData: EnqueueReadBuffer failed ({code}).");
+                this._logger.LogError($"PullData: EnqueueReadBuffer failed ({code}).");
                 return null;
             }
 
@@ -242,7 +244,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (this[indexPointer] is not IRuntimeMem mem)
             {
-                StaticLogger.LogError($"PullData: no allocation found for handle {indexPointer}.");
+                this._logger.LogError($"PullData: no allocation found for handle {indexPointer}.");
                 return [];
             }
 
@@ -275,14 +277,14 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (this[indexPointer] is not IRuntimeMem mem)
             {
-                StaticLogger.LogError($"WriteData: no allocation found for handle {indexPointer}.");
+                this._logger.LogError($"WriteData: no allocation found for handle {indexPointer}.");
                 return false;
             }
 
             CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, ((OpenClMem) mem).IndexBuffer, true, 0, data, null, out _);
             if (result != CLResultCode.Success)
             {
-                StaticLogger.LogError($"WriteData: EnqueueWriteBuffer failed ({result}).");
+                this._logger.LogError($"WriteData: EnqueueWriteBuffer failed ({result}).");
                 return false;
             }
 
@@ -303,7 +305,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (lengths == null || lengths.Length == 0)
             {
-                StaticLogger.LogError("AllocateGroup: lengths is null or empty.");
+                this._logger.LogError("AllocateGroup: lengths is null or empty.");
                 return null;
             }
 
@@ -314,7 +316,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (lengths[i] <= 0)
                 {
-                    StaticLogger.LogError($"AllocateGroup: invalid length {lengths[i]} at index {i}.");
+                    this._logger.LogError($"AllocateGroup: invalid length {lengths[i]} at index {i}.");
                     ReleaseBuffers(buffers, i);
                     return null;
                 }
@@ -323,7 +325,7 @@ namespace AsynCUDA13.OpenClBackend
                 buffers[i] = CL.CreateBuffer(this.Context, flags, (nuint) size, IntPtr.Zero, out CLResultCode result);
                 if (result != CLResultCode.Success)
                 {
-                    StaticLogger.LogError($"AllocateGroup: CreateBuffer failed at index {i} ({result}).");
+                    this._logger.LogError($"AllocateGroup: CreateBuffer failed at index {i} ({result}).");
                     ReleaseBuffers(buffers, i);
                     return null;
                 }
@@ -350,14 +352,14 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (data == null)
             {
-                StaticLogger.LogError("PushChunks: data is null.");
+                this._logger.LogError("PushChunks: data is null.");
                 return null;
             }
 
             T[][] chunks = data as T[][] ?? data.ToArray();
             if (chunks.Length == 0)
             {
-                StaticLogger.LogError("PushChunks: data is empty.");
+                this._logger.LogError("PushChunks: data is empty.");
                 return null;
             }
 
@@ -366,7 +368,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (chunks[i] == null || chunks[i].Length == 0)
                 {
-                    StaticLogger.LogError($"PushChunks: chunk {i} is null or empty.");
+                    this._logger.LogError($"PushChunks: chunk {i} is null or empty.");
                     return null;
                 }
 
@@ -383,7 +385,7 @@ namespace AsynCUDA13.OpenClBackend
                 CLResultCode result = CL.EnqueueWriteBuffer(this.Queue, ((OpenClMem) mem).Buffers[i], true, 0, chunks[i], null, out _);
                 if (result != CLResultCode.Success)
                 {
-                    StaticLogger.LogError($"PushChunks: EnqueueWriteBuffer failed at index {i} ({result}).");
+                    this._logger.LogError($"PushChunks: EnqueueWriteBuffer failed at index {i} ({result}).");
                     this.Free(mem);
                     return null;
                 }
@@ -394,7 +396,7 @@ namespace AsynCUDA13.OpenClBackend
 
         public Shared.Interfaces.IRuntimeMem? PushChunks<T>(IEnumerable<IEnumerable<T>> data) where T : unmanaged
         {
-            return this.PushChunks(data);
+            return this.PushChunks(data.Select(chunk => chunk.ToArray()).ToArray());
         }
 
         /// <summary>
@@ -407,7 +409,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (mem == null || mem.Count == 0)
             {
-                StaticLogger.LogError("PullChunks: allocation is null or empty.");
+                this._logger.LogError("PullChunks: allocation is null or empty.");
                 return null;
             }
 
@@ -418,7 +420,7 @@ namespace AsynCUDA13.OpenClBackend
                 CLResultCode code = CL.EnqueueReadBuffer(this.Queue, ((OpenClMem) mem).Buffers[i], true, 0, result, null, out _);
                 if (code != CLResultCode.Success)
                 {
-                    StaticLogger.LogError($"PullChunks: EnqueueReadBuffer failed at index {i} ({code}).");
+                    this._logger.LogError($"PullChunks: EnqueueReadBuffer failed at index {i} ({code}).");
                     return null;
                 }
 
@@ -439,7 +441,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (this[indexPointer] is not IRuntimeMem mem)
             {
-                StaticLogger.LogError($"PullChunks: no allocation found for handle {indexPointer}.");
+                this._logger.LogError($"PullChunks: no allocation found for handle {indexPointer}.");
                 return [];
             }
 

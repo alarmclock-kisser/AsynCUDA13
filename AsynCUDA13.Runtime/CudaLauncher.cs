@@ -21,6 +21,8 @@ namespace AsynCUDA13.Runtime
     /// </summary>
     internal class CudaLauncher : IRuntimeLauncher
     {
+        private readonly IRollingFileMemoryLogger Logger;
+
         // Fields
         /// <summary>The CUDA primary context the kernels are launched on.</summary>
         private readonly PrimaryContext Context;
@@ -57,12 +59,13 @@ namespace AsynCUDA13.Runtime
         /// <param name="register">The memory registry used to resolve device buffers.</param>
         /// <param name="fourier">The Fourier helper instance.</param>
         /// <param name="compiler">The compiler that loads kernels and exposes their argument definitions.</param>
-        internal CudaLauncher(PrimaryContext ctx, CudaRegister register, CudaFourier fourier, CudaCompiler compiler)
+        internal CudaLauncher(PrimaryContext ctx, CudaRegister register, CudaFourier fourier, CudaCompiler compiler, IRollingFileMemoryLogger logger)
         {
             this.Context = ctx;
             this.Register = register;
             this.Fourier = fourier;
             this.Compiler = compiler;
+            this.Logger = logger;
         }
 
 
@@ -93,7 +96,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (string.IsNullOrEmpty(kernelName))
                 {
-                    StaticLogger.Log("Kernel name not provided for loading.");
+                    this.Logger.Log("Kernel name not provided for loading.");
                     return null;
                 }
 
@@ -102,13 +105,13 @@ namespace AsynCUDA13.Runtime
 
             if (this.Kernel == null)
             {
-                StaticLogger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
+                this.Logger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
                 return null;
             }
 
             if (pointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Invalid input pointer (null).");
+                this.Logger.Log("Invalid input pointer (null).");
                 return null;
             }
 
@@ -125,7 +128,7 @@ namespace AsynCUDA13.Runtime
 
             if (arguments.Length != expectedUserArgs.Count)
             {
-                StaticLogger.Log($"Argument count mismatch. Expected {expectedUserArgs.Count}, got {arguments.Length}.");
+                this.Logger.Log($"Argument count mismatch. Expected {expectedUserArgs.Count}, got {arguments.Length}.");
                 return null;
             }
 
@@ -135,7 +138,7 @@ namespace AsynCUDA13.Runtime
                 Type expected = expectedUserArgs[i];
                 if (value == null || !expected.IsAssignableFrom(value.GetType()))
                 {
-                    StaticLogger.Log($"Argument type mismatch at index {i}. Expected {expected.Name}, got {value?.GetType().Name ?? "null"}.");
+                    this.Logger.Log($"Argument type mismatch at index {i}. Expected {expected.Name}, got {value?.GetType().Name ?? "null"}.");
                     return null;
                 }
             }
@@ -165,14 +168,14 @@ namespace AsynCUDA13.Runtime
                 this.Kernel.GridDimensions = new dim3(gridSize, 1, 1);
 
                 this.Kernel.Run(kernelArgs);
-                StaticLogger.Log($"Kernel executed '{this.KernelName ?? "N/A"}'");
+                this.Logger.Log($"Kernel executed '{this.KernelName ?? "N/A"}'");
                 this.Context.Synchronize();
 
                 return pointer;
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}'", ex);
+                this.Logger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}'", ex);
                 return null;
             }
         }
@@ -207,7 +210,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (string.IsNullOrEmpty(kernelName))
                 {
-                    StaticLogger.Log("Kernel name not provided for loading.");
+                    this.Logger.Log("Kernel name not provided for loading.");
                     return null;
                 }
 
@@ -216,13 +219,13 @@ namespace AsynCUDA13.Runtime
 
             if (this.Kernel == null)
             {
-                StaticLogger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
+                this.Logger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
                 return null;
             }
 
             if (pointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Invalid input pointer (null).");
+                this.Logger.Log("Invalid input pointer (null).");
                 return null;
             }
 
@@ -255,7 +258,7 @@ namespace AsynCUDA13.Runtime
 
             if (arguments.Length != expectedUserArgs.Count)
             {
-                StaticLogger.Log($"Argument count mismatch. Expected {expectedUserArgs.Count}, got {arguments.Length}.");
+                this.Logger.Log($"Argument count mismatch. Expected {expectedUserArgs.Count}, got {arguments.Length}.");
                 return null;
             }
 
@@ -265,7 +268,7 @@ namespace AsynCUDA13.Runtime
                 Type expected = expectedUserArgs[i];
                 if (value == null || !expected.IsAssignableFrom(value.GetType()))
                 {
-                    StaticLogger.Log($"Argument type mismatch at index {i}. Expected {expected.Name}, got {value?.GetType().Name ?? "null"}.");
+                    this.Logger.Log($"Argument type mismatch at index {i}. Expected {expected.Name}, got {value?.GetType().Name ?? "null"}.");
                     return null;
                 }
             }
@@ -286,14 +289,14 @@ namespace AsynCUDA13.Runtime
                     long byteLength = (long) width * height * channels * (bitdepth / 8);
                     if (byteLength <= 0)
                     {
-                        StaticLogger.Log("Invalid image dimensions for out-of-place output buffer allocation.");
+                        this.Logger.Log("Invalid image dimensions for out-of-place output buffer allocation.");
                         return null;
                     }
 
                     var output = this.Register.AllocateSingle<Byte>((IntPtr) byteLength);
                     if (output == null)
                     {
-                        StaticLogger.Log("Failed to allocate the out-of-place output image buffer.");
+                        this.Logger.Log("Failed to allocate the out-of-place output image buffer.");
                         return null;
                     }
 
@@ -317,7 +320,7 @@ namespace AsynCUDA13.Runtime
 
                 this.Kernel.Run(kernelArgs);
 
-                StaticLogger.Log($"Kernel executed '{this.KernelName ?? "N/A"}'");
+                this.Logger.Log($"Kernel executed '{this.KernelName ?? "N/A"}'");
 
                 this.Context.Synchronize();
 
@@ -325,7 +328,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}'", ex);
+                this.Logger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}'", ex);
                 return null;
             }
         }
@@ -354,7 +357,7 @@ namespace AsynCUDA13.Runtime
             // If no kernelName provided but Kernel loaded, use that
             if (string.IsNullOrEmpty(kernelName) && this.Kernel == null)
             {
-                await StaticLogger.LogAsync("No kernel name provided and no kernel is currently loaded.");
+                await this.Logger.LogAsync("No kernel name provided and no kernel is currently loaded.");
                 return null;
             }
 
@@ -366,7 +369,7 @@ namespace AsynCUDA13.Runtime
             }
             if (this.Kernel == null)
             {
-                await StaticLogger.LogAsync($"Kernel not loaded '{kernelName ?? "N/A"}'");
+                await this.Logger.LogAsync($"Kernel not loaded '{kernelName ?? "N/A"}'");
                 return null;
             }
 
@@ -378,14 +381,14 @@ namespace AsynCUDA13.Runtime
 
             if (argTypes.Length != argTypesSignature.Length)
             {
-                await StaticLogger.LogAsync($"Kernel argument count does not match signature '{kernelName ?? "N/A"}': expected {argTypesSignature.Length}, got {argTypes.Length}.");
+                await this.Logger.LogAsync($"Kernel argument count does not match signature '{kernelName ?? "N/A"}': expected {argTypesSignature.Length}, got {argTypes.Length}.");
                 return null;
             }
 
             if (!argTypes.SequenceEqual(argTypesSignature))
             {
                 string[] details = argTypes.Select((t, i) => new { Type = t, Index = i }).Where(x => x.Type != argTypesSignature[x.Index]).Select(x => $"<{x.Index}> {x.Type.Name} != {argTypesSignature[x.Index].Name}").ToArray();
-                await StaticLogger.LogAsync($"Kernel arguments do not match signature '{kernelName ?? "N/A"}': {string.Join(", ", details)}");
+                await this.Logger.LogAsync($"Kernel arguments do not match signature '{kernelName ?? "N/A"}': {string.Join(", ", details)}");
                 return null;
             }
 
@@ -400,14 +403,14 @@ namespace AsynCUDA13.Runtime
                     {
                         if (argument is not IntPtr pointer || pointer == IntPtr.Zero || this.Register[pointer] is not CudaMem memory)
                         {
-                            await StaticLogger.LogAsync($"Kernel pointer argument at index {i} is not a registered device buffer.");
+                            await this.Logger.LogAsync($"Kernel pointer argument at index {i} is not a registered device buffer.");
                             return null;
                         }
 
                         long pointerLength = memory.IndexLength;
                         if (pointerLength <= 0 || pointerLength > int.MaxValue)
                         {
-                            await StaticLogger.LogAsync("A registered kernel buffer has an invalid element length.");
+                            await this.Logger.LogAsync("A registered kernel buffer has an invalid element length.");
                             return null;
                         }
 
@@ -456,7 +459,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                await StaticLogger.LogAsync($"Failed to execute kernel '{this.KernelName ?? "N/A"}': {ex.Message}");
+                await this.Logger.LogAsync($"Failed to execute kernel '{this.KernelName ?? "N/A"}': {ex.Message}");
                 return null;
             }
             finally
@@ -468,7 +471,7 @@ namespace AsynCUDA13.Runtime
             }
 
             response.ElapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
-            await StaticLogger.LogAsync($"Kernel executed '{this.KernelName ?? "N/A"}' in {response.ElapsedMs} ms");
+            await this.Logger.LogAsync($"Kernel executed '{this.KernelName ?? "N/A"}' in {response.ElapsedMs} ms");
             return response;
         }
 
@@ -482,7 +485,7 @@ namespace AsynCUDA13.Runtime
             // If no kernelName provided but Kernel loaded, use that
             if (string.IsNullOrEmpty(kernelName) && this.Kernel == null)
             {
-                StaticLogger.Log("No kernel name provided and no kernel is currently loaded.");
+                this.Logger.Log("No kernel name provided and no kernel is currently loaded.");
                 return null;
             }
 
@@ -494,7 +497,7 @@ namespace AsynCUDA13.Runtime
             }
             if (this.Kernel == null)
             {
-                StaticLogger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
+                this.Logger.Log($"Kernel not loaded '{kernelName ?? "N/A"}'");
                 return null;
             }
 
@@ -503,14 +506,14 @@ namespace AsynCUDA13.Runtime
             Type[] argTypesSignature = this.Compiler.GetArguments(null).Values.ToArray();
             if (argTypes.Length != argTypesSignature.Length)
             {
-                StaticLogger.Log($"Kernel argument count does not match signature '{kernelName ?? "N/A"}': expected {argTypesSignature.Length}, got {argTypes.Length}.");
+                this.Logger.Log($"Kernel argument count does not match signature '{kernelName ?? "N/A"}': expected {argTypesSignature.Length}, got {argTypes.Length}.");
                 return null;
             }
 
             if (!argTypes.SequenceEqual(argTypesSignature))
             {
                 string[] details = argTypes.Select((t, i) => new { Type = t, Index = i }).Where(x => x.Type != argTypesSignature[x.Index]).Select(x => $"<{x.Index}> {x.Type.Name} != {argTypesSignature[x.Index].Name}").ToArray();
-                StaticLogger.Log($"Kernel arguments do not match signature '{kernelName ?? "N/A"}': {string.Join(", ", details)}");
+                this.Logger.Log($"Kernel arguments do not match signature '{kernelName ?? "N/A"}': {string.Join(", ", details)}");
                 return null;
             }
 
@@ -525,14 +528,14 @@ namespace AsynCUDA13.Runtime
                     {
                         if (argument is not IntPtr pointer || pointer == IntPtr.Zero || this.Register[pointer] is not CudaMem memory)
                         {
-                            StaticLogger.Log($"Kernel pointer argument at index {i} is not a registered device buffer.");
+                            this.Logger.Log($"Kernel pointer argument at index {i} is not a registered device buffer.");
                             return null;
                         }
 
                         long pointerLength = memory.IndexLength;
                         if (pointerLength <= 0 || pointerLength > int.MaxValue)
                         {
-                            StaticLogger.Log("A registered kernel buffer has an invalid element length.");
+                            this.Logger.Log("A registered kernel buffer has an invalid element length.");
                             return null;
                         }
 
@@ -570,7 +573,7 @@ namespace AsynCUDA13.Runtime
                 response.ResultPointers = this.SetArgumentValues(ref arguments, argTypes)?.Select(np => np.ToString()).ToArray() ?? null;
                 if (response.ResultPointers == null)
                 {
-                    StaticLogger.LogError("SetArgumentValues() returned null which means that at least one arg could not been set or pointer(s) null.");
+                    this.Logger.LogError("SetArgumentValues() returned null which means that at least one arg could not been set or pointer(s) null.");
                     return response;
                 }
 
@@ -581,7 +584,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}': {ex.Message}");
+                this.Logger.Log($"Failed to execute kernel '{this.KernelName ?? "N/A"}': {ex.Message}");
                 return null;
             }
             finally
@@ -593,7 +596,7 @@ namespace AsynCUDA13.Runtime
             }
 
             response.ElapsedMs = (int) (DateTime.Now - startTime).TotalMilliseconds;
-            StaticLogger.Log($"Kernel executed '{this.KernelName ?? "N/A"}' in {response.ElapsedMs} ms");
+            this.Logger.Log($"Kernel executed '{this.KernelName ?? "N/A"}' in {response.ElapsedMs} ms");
             return response;
         }
 

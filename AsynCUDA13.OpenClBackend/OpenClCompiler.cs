@@ -17,6 +17,8 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     internal sealed partial class OpenClCompiler : IRuntimeCompiler, IDisposable
     {
+        private readonly IRollingFileMemoryLogger _logger;
+
         /// <summary>
         /// Matches the name of every <c>__kernel void</c> entry point in a kernel source file.
         /// </summary>
@@ -191,7 +193,7 @@ namespace AsynCUDA13.OpenClBackend
                     string kernelFile = Path.Combine(this.KernelDirectory, kernel + ".cl");
                     if (!File.Exists(kernelFile))
                     {
-                        StaticLogger.LogWarning($"OpenClCompiler: kernel source file '{kernelFile}' not found.");
+                        this._logger.LogWarning($"OpenClCompiler: kernel source file '{kernelFile}' not found.");
                         return false;
                     }
 
@@ -202,7 +204,7 @@ namespace AsynCUDA13.OpenClBackend
                     }
                     catch (Exception ex)
                     {
-                        StaticLogger.Log($"OpenClCompiler: failed to load kernel '{kernel}' from '{kernelFile}'.", ex);
+                        this._logger.Log($"OpenClCompiler: failed to load kernel '{kernel}' from '{kernelFile}'.", ex);
                         return false;
                     }
                 }
@@ -218,13 +220,13 @@ namespace AsynCUDA13.OpenClBackend
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"OpenClCompiler: failed to load kernel '{kernel}' from '{filePath}'.", ex);
+                    this._logger.Log($"OpenClCompiler: failed to load kernel '{kernel}' from '{filePath}'.", ex);
                     return false;
                 }
             }
             else
             {
-                StaticLogger.LogWarning($"OpenClCompiler: kernel source file '{filePath}' not found.");
+                this._logger.LogWarning($"OpenClCompiler: kernel source file '{filePath}' not found.");
                 return false;
             }
         }
@@ -237,11 +239,12 @@ namespace AsynCUDA13.OpenClBackend
         /// <param name="context">The OpenCL context to compile for.</param>
         /// <param name="device">The device to build the programs for.</param>
         /// <param name="kernelDirectory">An optional explicit kernel directory; auto-resolved when omitted.</param>
-        internal OpenClCompiler(CLContext context, CLDevice device, OpenClRegister register, bool compileAll = true)
+        internal OpenClCompiler(CLContext context, CLDevice device, OpenClRegister register, IRollingFileMemoryLogger logger, bool compileAll = true)
         {
             this.Context = context;
             this.Device = device;
             this.Register = register;
+            this._logger = logger;
 
             if (compileAll)
             {
@@ -307,7 +310,7 @@ namespace AsynCUDA13.OpenClBackend
             string[] files = this.GetClFiles();
             if (files.Length == 0)
             {
-                StaticLogger.LogWarning($"OpenClCompiler: no .cl files found in '{this.KernelDirectory}'.");
+                this._logger.LogWarning($"OpenClCompiler: no .cl files found in '{this.KernelDirectory}'.");
                 return;
             }
 
@@ -319,11 +322,11 @@ namespace AsynCUDA13.OpenClBackend
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"OpenClCompiler: failed to compile '{Path.GetFileName(file)}'", ex);
+                    this._logger.Log($"OpenClCompiler: failed to compile '{Path.GetFileName(file)}'", ex);
                 }
             }
 
-            StaticLogger.LogSuccess($"OpenClCompiler: compiled {this.ClKernels.Count} kernel(s) from {files.Length} file(s).");
+            this._logger.LogSuccess($"OpenClCompiler: compiled {this.ClKernels.Count} kernel(s) from {files.Length} file(s).");
         }
 
         /// <summary>
@@ -335,14 +338,14 @@ namespace AsynCUDA13.OpenClBackend
             string source = ReadAllTextWithRetry(file);
             if (string.IsNullOrWhiteSpace(source))
             {
-                StaticLogger.LogWarning($"OpenClCompiler: '{Path.GetFileName(file)}' is empty, skipped.");
+                this._logger.LogWarning($"OpenClCompiler: '{Path.GetFileName(file)}' is empty, skipped.");
                 return;
             }
 
             CLProgram program = CL.CreateProgramWithSource(this.Context, source, out CLResultCode createCode);
             if (createCode != CLResultCode.Success)
             {
-                StaticLogger.LogError($"OpenClCompiler: CreateProgramWithSource failed for '{Path.GetFileName(file)}' ({createCode}).");
+                this._logger.LogError($"OpenClCompiler: CreateProgramWithSource failed for '{Path.GetFileName(file)}' ({createCode}).");
                 return;
             }
 
@@ -354,7 +357,7 @@ namespace AsynCUDA13.OpenClBackend
             if (buildCode != CLResultCode.Success)
             {
                 string log = this.GetBuildLog(program);
-                StaticLogger.LogError($"OpenClCompiler: build failed for '{Path.GetFileName(file)}' ({buildCode}). Build log: {log}");
+                this._logger.LogError($"OpenClCompiler: build failed for '{Path.GetFileName(file)}' ({buildCode}). Build log: {log}");
                 CL.ReleaseProgram(program);
                 return;
             }
@@ -366,7 +369,7 @@ namespace AsynCUDA13.OpenClBackend
                 CLKernel kernel = CL.CreateKernel(program, kernelName, out CLResultCode kernelCode);
                 if (kernelCode != CLResultCode.Success)
                 {
-                    StaticLogger.LogError($"OpenClCompiler: CreateKernel '{kernelName}' failed ({kernelCode}).");
+                    this._logger.LogError($"OpenClCompiler: CreateKernel '{kernelName}' failed ({kernelCode}).");
                     continue;
                 }
 
@@ -426,7 +429,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain '__kernel' or 'kernel'");
+                    this._logger.Log("Kernel string does not contain '__kernel' or 'kernel'");
                 }
                 return null;
             }
@@ -436,7 +439,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain 'void '");
+                    this._logger.Log("Kernel string does not contain 'void '");
                 }
                 return null;
             }
@@ -446,7 +449,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain 'int ', 'long ' or 'size_t ' (for array length/indexing)");
+                    this._logger.Log("Kernel string does not contain 'int ', 'long ' or 'size_t ' (for array length/indexing)");
                 }
                 return null;
             }
@@ -458,7 +461,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string has unbalanced brackets { }");
+                    this._logger.Log("Kernel string has unbalanced brackets { }");
                 }
                 return null;
             }
@@ -469,7 +472,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string has unbalanced brackets ( )");
+                    this._logger.Log("Kernel string has unbalanced brackets ( )");
                 }
                 return null;
             }
@@ -480,7 +483,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string has unbalanced brackets [ ]");
+                    this._logger.Log("Kernel string has unbalanced brackets [ ]");
                 }
                 return null;
             }
@@ -490,7 +493,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string should contain 'get_global_id' or 'get_local_id'");
+                    this._logger.Log("Kernel string should contain 'get_global_id' or 'get_local_id'");
                 }
             }
 
@@ -502,7 +505,7 @@ namespace AsynCUDA13.OpenClBackend
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Could not parse kernel function name");
+                    this._logger.Log("Could not parse kernel function name");
                 }
                 return null;
             }
@@ -515,7 +518,7 @@ namespace AsynCUDA13.OpenClBackend
             // Log name
             if (!silent)
             {
-                StaticLogger.Log($"Successfully precompiled OpenCL kernel string '{name}'");
+                this._logger.Log($"Successfully precompiled OpenCL kernel string '{name}'");
             }
 
             return name;
@@ -608,7 +611,7 @@ namespace AsynCUDA13.OpenClBackend
                 return k;
             }
 
-            StaticLogger.LogError($"OpenClCompiler: kernel '{kernel}' not found.");
+            this._logger.LogError($"OpenClCompiler: kernel '{kernel}' not found.");
             return null;
         }
 
@@ -649,7 +652,7 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            StaticLogger.LogError($"OpenClCompiler: program for kernel '{name}' not found.");
+            this._logger.LogError($"OpenClCompiler: program for kernel '{name}' not found.");
             return null;
         }
 
@@ -679,18 +682,22 @@ namespace AsynCUDA13.OpenClBackend
             kernel ??= this.KernelName;
             if (string.IsNullOrWhiteSpace(kernel) && this.Kernel == null)
             {
-                StaticLogger.LogWarning("OpenClCompiler: GetArguments called with null or empty kernel name, returning empty arguments dictionary.");
+                this._logger.LogWarning("OpenClCompiler: GetArguments called with null or empty kernel name, returning empty arguments dictionary.");
                 return arguments;
             }
 
-            CLKernel? clK = this.GetClKernel(kernel) ?? this.Kernel;
+            string? sourceCode = kernel.Contains("__kernel", StringComparison.Ordinal)
+                ? kernel
+                : this.GetKernelCode(kernel);
+            string? sourceKernelName = sourceCode != null ? ExtractKernelNames(sourceCode).FirstOrDefault() : null;
+            CLKernel? clK = this.GetClKernel(kernel) ?? this.GetClKernel(sourceKernelName ?? string.Empty) ?? this.Kernel;
             if (!clK.HasValue)
             {
                 return arguments;
             }
 
-            string[] argNames = ExtractArgumentNames(this.GetKernelCode(kernel));
-            string[] argTypes = ExtractArgumentTypes(this.GetKernelCode(kernel));
+            string[] argNames = ExtractArgumentNames(sourceCode);
+            string[] argTypes = ExtractArgumentTypes(sourceCode);
 
             int argCount = CL.GetKernelInfo(clK.Value, KernelInfo.NumberOfArguments, out byte[] count) == CLResultCode.Success ? BitConverter.ToInt32(count, 0) : 0;
             for (int i = 0; i < argCount; i++)
@@ -807,7 +814,7 @@ namespace AsynCUDA13.OpenClBackend
             string? kernel = this.KernelName;
             if (kernel == null)
             {
-                StaticLogger.LogError("OpenClCompiler: MergeArgumentsImage called with no kernel loaded, returning empty arguments array.");
+                this._logger.LogError("OpenClCompiler: MergeArgumentsImage called with no kernel loaded, returning empty arguments array.");
                 return [];
             }
 
@@ -861,7 +868,7 @@ namespace AsynCUDA13.OpenClBackend
                     // Set the kernel arg to that input pointer and increment the pointer count
                     kernelArgs[i] = inPtr;
                     pointersCount++;
-                    StaticLogger.Log($"In-pointer: <{inPtr}>");
+                    this._logger.Log($"In-pointer: <{inPtr}>");
                 }
                 // Handle second pointer argument (output)
                 else if (pointersCount == 1 && type.IsPointer)
@@ -886,29 +893,29 @@ namespace AsynCUDA13.OpenClBackend
                     // Set the kernel arg to that output pointer and increment the pointer count
                     kernelArgs[i] = outPtr;
                     pointersCount++;
-                    StaticLogger.Log($"Out-pointer: <{outPtr}>");
+                    this._logger.Log($"Out-pointer: <{outPtr}>");
                 }
                 else if (name.Contains("width") && type == typeof(int))
                 {
                     kernelArgs[i] = width;
 
-                    StaticLogger.Log($"Width: {name}=[{width}]");
+                    this._logger.Log($"Width: {name}=[{width}]");
                 }
                 else if (name.Contains("height") && type == typeof(int))
                 {
                     kernelArgs[i] = height;
 
-                    StaticLogger.Log($"Height: {name}=[{height}]");
+                    this._logger.Log($"Height: {name}=[{height}]");
                 }
                 else if (name.Contains("chan") && type == typeof(int))
                 {
                     kernelArgs[i] = channels;
-                    StaticLogger.Log($"Channels: {name}=[{channels}]");
+                    this._logger.Log($"Channels: {name}=[{channels}]");
                 }
                 else if (name.Contains("bit") && type == typeof(int))
                 {
                     kernelArgs[i] = bitdepth;
-                    StaticLogger.Log($"Bits: {name}=[{bitdepth}]");
+                    this._logger.Log($"Bits: {name}=[{bitdepth}]");
                 }
                 else
                 {
@@ -943,12 +950,9 @@ namespace AsynCUDA13.OpenClBackend
 
                 if (userArgIndex != additionalArgs.Length)
                 {
-                    StaticLogger.Log($"{additionalArgs.Length - userArgIndex} unused user arguments for kernel '{kernel}': {string.Join(", ", additionalArgs.Skip(userArgIndex))}");
+                    this._logger.Log($"{additionalArgs.Length - userArgIndex} unused user arguments for kernel '{kernel}': {string.Join(", ", additionalArgs.Skip(userArgIndex))}");
                 }
             }
-
-            // DEBUG LOG
-            //StaticLogger.Log("Kernel arguments: " + string.Join(", ", kernelArgs.Select(x => x.ToString())), "", 1);
 
             // Return kernel arguments
             return kernelArgs;
@@ -982,27 +986,27 @@ namespace AsynCUDA13.OpenClBackend
                 {
                     kernelArgs[i] = inputPointer;
                     pointersCount++;
-                    StaticLogger.Log($"In-pointer: <{inputPointer}>");
+                    this._logger.Log($"In-pointer: <{inputPointer}>");
                 }
                 else if (pointersCount == 1 && type == typeof(IntPtr))
                 {
                     kernelArgs[i] = outputPointer;
                     pointersCount++;
-                    StaticLogger.Log($"Out-pointer: <{outputPointer}>");
+                    this._logger.Log($"Out-pointer: <{outputPointer}>");
                 }
                 else if (name.Contains("sample") && type == typeof(int))
                 {
-                    StaticLogger.Log($"SampleRate: [{sampleRate}]");
+                    this._logger.Log($"SampleRate: [{sampleRate}]");
                 }
                 else if (name.Contains("chan") && type == typeof(int))
                 {
                     kernelArgs[i] = channels;
-                    StaticLogger.Log($"Channels: [{channels}]");
+                    this._logger.Log($"Channels: [{channels}]");
                 }
                 else if (name.Contains("bit") && type == typeof(int))
                 {
                     kernelArgs[i] = bitdepth;
-                    StaticLogger.Log($"Bits: [{bitdepth}]");
+                    this._logger.Log($"Bits: [{bitdepth}]");
                 }
                 else
                 {
@@ -1016,12 +1020,12 @@ namespace AsynCUDA13.OpenClBackend
                                 if (namedArguments.TryGetValue(name, out object? value))
                                 {
                                     kernelArgs[i] = value;
-                                    StaticLogger.Log($"Named argument: {name} = {value}");
+                                    this._logger.Log($"Named argument: {name} = {value}");
                                     break;
                                 }
                                 else
                                 {
-                                    StaticLogger.Log($"Named argument '{name}' not found in provided arguments");
+                                    this._logger.Log($"Named argument '{name}' not found in provided arguments");
                                     kernelArgs[i] = 0;
                                 }
                             }

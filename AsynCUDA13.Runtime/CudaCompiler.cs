@@ -25,6 +25,8 @@ namespace AsynCUDA13.Runtime
     /// </summary>
     internal class CudaCompiler : IRuntimeCompiler, IDisposable
     {
+        private readonly IRollingFileMemoryLogger Logger;
+
         // Fields
         /// <summary>The CUDA primary context used for compilation and kernel loading.</summary>
         private readonly PrimaryContext Context;
@@ -209,10 +211,11 @@ namespace AsynCUDA13.Runtime
         /// Initializes a new instance of the <see cref="CudaCompiler"/> class.
         /// </summary>
         /// <param name="context">The CUDA primary context to use for compilation and kernel loading.</param>
-        public CudaCompiler(PrimaryContext context, CudaRegister register)
+        public CudaCompiler(PrimaryContext context, CudaRegister register, IRollingFileMemoryLogger logger)
         {
             this.Context = context;
             this.Register = register;
+            this.Logger = logger;
 
             KernelPath = EnsureKernelDirectory();
             try
@@ -224,7 +227,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log("Failed to create kernel directory, using temporary path", ex);
+                this.Logger.Log("Failed to create kernel directory, using temporary path", ex);
                 KernelPath = Path.Combine(Path.GetTempPath(), "AsynCUDA13", "Kernels");
                 Directory.CreateDirectory(KernelPath);
                 Directory.CreateDirectory(Path.Combine(KernelPath, "CU"));
@@ -393,7 +396,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log("Failed to unload kernel", ex);
+                    this.Logger.Log("Failed to unload kernel", ex);
                 }
                 this.Kernel = null;
             }
@@ -413,7 +416,7 @@ namespace AsynCUDA13.Runtime
         {
             if (this.Context == null)
             {
-                StaticLogger.Log("No CUDA context available");
+                this.Logger.Log("No CUDA context available");
                 return null;
             }
 
@@ -448,7 +451,7 @@ namespace AsynCUDA13.Runtime
             Stopwatch sw = Stopwatch.StartNew();
             if (!silent)
             {
-                StaticLogger.Log("Started loading kernel " + displayName);
+                this.Logger.Log("Started loading kernel " + displayName);
             }
             string logpath = Path.Combine(KernelPath, "Logs", displayName + "_load.log");
 
@@ -458,7 +461,7 @@ namespace AsynCUDA13.Runtime
                 {
                     if (!silent)
                     {
-                        StaticLogger.Log("Failed to compile updated kernel " + displayName);
+                        this.Logger.Log("Failed to compile updated kernel " + displayName);
                     }
 
                     return null;
@@ -482,14 +485,14 @@ namespace AsynCUDA13.Runtime
                 long deltaMicros = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
                 if (!silent)
                 {
-                    StaticLogger.Log($"Kernel loaded within {deltaMicros.ToString("N0")} 탎");
+                    this.Logger.Log($"Kernel loaded within {deltaMicros.ToString("N0")} 탎");
                 }
             }
             catch (Exception ex)
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Failed to load kernel " + displayName, ex);
+                    this.Logger.Log("Failed to load kernel " + displayName, ex);
                     string logMsg = ex.Message + Environment.NewLine + Environment.NewLine + ex.InnerException?.Message ?? "";
                     File.WriteAllText(logpath, logMsg);
                 }
@@ -515,7 +518,7 @@ namespace AsynCUDA13.Runtime
                 string? ptx = this.CompileKernel(sourceFile);
                 if (string.IsNullOrEmpty(ptx) && logErrors)
                 {
-                    StaticLogger.Log($"Compilation failed: {Path.GetFileNameWithoutExtension(sourceFile)}");
+                    this.Logger.Log($"Compilation failed: {Path.GetFileNameWithoutExtension(sourceFile)}");
                 }
             }
         }
@@ -533,7 +536,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("No CUDA initialized");
+                    this.Logger.Log("No CUDA initialized");
                 }
                 return "";
             }
@@ -554,7 +557,7 @@ namespace AsynCUDA13.Runtime
             Stopwatch sw = Stopwatch.StartNew();
             if (!silent)
             {
-                StaticLogger.Log("Compiling kernel '" + kernelName + "'");
+                this.Logger.Log("Compiling kernel '" + kernelName + "'");
             }
 
             // Load kernel file
@@ -576,7 +579,7 @@ namespace AsynCUDA13.Runtime
                     int count = log.Split(["\n\n"], StringSplitOptions.None).Length - 1;
                     if (!silent)
                     {
-                        StaticLogger.Log($"Compiled with {count} warnings");
+                        this.Logger.Log($"Compiled with {count} warnings");
                     }
                     File.WriteAllText(logpath, log);
                 }
@@ -585,7 +588,7 @@ namespace AsynCUDA13.Runtime
                 long deltaMicros = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
                 if (!silent)
                 {
-                    StaticLogger.Log($"Compiled within {deltaMicros} 탎. Repo\\" + Path.GetRelativePath(KernelPath, logpath));
+                    this.Logger.Log($"Compiled within {deltaMicros} 탎. Repo\\" + Path.GetRelativePath(KernelPath, logpath));
                 }
 
                 // Get ptx code
@@ -597,7 +600,7 @@ namespace AsynCUDA13.Runtime
 
                 if (!silent)
                 {
-                    StaticLogger.Log($"PTX exported: {ptxPath}");
+                    this.Logger.Log($"PTX exported: {ptxPath}");
                 }
 
                 return ptxPath;
@@ -605,7 +608,7 @@ namespace AsynCUDA13.Runtime
             catch (Exception ex)
             {
                 File.WriteAllText(logpath, log);
-                StaticLogger.Log(ex);
+                this.Logger.Log(ex);
 
                 return log;
             }
@@ -624,7 +627,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("No CUDA initialized");
+                    this.Logger.Log("No CUDA initialized");
                 }
                 return null;
             }
@@ -639,7 +642,7 @@ namespace AsynCUDA13.Runtime
             Stopwatch sw = Stopwatch.StartNew();
             if (!silent)
             {
-                StaticLogger.Log("Compiling kernel '" + kernelName + "'");
+                this.Logger.Log("Compiling kernel '" + kernelName + "'");
             }
 
             // Load kernel file
@@ -665,7 +668,7 @@ namespace AsynCUDA13.Runtime
                     int count = log.Split(["\n\n"], StringSplitOptions.None).Length - 1;
                     if (!silent)
                     {
-                        StaticLogger.Log($"Compiled with {count} warnings");
+                        this.Logger.Log($"Compiled with {count} warnings");
                     }
                     File.WriteAllText(logpath, rtc.GetLogAsString());
                 }
@@ -675,7 +678,7 @@ namespace AsynCUDA13.Runtime
                 long deltaMicros = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
                 if (!silent)
                 {
-                    StaticLogger.Log($"Compiled within {deltaMicros} 탎. Repo\\" + Path.GetRelativePath(KernelPath, logpath));
+                    this.Logger.Log($"Compiled within {deltaMicros} 탎. Repo\\" + Path.GetRelativePath(KernelPath, logpath));
                 }
 
 
@@ -688,7 +691,7 @@ namespace AsynCUDA13.Runtime
 
                 if (!silent)
                 {
-                    StaticLogger.Log($"PTX exported: {ptxPath}");
+                    this.Logger.Log($"PTX exported: {ptxPath}");
                 }
 
                 return ptxPath;
@@ -696,7 +699,7 @@ namespace AsynCUDA13.Runtime
             catch (Exception ex)
             {
                 File.WriteAllText(logpath, log);
-                StaticLogger.Log(ex);
+                this.Logger.Log(ex);
 
                 return log;
             }
@@ -716,7 +719,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain 'extern \"C\"'");
+                    this.Logger.Log("Kernel string does not contain 'extern \"C\"'");
                 }
                 return null;
             }
@@ -726,7 +729,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain '__global__'");
+                    this.Logger.Log("Kernel string does not contain '__global__'");
                 }
                 return null;
             }
@@ -736,7 +739,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain 'void '");
+                    this.Logger.Log("Kernel string does not contain 'void '");
                 }
                 return null;
             }
@@ -746,7 +749,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string does not contain 'int ' (for array length)");
+                    this.Logger.Log("Kernel string does not contain 'int ' (for array length)");
                 }
                 return null;
             }
@@ -758,7 +761,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string has unbalanced brackets { } ");
+                    this.Logger.Log("Kernel string has unbalanced brackets { } ");
                 }
                 return null;
             }
@@ -768,7 +771,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string has unbalanced brackets ( ) ");
+                    this.Logger.Log("Kernel string has unbalanced brackets ( ) ");
                 }
                 return null;
             }
@@ -778,7 +781,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string has unbalanced brackets [ ] ");
+                    this.Logger.Log("Kernel string has unbalanced brackets [ ] ");
                 }
                 return null;
             }
@@ -788,7 +791,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log("Kernel string should contain 'blockIdx.x', 'blockDim.x' and 'threadIdx.x'");
+                    this.Logger.Log("Kernel string should contain 'blockIdx.x', 'blockDim.x' and 'threadIdx.x'");
                 }
             }
 
@@ -803,7 +806,7 @@ namespace AsynCUDA13.Runtime
             // Log name
             if (!silent)
             {
-                StaticLogger.Log($"Succesfully precompiled kernel string '{name}'");
+                this.Logger.Log($"Succesfully precompiled kernel string '{name}'");
             }
 
             return name;
@@ -954,7 +957,7 @@ namespace AsynCUDA13.Runtime
             {
                 if (!silent)
                 {
-                    StaticLogger.Log($"Kernel code is empty '{this.KernelName ?? "N/A"}'");
+                    this.Logger.Log($"Kernel code is empty '{this.KernelName ?? "N/A"}'");
                 }
                 return 0;
             }
@@ -1030,27 +1033,27 @@ namespace AsynCUDA13.Runtime
                 {
                     kernelArgs[i] = inputPointer;
                     pointersCount++;
-                    StaticLogger.Log($"In-pointer: <{inputPointer}>");
+                    this.Logger.Log($"In-pointer: <{inputPointer}>");
                 }
                 else if (pointersCount == 1 && type == typeof(IntPtr))
                 {
                     kernelArgs[i] = outputPointer;
                     pointersCount++;
-                    StaticLogger.Log($"Out-pointer: <{outputPointer}>");
+                    this.Logger.Log($"Out-pointer: <{outputPointer}>");
                 }
                 else if (name.Contains("sample") && type == typeof(int))
                 {
-                    StaticLogger.Log($"SampleRate: [{sampleRate}]");
+                    this.Logger.Log($"SampleRate: [{sampleRate}]");
                 }
                 else if (name.Contains("chan") && type == typeof(int))
                 {
                     kernelArgs[i] = channels;
-                    StaticLogger.Log($"Channels: [{channels}]");
+                    this.Logger.Log($"Channels: [{channels}]");
                 }
                 else if (name.Contains("bit") && type == typeof(int))
                 {
                     kernelArgs[i] = bitdepth;
-                    StaticLogger.Log($"Bits: [{bitdepth}]");
+                    this.Logger.Log($"Bits: [{bitdepth}]");
                 }
                 else
                 {
@@ -1064,12 +1067,12 @@ namespace AsynCUDA13.Runtime
                                 if (namedArguments.TryGetValue(name, out object? value))
                                 {
                                     kernelArgs[i] = value;
-                                    StaticLogger.Log($"Named argument: {name} = {value}");
+                                    this.Logger.Log($"Named argument: {name} = {value}");
                                     break;
                                 }
                                 else
                                 {
-                                    StaticLogger.Log($"Named argument '{name}' not found in provided arguments");
+                                    this.Logger.Log($"Named argument '{name}' not found in provided arguments");
                                     kernelArgs[i] = 0;
                                 }
                             }
@@ -1108,7 +1111,7 @@ namespace AsynCUDA13.Runtime
             string? kernel = this.KernelName;
             if (kernel == null)
             {
-                StaticLogger.LogError("OpenClCompiler: MergeArgumentsImage called with no kernel loaded, returning empty arguments array.");
+                this.Logger.LogError("OpenClCompiler: MergeArgumentsImage called with no kernel loaded, returning empty arguments array.");
                 return [];
             }
 
@@ -1162,7 +1165,7 @@ namespace AsynCUDA13.Runtime
                     // Set the kernel arg to that input pointer and increment the pointer count
                     kernelArgs[i] = inPtr;
                     pointersCount++;
-                    StaticLogger.Log($"In-pointer: <{inPtr}>");
+                    this.Logger.Log($"In-pointer: <{inPtr}>");
                 }
                 // Handle second pointer argument (output)
                 else if (pointersCount == 1 && type.IsPointer)
@@ -1187,29 +1190,29 @@ namespace AsynCUDA13.Runtime
                     // Set the kernel arg to that output pointer and increment the pointer count
                     kernelArgs[i] = outPtr;
                     pointersCount++;
-                    StaticLogger.Log($"Out-pointer: <{outPtr}>");
+                    this.Logger.Log($"Out-pointer: <{outPtr}>");
                 }
                 else if (name.Contains("width") && type == typeof(int))
                 {
                     kernelArgs[i] = width;
 
-                    StaticLogger.Log($"Width: {name}=[{width}]");
+                    this.Logger.Log($"Width: {name}=[{width}]");
                 }
                 else if (name.Contains("height") && type == typeof(int))
                 {
                     kernelArgs[i] = height;
 
-                    StaticLogger.Log($"Height: {name}=[{height}]");
+                    this.Logger.Log($"Height: {name}=[{height}]");
                 }
                 else if (name.Contains("chan") && type == typeof(int))
                 {
                     kernelArgs[i] = channels;
-                    StaticLogger.Log($"Channels: {name}=[{channels}]");
+                    this.Logger.Log($"Channels: {name}=[{channels}]");
                 }
                 else if (name.Contains("bit") && type == typeof(int))
                 {
                     kernelArgs[i] = bitdepth;
-                    StaticLogger.Log($"Bits: {name}=[{bitdepth}]");
+                    this.Logger.Log($"Bits: {name}=[{bitdepth}]");
                 }
                 else
                 {
@@ -1244,12 +1247,9 @@ namespace AsynCUDA13.Runtime
 
                 if (userArgIndex != additionalArgs.Length)
                 {
-                    StaticLogger.Log($"{additionalArgs.Length - userArgIndex} unused user arguments for kernel '{kernel}': {string.Join(", ", additionalArgs.Skip(userArgIndex))}");
+                    this.Logger.Log($"{additionalArgs.Length - userArgIndex} unused user arguments for kernel '{kernel}': {string.Join(", ", additionalArgs.Skip(userArgIndex))}");
                 }
             }
-
-            // DEBUG LOG
-            //StaticLogger.Log("Kernel arguments: " + string.Join(", ", kernelArgs.Select(x => x.ToString())), "", 1);
 
             // Return kernel arguments
             return kernelArgs;

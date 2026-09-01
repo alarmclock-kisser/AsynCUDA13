@@ -292,8 +292,8 @@ namespace AsynCUDA13.Api.Controllers
                 }
                 else
                 {
-                    data = (request.Payload is SimdPayload1D p1 ? await DataParser.ParseAsync(p1, request.ElementType) ?? [] :
-                           request.Payload is SimdPayload2D p2 ? await DataParser.ParseAsync(p2, request.ElementType) ?? [] :
+                    data = (request.Payload is SimdPayload1D p1 ? await DataParser.ParseAsync(p1, request.ElementType, this.logger) ?? [] :
+                           request.Payload is SimdPayload2D p2 ? await DataParser.ParseAsync(p2, request.ElementType, this.logger) ?? [] :
                            throw new ArgumentException("Unsupported payload type."));
                 }
 

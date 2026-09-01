@@ -14,8 +14,13 @@ namespace AsynCUDA13.Shared.Api.Requests
             get;
             set
             {
-                this.KernelInfo = value;
-                this._argumentValues = new string[value?.ArgumentsCount ?? 0];
+                int argumentsCount = value?.ArgumentsCount ?? 0;
+                this._argumentValues = new string[argumentsCount];
+                for (int i = 0; i < argumentsCount; i++)
+                {
+                    this._argumentValues[i] = value?.GetDefaultValue(i) ?? string.Empty;
+                }
+
                 field = value;
             }
         }
@@ -24,7 +29,21 @@ namespace AsynCUDA13.Shared.Api.Requests
 
         public string[] ArgumentValues
         {
-            get => this._argumentValues.Length == (this.KernelInfo?.ArgumentsCount ?? 0) ? this._argumentValues : new string[this.KernelInfo?.ArgumentsCount ?? 0];
+            get
+            {
+                int argumentsCount = this.KernelInfo?.ArgumentsCount ?? 0;
+                if (this._argumentValues.Length != argumentsCount)
+                {
+                    Array.Resize(ref this._argumentValues, argumentsCount);
+                }
+
+                for (int i = 0; i < argumentsCount; i++)
+                {
+                    this._argumentValues[i] ??= this.KernelInfo?.GetDefaultValue(i) ?? string.Empty;
+                }
+
+                return this._argumentValues;
+            }
             set
             {
                 if (value.Length == (this.KernelInfo?.ArgumentsCount ?? 0))
@@ -90,34 +109,39 @@ namespace AsynCUDA13.Shared.Api.Requests
 
         public string[] PointerArguments => this._argumentValues.Where((a, i) => this.KernelInfo?.ArgumentTypes[i].Contains('*') == true).ToArray();
 
-        public void UpdateImageArgs(ImageInfo imageInfo)
+        public void UpdateImageArgs(ImageInfo imageInfo) => this.UpdateMediaArgs(imageInfo);
+
+        public void UpdateAudioArgs(AudioInfo audioInfo) => this.UpdateMediaArgs(audioInfo);
+
+        private void UpdateMediaArgs<T>(T mediaInfo) where T : notnull
         {
-            if (this.KernelInfo == null || this.KernelInfo.ArgumentsCount == null)
+            RuntimeKernelInfo? kernelInfo = this.KernelInfo;
+            if (kernelInfo?.ArgumentsCount == null)
             {
                 return;
             }
 
             // 1. Felder filtern, die in den erlaubten Typen sind
-            var argFields = imageInfo.GetType().GetFields()
+            var argFields = mediaInfo.GetType().GetFields()
                 .Where(f => DataSerializer.ArgumentFieldTypes.Contains(f.FieldType))
                 .ToList();
-            var argProperties = imageInfo.GetType().GetProperties()
+            var argProperties = mediaInfo.GetType().GetProperties()
                 .Where(p => DataSerializer.ArgumentFieldTypes.Contains(p.PropertyType))
                 .ToList();
 
             // 2. Namen in ein HashSet für schnellen Zugriff (ohne "Pointer")
             var args = new HashSet<string>(
-                argFields.Select(f => f.Name).Concat(argProperties.Select(p => p.Name)).Where(n => !n.Equals("Pointer")),
+                argFields.Select(f => f.Name).Concat(argProperties.Select(p => p.Name)).Where(n => !string.Equals(n, "Pointer", StringComparison.OrdinalIgnoreCase)),
                 StringComparer.OrdinalIgnoreCase
             );
 
             // 3. Über die Kernel-Argumente iterieren
-            for (int i = 0; i < this.KernelInfo.ArgumentsCount; i++)
+            for (int i = 0; i < kernelInfo.ArgumentsCount.Value; i++)
             {
-                string argName = this.KernelInfo.ArgumentNames[i];
+                string argName = kernelInfo.ArgumentNames[i];
 
                 // Prüfen: Ist der Name im DTO vorhanden UND ist der aktuelle Wert der Default-Wert?
-                if (args.Contains(argName) && this.ArgumentValues[i].Equals(this.KernelInfo.GetDefaultValue(i)))
+                if (args.Contains(argName) && string.Equals(this.ArgumentValues[i], kernelInfo.GetDefaultValue(i), StringComparison.Ordinal))
                 {
                     // Das Feld finden, das exakt diesen Namen hat
                     var field = argFields.FirstOrDefault(f => string.Equals(f.Name, argName, StringComparison.OrdinalIgnoreCase));
@@ -125,60 +149,13 @@ namespace AsynCUDA13.Shared.Api.Requests
 
                     if (field != null)
                     {
-                        var value = field.GetValue(imageInfo)?.ToString();
-                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
+                        var value = field.GetValue(mediaInfo)?.ToString();
+                        this.ArgumentValues[i] = value ?? kernelInfo.GetDefaultValue(i) ?? string.Empty;
                     }
                     else if (property != null)
                     {
-                        var value = property.GetValue(imageInfo)?.ToString();
-                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
-                    }
-                }
-            }
-        }
-
-        public void UpdateAudioArgs(AudioInfo audioInfo)
-        {
-            if (this.KernelInfo == null || this.KernelInfo.ArgumentsCount == null)
-            {
-                return;
-            }
-
-            // 1. Felder filtern, die in den erlaubten Typen sind
-            var argFields = audioInfo.GetType().GetFields()
-                .Where(f => DataSerializer.ArgumentFieldTypes.Contains(f.FieldType))
-                .ToList();
-            var argProperties = audioInfo.GetType().GetProperties()
-                .Where(p => DataSerializer.ArgumentFieldTypes.Contains(p.PropertyType))
-                .ToList();
-
-            // 2. Namen in ein HashSet für schnellen Zugriff (ohne "Pointer")
-            var args = new HashSet<string>(
-                argFields.Select(f => f.Name).Concat(argProperties.Select(p => p.Name)).Where(n => !n.Equals("Pointer")),
-                StringComparer.OrdinalIgnoreCase
-            );
-
-            // 3. Über die Kernel-Argumente iterieren
-            for (int i = 0; i < this.KernelInfo.ArgumentsCount; i++)
-            {
-                string argName = this.KernelInfo.ArgumentNames[i];
-
-                // Prüfen: Ist der Name im DTO vorhanden UND ist der aktuelle Wert der Default-Wert?
-                if (args.Contains(argName) && this.ArgumentValues[i].Equals(this.KernelInfo.GetDefaultValue(i)))
-                {
-                    // Das Feld finden, das exakt diesen Namen hat
-                    var field = argFields.FirstOrDefault(f => string.Equals(f.Name, argName, StringComparison.OrdinalIgnoreCase));
-                    var property = argProperties.FirstOrDefault(p => string.Equals(p.Name, argName, StringComparison.OrdinalIgnoreCase));
-
-                    if (field != null)
-                    {
-                        var value = field.GetValue(audioInfo)?.ToString();
-                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
-                    }
-                    else if (property != null)
-                    {
-                        var value = property.GetValue(audioInfo)?.ToString();
-                        this.ArgumentValues[i] = value ?? this.KernelInfo.GetDefaultValue(i);
+                        var value = property.GetValue(mediaInfo)?.ToString();
+                        this.ArgumentValues[i] = value ?? kernelInfo.GetDefaultValue(i) ?? string.Empty;
                     }
                 }
             }

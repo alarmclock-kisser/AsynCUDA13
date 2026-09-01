@@ -15,8 +15,10 @@ namespace AsynCUDA13.Media
 {
     public class AudioObj : IDisposable, IMediaObj
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        private readonly IRollingFileMemoryLogger logger;
+
+        public Guid Id { get; } = Guid.NewGuid();
+        public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
         public string FilePath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -34,12 +36,13 @@ namespace AsynCUDA13.Media
         public float Overlap { get; set; } = 0.5f;
         public long Pointer { get; set; } = IntPtr.Zero;
 
-        public AudioObj()
+        public AudioObj(IRollingFileMemoryLogger logger)
         {
-
+            this.logger = logger;
         }
 
-        public AudioObj(string filePath)
+        public AudioObj(IRollingFileMemoryLogger logger, string filePath)
+            : this(logger)
         {
             if (File.Exists(filePath))
             {
@@ -51,7 +54,8 @@ namespace AsynCUDA13.Media
             }
         }
 
-        public AudioObj(float[] data, int sampleRate, int channels, int bitDepth, string name = "")
+        public AudioObj(IRollingFileMemoryLogger logger, float[] data, int sampleRate, int channels, int bitDepth, string name = "")
+            : this(logger)
         {
             this.Data = data;
             this.SampleRate = sampleRate;
@@ -110,8 +114,8 @@ namespace AsynCUDA13.Media
             catch (Exception ex)
             {
                 this.FilePath = string.Empty;
-                StaticLogger.Log($"Failed to load audio file: ");
-                StaticLogger.Log(ex);
+                this.logger.Log($"Failed to load audio file: ");
+                this.logger.Log(ex, preText: "Failed to load audio file: ");
                 return false;
             }
 
@@ -130,7 +134,7 @@ namespace AsynCUDA13.Media
         {
             if (data == null || data.Length == 0)
             {
-                StaticLogger.Log("Cannot load audio from an empty byte array.");
+                this.logger.Log("Cannot load audio from an empty byte array.");
                 return false;
             }
 
@@ -151,7 +155,7 @@ namespace AsynCUDA13.Media
             }
             catch (Exception ex)
             {
-                StaticLogger.Log("Failed to load audio from bytes", ex);
+                this.logger.Log("Failed to load audio from bytes", ex);
                 return false;
             }
             finally
@@ -216,7 +220,7 @@ namespace AsynCUDA13.Media
             }
             catch (Exception ex)
             {
-                StaticLogger.Log("Failed to encode audio to WAV bytes", ex);
+                this.logger.Log("Failed to encode audio to WAV bytes", ex);
                 return [];
             }
         }
@@ -281,8 +285,8 @@ namespace AsynCUDA13.Media
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"Failed to resample audio:");
-                StaticLogger.Log(ex);
+                this.logger.Log($"Failed to resample audio:");
+                this.logger.Log(ex, preText: "Failed to resample audio:");
                 return false;
             }
         }
@@ -315,7 +319,7 @@ namespace AsynCUDA13.Media
                     {
                         // Use the exact other than set channels, if it's not mono or stereo
                         targetChannels = this.Channels == 1 ? 2 : 1;
-                        await StaticLogger.LogAsync($"Invalid bitdepth detected ({targetChannels}). Using {targetChannels} since audio has {this.Channels} channels.");
+                        await this.logger.LogAsync($"Invalid bitdepth detected ({targetChannels}). Using {targetChannels} since audio has {this.Channels} channels.");
                     }
 
                     ISampleProvider rechanneledProvider;
@@ -330,7 +334,7 @@ namespace AsynCUDA13.Media
                     else
                     {
                         // This should never happen due to the check above, but just in case
-                        StaticLogger.Log($"Unexpected target channel count: {targetChannels}. No rechanneling applied.");
+                        this.logger.Log($"Unexpected target channel count: {targetChannels}. No rechanneling applied.");
                         return false;
                     }
 
@@ -361,8 +365,8 @@ namespace AsynCUDA13.Media
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"Failed to rechannel audio:");
-                StaticLogger.Log(ex);
+                this.logger.Log($"Failed to rechannel audio:");
+                this.logger.Log(ex, preText: "Failed to rechannel audio:");
                 return false;
             }
         }
@@ -499,7 +503,7 @@ namespace AsynCUDA13.Media
             outputDirectory ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "SharpAI_AudioExports");
             if (string.IsNullOrEmpty(outputDirectory))
             {
-                StaticLogger.Log("Export directory is not set.");
+                this.logger.Log("Export directory is not set.");
                 return null;
             }
 
@@ -508,19 +512,19 @@ namespace AsynCUDA13.Media
                 try
                 {
                     Directory.CreateDirectory(outputDirectory);
-                    StaticLogger.Log($"Audio output directory '{outputDirectory}' created.");
+                    this.logger.Log($"Audio output directory '{outputDirectory}' created.");
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"Failed to create export directory: {outputDirectory}");
-                    StaticLogger.Log(ex);
+                    this.logger.Log($"Failed to create export directory: {outputDirectory}");
+                    this.logger.Log(ex, preText: $"Failed to create export directory: {outputDirectory}");
                     return null;
                 }
             }
 
             if (this.Data.LongLength <= 0 || this.SampleRate <= 0 || this.Channels <= 0)
             {
-                StaticLogger.Log("Audio data is empty or invalid. Cannot export.");
+                this.logger.Log("Audio data is empty or invalid. Cannot export.");
                 return null;
             }
 
@@ -564,13 +568,13 @@ namespace AsynCUDA13.Media
                     writer.WriteSamples(this.Data, 0, this.Data.Length);
                 }
 
-                StaticLogger.Log($"Audio exported successfully: {outputPath}");
+                this.logger.Log($"Audio exported successfully: {outputPath}");
                 outFile = outputPath;
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"Failed to export audio to WAV: {outputPath}");
-                StaticLogger.Log(ex);
+                this.logger.Log($"Failed to export audio to WAV: {outputPath}");
+                this.logger.Log(ex, preText: $"Failed to export audio to WAV: {outputPath}");
                 outFile = null;
             }
 
@@ -589,7 +593,7 @@ namespace AsynCUDA13.Media
                 bool success = await this.ResampleAsync(sampleRate.Value, bitDepth);
                 if (!success)
                 {
-                    await StaticLogger.LogAsync($"Failed to resample audio for Base64 serialization. Aborting.");
+                    await this.logger.LogAsync($"Failed to resample audio for Base64 serialization. Aborting.");
                     return null;
                 }
             }
@@ -599,7 +603,7 @@ namespace AsynCUDA13.Media
                 bool success = await this.RechannelAsync(channels.Value);
                 if (!success)
                 {
-                    await StaticLogger.LogAsync("Failed to rechannel audio for Base64 serialization. Aborting.");
+                    await this.logger.LogAsync("Failed to rechannel audio for Base64 serialization. Aborting.");
                     return null;
                 }
             }
@@ -625,8 +629,8 @@ namespace AsynCUDA13.Media
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"Failed to serialize audio as Base64:");
-                    StaticLogger.Log(ex);
+                    this.logger.Log($"Failed to serialize audio as Base64:");
+                    this.logger.Log(ex, preText: "Fehler beim Serialisieren der Audiodaten als Base64:");
                     return null;
                 }
             });

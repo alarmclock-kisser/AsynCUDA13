@@ -17,6 +17,8 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     internal sealed class OpenClLauncher : IRuntimeLauncher
     {
+        private readonly IRollingFileMemoryLogger _logger;
+
         /// <summary>
         /// The OpenCL register that tracks memory buffers and their associated metadata.
         /// </summary>
@@ -37,11 +39,12 @@ namespace AsynCUDA13.OpenClBackend
         /// </summary>
         /// <param name="compiler">The compiler that holds the kernels to launch.</param>
         /// <param name="queue">The command queue to enqueue work on.</param>
-        internal OpenClLauncher(OpenClRegister register, OpenClCompiler compiler, CLCommandQueue queue)
+        internal OpenClLauncher(OpenClRegister register, OpenClCompiler compiler, CLCommandQueue queue, IRollingFileMemoryLogger logger)
         {
             this._register = register;
             this._compiler = compiler;
             this._queue = queue;
+            this._logger = logger;
         }
 
         /// <summary>
@@ -102,7 +105,7 @@ namespace AsynCUDA13.OpenClBackend
             CLKernel? kernel = this._compiler.GetClKernel(kernelName);
             if (kernel == null)
             {
-                StaticLogger.LogError($"Execute '{kernelName}': kernel not found.");
+                this._logger.LogError($"Execute '{kernelName}': kernel not found.");
                 return response;
             }
 
@@ -115,7 +118,7 @@ namespace AsynCUDA13.OpenClBackend
 
                 if (globalWorkSize <= 0)
                 {
-                    StaticLogger.LogError($"Execute '{kernelName}': invalid global work size {globalWorkSize} (localWorkSize={localWorkSize}).");
+                    this._logger.LogError($"Execute '{kernelName}': invalid global work size {globalWorkSize} (localWorkSize={localWorkSize}).");
                     return response;
                 }
             }
@@ -123,7 +126,7 @@ namespace AsynCUDA13.OpenClBackend
             var allocated = this.SetArguments(kernel.Value, kernelName, arguments, argDefinition.Values.ToArray());
             if (allocated == null)
             {
-                StaticLogger.Log("Error setting arguments, aborting.");
+                this._logger.Log("Error setting arguments, aborting.");
                 return response;
             }
 
@@ -133,20 +136,20 @@ namespace AsynCUDA13.OpenClBackend
             CLResultCode code = CL.EnqueueNDRangeKernel(this._queue, kernel.Value, 1, null, global, local, 0, null, out _);
             if (code != CLResultCode.Success)
             {
-                StaticLogger.LogError($"Execute '{kernelName}': EnqueueNDRangeKernel failed ({code}).");
+                this._logger.LogError($"Execute '{kernelName}': EnqueueNDRangeKernel failed ({code}).");
                 return response;
             }
 
             CLResultCode finish = CL.Finish(this._queue);
             if (finish != CLResultCode.Success)
             {
-                StaticLogger.LogError($"Execute '{kernelName}': Finish failed ({finish}).");
+                this._logger.LogError($"Execute '{kernelName}': Finish failed ({finish}).");
                 return response;
             }
 
             response.ResultPointers = allocated.Select(p => p.ToString()).ToArray();
             response.Success = true;
-            StaticLogger.LogSuccess($"Execute '{kernelName}': executed successfully.");
+            this._logger.LogSuccess($"Execute '{kernelName}': executed successfully.");
             return response;
         }
 
@@ -163,7 +166,7 @@ namespace AsynCUDA13.OpenClBackend
             var response = await Task.Run(() => this.Execute(kernelName, 0, 0, arguments));
             if (response == null)
             {
-                await StaticLogger.LogAsync($"ExecuteAsync '{kernelName}': execution failed.");
+                await this._logger.LogAsync($"ExecuteAsync '{kernelName}': execution failed.");
                 return null;
             }
             response.ElapsedMs = (int) (DateTime.Now - started).TotalMilliseconds;
@@ -295,13 +298,13 @@ namespace AsynCUDA13.OpenClBackend
                         code = CL.SetKernelArg(kernel, i, in value);
                         break;
                     default:
-                        StaticLogger.LogError($"Execute '{kernelName}': unsupported argument type '{arg?.GetType().Name ?? "null"}' at index {i}.");
+                        this._logger.LogError($"Execute '{kernelName}': unsupported argument type '{arg?.GetType().Name ?? "null"}' at index {i}.");
                         return null;
                 }
 
                 if (code != CLResultCode.Success)
                 {
-                    StaticLogger.LogError($"Execute '{kernelName}': SetKernelArg failed at index {i} ({code}).");
+                    this._logger.LogError($"Execute '{kernelName}': SetKernelArg failed at index {i} ({code}).");
                     return null;
                 }
             }
@@ -367,7 +370,7 @@ namespace AsynCUDA13.OpenClBackend
             }
             catch (Exception ex)
             {
-                StaticLogger.LogError($"GetWorkSizes: failed to determine work sizes ({ex.Message}).");
+                this._logger.LogError($"GetWorkSizes: failed to determine work sizes ({ex.Message}).");
             }
 
             return (globalWorkSize, localWorkSize);

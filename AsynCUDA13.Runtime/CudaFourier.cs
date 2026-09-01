@@ -21,6 +21,8 @@ namespace AsynCUDA13.Runtime
     /// </summary>
     internal class CudaFourier : IRuntimeFourier, IDisposable
     {
+        private readonly IRollingFileMemoryLogger Logger;
+
         // Fields
         /// <summary>The CUDA primary context used for transform execution and synchronization.</summary>
         private readonly PrimaryContext CTX;
@@ -34,10 +36,11 @@ namespace AsynCUDA13.Runtime
         /// </summary>
         /// <param name="ctx">The CUDA primary context.</param>
         /// <param name="register">The <see cref="CudaRegister"/> to use for memory management.</param>
-        internal CudaFourier(PrimaryContext ctx, CudaRegister register)
+        internal CudaFourier(PrimaryContext ctx, CudaRegister register, IRollingFileMemoryLogger logger)
         {
             this.CTX = ctx;
             this.Register = register;
+            this.Logger = logger;
         }
 
         /// <summary>
@@ -64,14 +67,14 @@ namespace AsynCUDA13.Runtime
             var mem = this.Register[indexPointer];
             if (mem == null || mem.IndexPointer == IntPtr.Zero || mem.IndexLength == IntPtr.Zero)
             {
-                StaticLogger.Log("Memory not found or invalid pointer.");
+                this.Logger.Log("Memory not found or invalid pointer.");
                 return IntPtr.Zero;
             }
 
             // Check input memory type
             if (mem.ElementType != typeof(float))
             {
-                StaticLogger.Log("Input memory type is not float.");
+                this.Logger.Log("Input memory type is not float.");
                 return indexPointer;
             }
 
@@ -79,7 +82,7 @@ namespace AsynCUDA13.Runtime
             var outputMem = this.Register.AllocateGroup<float2>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Could not allocate output memory.");
+                this.Logger.Log("Could not allocate output memory.");
                 return indexPointer;
             }
 
@@ -124,7 +127,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error during FFT execution.");
+                this.Logger.Log(ex, preText: "Error during FFT execution.");
                 this.Register.FreeMemory(outputMem);
                 return indexPointer;
             }
@@ -132,7 +135,7 @@ namespace AsynCUDA13.Runtime
             // Check output memory
             if (outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("FFT execution failed, result pointer is null.");
+                this.Logger.Log("FFT execution failed, result pointer is null.");
                 this.Register.FreeMemory(outputMem);
                 return indexPointer;
             }
@@ -167,14 +170,14 @@ namespace AsynCUDA13.Runtime
             var mem = this.Register[indexPointer];
             if (mem == null || mem.IndexPointer == IntPtr.Zero || mem.IndexLength == IntPtr.Zero)
             {
-                StaticLogger.Log("Memory not found or invalid pointer.");
+                this.Logger.Log("Memory not found or invalid pointer.");
                 return IntPtr.Zero;
             }
 
             // Check input memory type
             if (mem.ElementType != typeof(float2))
             {
-                StaticLogger.Log("Input memory type is not float2.");
+                this.Logger.Log("Input memory type is not float2.");
                 return indexPointer;
             }
 
@@ -182,7 +185,7 @@ namespace AsynCUDA13.Runtime
             var outputMem = this.Register.AllocateGroup<float>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Could not allocate output memory.");
+                this.Logger.Log("Could not allocate output memory.");
                 return indexPointer;
             }
 
@@ -227,7 +230,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error during IFFT execution.");
+                this.Logger.Log(ex, preText: "Error during IFFT execution.");
                 this.Register.FreeMemory(outputMem);
                 return indexPointer;
             }
@@ -235,7 +238,7 @@ namespace AsynCUDA13.Runtime
             // Check output memory
             if (outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("FFT execution failed, result pointer is null.");
+                this.Logger.Log("FFT execution failed, result pointer is null.");
                 this.Register.FreeMemory(outputMem);
                 return indexPointer;
             }
@@ -310,14 +313,14 @@ namespace AsynCUDA13.Runtime
             var mem = this.Register[pointer];
             if (mem == null || mem.IndexPointer == IntPtr.Zero || mem.IndexLength == IntPtr.Zero)
             {
-                StaticLogger.Log("Memory not found or invalid pointer.");
+                this.Logger.Log("Memory not found or invalid pointer.");
                 return IntPtr.Zero;
             }
 
             var outputMem = await this.Register.AllocateGroupAsync<float2>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Could not allocate output memory.");
+                this.Logger.Log("Could not allocate output memory.");
                 return pointer;
             }
 
@@ -349,14 +352,14 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error during FFT execution.");
+                this.Logger.Log(ex, preText: "Error during FFT execution.");
                 this.Register.FreeMemory(outputMem);
                 return pointer;
             }
 
             if (outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("FFT execution failed, result pointer is null.");
+                this.Logger.Log("FFT execution failed, result pointer is null.");
                 this.Register.FreeMemory(outputMem);
                 return pointer;
             }
@@ -385,14 +388,14 @@ namespace AsynCUDA13.Runtime
             var mem = this.Register[pointer];
             if (mem == null || mem.IndexPointer == IntPtr.Zero || mem.IndexLength == IntPtr.Zero)
             {
-                StaticLogger.Log("Memory not found or invalid pointer.");
+                this.Logger.Log("Memory not found or invalid pointer.");
                 return IntPtr.Zero;
             }
 
             var outputMem = await this.Register.AllocateGroupAsync<float>(mem.PointerLengths.Select(l => (nint) l).ToArray());
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Could not allocate output memory.");
+                this.Logger.Log("Could not allocate output memory.");
                 return pointer;
             }
 
@@ -423,14 +426,14 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error during IFFT execution.");
+                this.Logger.Log(ex, preText: "Error during IFFT execution.");
                 this.Register.FreeMemory(outputMem);
                 return pointer;
             }
 
             if (outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("IFFT execution failed, result pointer is null.");
+                this.Logger.Log("IFFT execution failed, result pointer is null.");
                 this.Register.FreeMemory(outputMem);
                 return pointer;
             }
@@ -473,7 +476,7 @@ namespace AsynCUDA13.Runtime
             var mem = this.Register[indexPointer];
             if (mem == null || mem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Memory not found or invalid pointer.");
+                this.Logger.Log("Memory not found or invalid pointer.");
                 return IntPtr.Zero;
             }
 
@@ -482,7 +485,7 @@ namespace AsynCUDA13.Runtime
             var outputMem = await this.Register.AllocateGroupAsync<float2>(lengths);
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Could not allocate output memory.");
+                this.Logger.Log("Could not allocate output memory.");
                 return indexPointer;
             }
 
@@ -511,7 +514,7 @@ namespace AsynCUDA13.Runtime
 
                 if (outputMem.IndexPointer == IntPtr.Zero)
                 {
-                    StaticLogger.Log("FFT-many execution failed, result pointer is null.");
+                    this.Logger.Log("FFT-many execution failed, result pointer is null.");
                     this.Register.FreeMemory(outputMem);
                     return indexPointer;
                 }
@@ -527,7 +530,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error during FFT-many execution.");
+                this.Logger.Log(ex, preText: "Error during FFT-many execution.");
                 return indexPointer;
             }
 
@@ -550,7 +553,7 @@ namespace AsynCUDA13.Runtime
             var mem = this.Register[indexPointer];
             if (mem == null || mem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Memory not found or invalid pointer.");
+                this.Logger.Log("Memory not found or invalid pointer.");
                 return IntPtr.Zero;
             }
 
@@ -559,7 +562,7 @@ namespace AsynCUDA13.Runtime
             var outputMem = await this.Register.AllocateGroupAsync<float>(lengths);
             if (outputMem == null || outputMem.IndexPointer == IntPtr.Zero)
             {
-                StaticLogger.Log("Could not allocate output memory.");
+                this.Logger.Log("Could not allocate output memory.");
                 return indexPointer;
             }
 
@@ -588,7 +591,7 @@ namespace AsynCUDA13.Runtime
 
                 if (outputMem.IndexPointer == IntPtr.Zero)
                 {
-                    StaticLogger.Log("IFFT-many execution failed, result pointer is null.");
+                    this.Logger.Log("IFFT-many execution failed, result pointer is null.");
                     this.Register.FreeMemory(outputMem);
                     return indexPointer;
                 }
@@ -604,7 +607,7 @@ namespace AsynCUDA13.Runtime
             }
             catch (Exception ex)
             {
-                StaticLogger.Log(ex, "Error during IFFT-many execution.");
+                this.Logger.Log(ex, preText: "Error during IFFT-many execution.");
                 return indexPointer;
             }
 

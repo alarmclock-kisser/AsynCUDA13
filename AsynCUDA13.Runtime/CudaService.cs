@@ -22,6 +22,8 @@ namespace AsynCUDA13.Runtime
     /// </summary>
     public class CudaService : ICudaService, IDisposable
     {
+        private readonly IRollingFileMemoryLogger Logger;
+
         public string RuntimeType => "CUDA";
         // Static CUDA properties
         /// <summary>Gets the number of CUDA-capable devices available on the system.</summary>
@@ -152,15 +154,17 @@ namespace AsynCUDA13.Runtime
         /// <summary>
         /// Initializes a new instance of the <see cref="CudaService"/> class in an offline state.
         /// </summary>
-        public CudaService()
+        public CudaService(IRollingFileMemoryLogger logger)
         {
+            this.Logger = logger;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CudaService"/> class, optionally initializing a device immediately.
         /// </summary>
         /// <param name="preferredDeviceIndex">The device id to initialize; when negative, the service starts offline.</param>
-        public CudaService(int preferredDeviceIndex)
+        public CudaService(IRollingFileMemoryLogger logger, int preferredDeviceIndex)
+            : this(logger)
         {
             if (preferredDeviceIndex >= 0)
             {
@@ -172,7 +176,8 @@ namespace AsynCUDA13.Runtime
         /// Initializes a new instance of the <see cref="CudaService"/> class and initializes the device matching the given name.
         /// </summary>
         /// <param name="preferredDeviceName">The name (or id string) of the device to initialize.</param>
-        public CudaService(string preferredDeviceName)
+        public CudaService(IRollingFileMemoryLogger logger, string preferredDeviceName)
+            : this(logger)
         {
             if (!string.IsNullOrWhiteSpace(preferredDeviceName))
             {
@@ -213,16 +218,16 @@ namespace AsynCUDA13.Runtime
             // make every free throw 'Cannot access a disposed object: ManagedCuda.PrimaryContext' and leak VRAM.
             this._launcher?.Dispose();
             this._launcher = null;
-            StaticLogger.Log("CudaService: Disposed Launcher");
+            this.Logger.Log("CudaService: Disposed Launcher");
             this._compiler?.Dispose();
             this._compiler = null;
-            StaticLogger.Log("CudaService: Disposed Compiler");
+            this.Logger.Log("CudaService: Disposed Compiler");
             this._fourier?.Dispose();
             this._fourier = null;
-            StaticLogger.Log("CudaService: Disposed Fourier");
+            this.Logger.Log("CudaService: Disposed Fourier");
             this._register?.Dispose();
             this._register = null;
-            StaticLogger.Log("CudaService: Disposed Register");
+            this.Logger.Log("CudaService: Disposed Register");
 
             // Now that all owned components have released their device resources, dispose the context last.
             if (this._context != null)
@@ -230,7 +235,7 @@ namespace AsynCUDA13.Runtime
                 this._context.Dispose();
                 this._context = null;
 
-                StaticLogger.Log("CudaService: Disposed CUDA context");
+                this.Logger.Log("CudaService: Disposed CUDA context");
             }
 
             this.SelectedDeviceId = -1;
@@ -250,19 +255,19 @@ namespace AsynCUDA13.Runtime
             {
                 if (deviceId >= DeviceCount)
                 {
-                    StaticLogger.Log($"CudaService: Invalid device ID {deviceId} for initialization");
+                    this.Logger.Log($"CudaService: Invalid device ID {deviceId} for initialization");
                     return false;
                 }
 
                 if (DeviceCount <= 0)
                 {
-                    StaticLogger.Log("CudaService: No CUDA devices available for initialization");
+                    this.Logger.Log("CudaService: No CUDA devices available for initialization");
                     return false;
                 }
 
                 this.Dispose();
                 this.SelectedDeviceId = -1;
-                StaticLogger.Log("CudaService: Disposed <offline>");
+                this.Logger.Log("CudaService: Disposed <offline>");
                 return false;
             }
 
@@ -270,22 +275,22 @@ namespace AsynCUDA13.Runtime
             {
                 if (this._context != null)
                 {
-                    StaticLogger.Log($"CudaService: Re-initializing from device ID {this.SelectedDeviceId} to device ID {deviceId}");
+                    this.Logger.Log($"CudaService: Re-initializing from device ID {this.SelectedDeviceId} to device ID {deviceId}");
                     this.Dispose();
                 }
 
                 this._context = new PrimaryContext(deviceId);
                 this.SelectedDeviceId = deviceId;
                 // Initialize other objects
-                this._register = new CudaRegister(this._context);
-                this._fourier = new CudaFourier(this._context, this._register);
-                this._compiler = new CudaCompiler(this._context, this._register);
-                this._launcher = new CudaLauncher(this._context, this._register, this._fourier, this._compiler);
-                StaticLogger.Log($"CudaService: Initialized on device ID {deviceId} ({this.SelectedCudaDeviceProperties?.DeviceName})");
+                this._register = new CudaRegister(this._context, this.Logger);
+                this._fourier = new CudaFourier(this._context, this._register, this.Logger);
+                this._compiler = new CudaCompiler(this._context, this._register, this.Logger);
+                this._launcher = new CudaLauncher(this._context, this._register, this._fourier, this._compiler, this.Logger);
+                this.Logger.Log($"CudaService: Initialized on device ID {deviceId} ({this.SelectedCudaDeviceProperties?.DeviceName})");
             }
             catch (Exception ex)
             {
-                StaticLogger.Log($"CudaService: Failed to initialize on device ID {deviceId}", ex);
+                this.Logger.Log($"CudaService: Failed to initialize on device ID {deviceId}", ex);
                 this.Dispose();
                 return false;
             }
@@ -306,7 +311,7 @@ namespace AsynCUDA13.Runtime
             // Try parse name as float int id
             if (int.TryParse(name, out index))
             {
-                StaticLogger.Log("Name string was id");
+                this.Logger.Log("Name string was id");
                 return this.Initialize(index);
             }
 
@@ -320,7 +325,7 @@ namespace AsynCUDA13.Runtime
                 }
                 else
                 {
-                    StaticLogger.Log($"CudaService: No device found with exact name '{name}'");
+                    this.Logger.Log($"CudaService: No device found with exact name '{name}'");
                     return false;
                 }
             }
@@ -335,7 +340,7 @@ namespace AsynCUDA13.Runtime
                 }
                 else
                 {
-                    StaticLogger.Log($"CudaService: No device found containing name '{name}'");
+                    this.Logger.Log($"CudaService: No device found containing name '{name}'");
                     return false;
                 }
             }
@@ -356,7 +361,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot push data - service is offline");
+                this.Logger.Log("CudaService: Cannot push data - service is offline");
                 return null;
             }
 
@@ -374,7 +379,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return this._register.PullData<T>(indexPointer, keepBuffer);
@@ -391,7 +396,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
 
@@ -408,7 +413,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot allocate memory - service is offline");
+                this.Logger.Log("CudaService: Cannot allocate memory - service is offline");
                 return null;
             }
             return this._register.AllocateSingle<T>(elementCount);
@@ -423,7 +428,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null)
             {
-                StaticLogger.Log("CudaService: Cannot set current context - service is offline");
+                this.Logger.Log("CudaService: Cannot set current context - service is offline");
                 return;
             }
 
@@ -443,7 +448,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null)
             {
-                StaticLogger.Log("CudaService: Cannot synchronize - service is offline");
+                this.Logger.Log("CudaService: Cannot synchronize - service is offline");
                 return false;
             }
 
@@ -463,7 +468,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot push data - service is offline");
+                this.Logger.Log("CudaService: Cannot push data - service is offline");
                 return null;
             }
 
@@ -481,7 +486,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return this._register.PullChunks<T>(indexPointer, keepBuffer);
@@ -498,7 +503,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return this._register.PullChunks<T>(mem.IndexPointer, keepBuffer);
@@ -514,7 +519,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot allocate memory - service is offline");
+                this.Logger.Log("CudaService: Cannot allocate memory - service is offline");
                 return null;
             }
             return this._register.AllocateGroup<T>(lengths);
@@ -532,7 +537,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot push data - service is offline");
+                this.Logger.Log("CudaService: Cannot push data - service is offline");
                 return null;
             }
 
@@ -550,7 +555,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return await this._register.PullDataAsync<T>(indexPointer, keepBuffer);
@@ -567,7 +572,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return await this._register.PullDataAsync<T>(cudaMem.IndexPointer, keepBuffer);
@@ -583,7 +588,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot allocate memory - service is offline");
+                this.Logger.Log("CudaService: Cannot allocate memory - service is offline");
                 return null;
             }
             return await this._register.AllocateSingleAsync<T>(elementCount);
@@ -601,7 +606,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot push data - service is offline");
+                this.Logger.Log("CudaService: Cannot push data - service is offline");
                 return null;
             }
             return await this._register.PushChunksAsync(data);
@@ -618,7 +623,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return await this._register.PullChunksAsync<T>(indexPointer, keepBuffer);
@@ -635,7 +640,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot pull data - service is offline");
+                this.Logger.Log("CudaService: Cannot pull data - service is offline");
                 return null;
             }
             return await this._register.PullChunksAsync<T>(mem.IndexPointer, keepBuffer);
@@ -651,7 +656,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot allocate memory - service is offline");
+                this.Logger.Log("CudaService: Cannot allocate memory - service is offline");
                 return null;
             }
             return await this._register.AllocateGroupAsync<T>(lengths);
@@ -668,7 +673,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return 0;
             }
             return this._register.FreeMemory(mem);
@@ -683,7 +688,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return 0;
             }
             return this._register.FreeMemory(indexPointer);
@@ -698,7 +703,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return 0;
             }
             return this._register.FreeMemory(id);
@@ -713,7 +718,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return 0;
             }
             return await Task.Run(() => this._register.FreeMemory(id));
@@ -728,7 +733,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return 0;
             }
             return await Task.Run(() => this._register.FreeMemory(indexPointer));
@@ -741,7 +746,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return;
             }
 
@@ -753,7 +758,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"CudaService: Exception while freeing memory for item {item.Id}", ex);
+                    this.Logger.Log($"CudaService: Exception while freeing memory for item {item.Id}", ex);
                 }
             }
         }
@@ -765,7 +770,7 @@ namespace AsynCUDA13.Runtime
         {
             if (!this.Online || this._context == null || this._register == null)
             {
-                StaticLogger.Log("CudaService: Cannot free memory - service is offline");
+                this.Logger.Log("CudaService: Cannot free memory - service is offline");
                 return;
             }
             var tasks = this._register.AllocationsBindingList.Select(item => Task.Run(() =>
@@ -776,7 +781,7 @@ namespace AsynCUDA13.Runtime
                 }
                 catch (Exception ex)
                 {
-                    StaticLogger.Log($"CudaService: Exception while freeing memory for item {item.Id}", ex);
+                    this.Logger.Log($"CudaService: Exception while freeing memory for item {item.Id}", ex);
                 }
             })).ToArray();
             await Task.WhenAll(tasks);

@@ -17,6 +17,8 @@ namespace AsynCUDA13.OpenClBackend
     /// </summary>
     public sealed class OpenClService : IOpenClService, IDisposable
     {
+        private readonly IRollingFileMemoryLogger _logger;
+
         public string RuntimeType => "OpenCL";
 
         /// <summary>
@@ -141,15 +143,16 @@ namespace AsynCUDA13.OpenClBackend
         /// The flat device index to initialize, or <c>-1</c> to leave the service offline until
         /// <see cref="Initialize(int)"/> is called.
         /// </param>
-        public OpenClService(int preferredDeviceIndex = -1)
+        public OpenClService(IRollingFileMemoryLogger logger, int preferredDeviceIndex = -1)
         {
+            this._logger = logger;
             if (this.AvailableDevices.Count == 0)
             {
-                StaticLogger.LogWarning("OpenClService: no OpenCL devices found on this machine.");
+                this._logger.LogWarning("OpenClService: no OpenCL devices found on this machine.");
             }
             else
             {
-                StaticLogger.LogSuccess($"OpenClService: discovered {this.AvailableDevices.Count} OpenCL device(s).");
+                this._logger.LogSuccess($"OpenClService: discovered {this.AvailableDevices.Count} OpenCL device(s).");
             }
 
             if (preferredDeviceIndex >= 0)
@@ -181,7 +184,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (deviceIndex < 0 || deviceIndex >= this.AvailableDevices.Count)
             {
-                StaticLogger.LogError($"Initialize: device index {deviceIndex} is out of range (0..{this.AvailableDevices.Count - 1}).");
+                this._logger.LogError($"Initialize: device index {deviceIndex} is out of range (0..{this.AvailableDevices.Count - 1}).");
                 return false;
             }
 
@@ -192,7 +195,7 @@ namespace AsynCUDA13.OpenClBackend
             CLContext context = CL.CreateContext(IntPtr.Zero, [info.Device], IntPtr.Zero, IntPtr.Zero, out CLResultCode contextCode);
             if (contextCode != CLResultCode.Success)
             {
-                StaticLogger.LogError($"Initialize: CreateContext failed for '{info.DeviceName}' ({contextCode}).");
+                this._logger.LogError($"Initialize: CreateContext failed for '{info.DeviceName}' ({contextCode}).");
                 return false;
             }
 
@@ -202,20 +205,20 @@ namespace AsynCUDA13.OpenClBackend
             CLCommandQueue queue = CL.CreateCommandQueueWithProperties(context, info.Device, 0, out CLResultCode queueCode);
             if (queueCode != CLResultCode.Success)
             {
-                StaticLogger.LogError($"Initialize: CreateCommandQueue failed for '{info.DeviceName}' ({queueCode}).");
+                this._logger.LogError($"Initialize: CreateCommandQueue failed for '{info.DeviceName}' ({queueCode}).");
                 CL.ReleaseContext(context);
                 return false;
             }
 
-            this._register = new OpenClRegister(context, queue, info.Device);
-            this._compiler = new OpenClCompiler(context, info.Device, this._register);
-            this._launcher = new OpenClLauncher(this._register, this._compiler, queue);
-            this._fourier = new OpenClFourier(this._register, this._launcher);
+            this._register = new OpenClRegister(context, queue, info.Device, this._logger);
+            this._compiler = new OpenClCompiler(context, info.Device, this._register, this._logger);
+            this._launcher = new OpenClLauncher(this._register, this._compiler, queue, this._logger);
+            this._fourier = new OpenClFourier(this._register, this._launcher, this._logger);
 
             this.SelectedDeviceId = deviceIndex;
             this.SelectedDevice = info;
 
-            StaticLogger.LogSuccess($"OpenClService: initialized device {info}.");
+            this._logger.LogSuccess($"OpenClService: initialized device {info}.");
             return true;
         }
 
@@ -228,7 +231,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (string.IsNullOrWhiteSpace(deviceName))
             {
-                StaticLogger.LogError("Initialize: device name is null or empty.");
+                this._logger.LogError("Initialize: device name is null or empty.");
                 return false;
             }
 
@@ -240,7 +243,7 @@ namespace AsynCUDA13.OpenClBackend
                 }
             }
 
-            StaticLogger.LogError($"Initialize: no device matching '{deviceName}' found.");
+            this._logger.LogError($"Initialize: no device matching '{deviceName}' found.");
             return false;
         }
 
@@ -273,7 +276,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online)
             {
-                StaticLogger.LogError("SetCurrent: service is offline. Call Initialize(...) first.");
+                this._logger.LogError("SetCurrent: service is offline. Call Initialize(...) first.");
                 return;
             }
         }
@@ -289,7 +292,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             return clDevice.HasValue
                 ? OpenClDevicePropertyFormatter.GetProperties(clDevice.Value)
-                : OpenClDevicePropertyFormatter.GetProperties(clDeviceIndex);
+                : OpenClDevicePropertyFormatter.GetProperties(clDeviceIndex, this._logger);
         }
 
 
@@ -357,7 +360,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot push data - service is offline.");
+                this._logger.LogError("OpenClService: cannot push data - service is offline.");
                 return null;
             }
 
@@ -375,7 +378,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot pull data - service is offline.");
+                this._logger.LogError("OpenClService: cannot pull data - service is offline.");
                 return null;
             }
 
@@ -392,7 +395,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot pull data - service is offline.");
+                this._logger.LogError("OpenClService: cannot pull data - service is offline.");
                 return null;
             }
 
@@ -409,7 +412,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot allocate memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot allocate memory - service is offline.");
                 return null;
             }
 
@@ -428,7 +431,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot push data - service is offline.");
+                this._logger.LogError("OpenClService: cannot push data - service is offline.");
                 return null;
             }
 
@@ -446,7 +449,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot pull data - service is offline.");
+                this._logger.LogError("OpenClService: cannot pull data - service is offline.");
                 return [];
             }
 
@@ -463,7 +466,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot pull data - service is offline.");
+                this._logger.LogError("OpenClService: cannot pull data - service is offline.");
                 return [];
             }
 
@@ -480,7 +483,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot allocate memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot allocate memory - service is offline.");
                 return null;
             }
 
@@ -496,7 +499,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot push data - service is offline.");
+                this._logger.LogError("OpenClService: cannot push data - service is offline.");
                 return null;
             }
 
@@ -510,7 +513,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot pull data - service is offline.");
+                this._logger.LogError("OpenClService: cannot pull data - service is offline.");
                 return null;
             }
 
@@ -524,7 +527,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot allocate memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot allocate memory - service is offline.");
                 return Task.FromResult<IRuntimeMem?>(null);
             }
 
@@ -540,7 +543,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot push data - service is offline.");
+                this._logger.LogError("OpenClService: cannot push data - service is offline.");
                 return null;
             }
 
@@ -554,7 +557,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot pull data - service is offline.");
+                this._logger.LogError("OpenClService: cannot pull data - service is offline.");
                 return [];
             }
 
@@ -568,7 +571,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot allocate memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot allocate memory - service is offline.");
                 return null;
             }
 
@@ -586,7 +589,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot free memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot free memory - service is offline.");
                 return 0;
             }
 
@@ -602,7 +605,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot free memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot free memory - service is offline.");
                 return 0;
             }
 
@@ -618,7 +621,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot free memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot free memory - service is offline.");
                 return 0;
             }
 
@@ -632,7 +635,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (!this.Online || this._register == null)
             {
-                StaticLogger.LogError("OpenClService: cannot free memory - service is offline.");
+                this._logger.LogError("OpenClService: cannot free memory - service is offline.");
                 return;
             }
             this._register.FreeAll();
@@ -648,7 +651,7 @@ namespace AsynCUDA13.OpenClBackend
         {
             if (this._fourier == null)
             {
-                StaticLogger.LogError("OpenClService: service is offline. Call Initialize(...) first.");
+                this._logger.LogError("OpenClService: service is offline. Call Initialize(...) first.");
             }
 
             return this._fourier;

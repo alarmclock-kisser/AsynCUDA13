@@ -28,7 +28,7 @@ namespace AsynCUDA13.WebApp
             builder.Services.AddSingleton<IRollingFileMemoryLogger, RollingFileMemoryLogger>(sp =>
             {
                 var options = sp.GetRequiredService<IOptions<RollingFileMemoryLoggerOptions>>().Value;
-                return new RollingFileMemoryLogger(options, setGlobally: true);
+                return new RollingFileMemoryLogger(options);
             });
 
             // Add services to the container.

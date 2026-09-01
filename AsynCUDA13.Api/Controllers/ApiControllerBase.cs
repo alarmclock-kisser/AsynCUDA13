@@ -27,6 +27,7 @@ namespace AsynCUDA13.Api.Controllers
             if (backend is ICudaService cudaService)
             {
                 this.backend = cudaService;
+                this.cuda = cudaService;
                 this.RuntimeType = "CUDA";
             }
             else if (backend is IOpenClService openClService)

@@ -1,0 +1,4 @@
+=== Test Report ===
+Datum: 2026-09-01 10:28:07
+Alle Tests erfolgreich — keine Fehler gefunden.
+============================================================

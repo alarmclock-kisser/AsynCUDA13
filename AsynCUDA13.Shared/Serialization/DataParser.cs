@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using AsynCUDA13.Shared.Api.Payloads;
+using AsynCUDA13.Shared.Interfaces;
 using AsynCUDA13.Shared.RuntimeDtos;
 
 namespace AsynCUDA13.Shared.Serialization
@@ -16,12 +17,12 @@ namespace AsynCUDA13.Shared.Serialization
         /// </summary>
         public static int ParallelThreads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
 
-        public static async Task<object[]?> ParseAsync(SimdPayload1D payload, string elementType)
+        public static async Task<object[]?> ParseAsync(SimdPayload1D payload, string elementType, IRollingFileMemoryLogger logger)
         {
             Type? t = Type.GetType(elementType, throwOnError: false, ignoreCase: true);
             if (t == null)
             {
-                await StaticLogger.LogAsync("[DataParser] Error parsing element type: " + elementType);
+                await logger.LogAsync("[DataParser] Error parsing element type: " + elementType);
                 return null;
             }
 
@@ -39,16 +40,17 @@ namespace AsynCUDA13.Shared.Serialization
             var resultProperty = task.GetType().GetProperty("Result");
             var result = resultProperty?.GetValue(task);
 
-            // Cast to object[] (which is compatible with T[] for reference types)
-            return result as object[];
+            return result is Array values
+                ? values.Cast<object>().ToArray()
+                : null;
         }
 
-        public static async Task<object[][]?> ParseAsync(SimdPayload2D payload, string elementType)
+        public static async Task<object[][]?> ParseAsync(SimdPayload2D payload, string elementType, IRollingFileMemoryLogger logger)
         {
             Type? t = Type.GetType(elementType, throwOnError: false, ignoreCase: true);
             if (t == null)
             {
-                await StaticLogger.LogAsync("[DataParser] Error parsing element type: " + elementType);
+                await logger.LogAsync("[DataParser] Error parsing element type: " + elementType);
                 return null;
             }
 
@@ -64,7 +66,9 @@ namespace AsynCUDA13.Shared.Serialization
 
             // Get the result from the completed task
             var resultProperty = task.GetType().GetProperty("Result");
-            return resultProperty?.GetValue(task) as object[][];
+            return resultProperty?.GetValue(task) is System.Collections.IEnumerable rows
+                ? rows.Cast<Array>().Select(row => row.Cast<object>().ToArray()).ToArray()
+                : null;
         }
 
 
@@ -213,7 +217,7 @@ namespace AsynCUDA13.Shared.Serialization
                     }
 
                     // Convert the argument to the specified type
-                    return Convert.ChangeType(arg, t);
+                    return Convert.ChangeType(arg, t, System.Globalization.CultureInfo.InvariantCulture);
                 }
                 catch
                 {
@@ -240,7 +244,7 @@ namespace AsynCUDA13.Shared.Serialization
                     }
 
                     // Convert the argument to the specified type
-                    return Convert.ChangeType(arg, t);
+                    return Convert.ChangeType(arg, t, System.Globalization.CultureInfo.InvariantCulture);
                 }
                 catch
                 {
@@ -333,7 +337,7 @@ namespace AsynCUDA13.Shared.Serialization
             }
 
             // Simple regex to find the kernel name in the code
-            var match = System.Text.RegularExpressions.Regex.Match(kernelCode, @"__global__\s+void\s+(\w+)\s*\(");
+            var match = System.Text.RegularExpressions.Regex.Match(kernelCode, @"(?:(?:__global__|__kernel)\s+void)\s+(\w+)\s*\(");
             return match.Success && match.Groups.Count > 1 ? match.Groups[1].Value :  null;
         }
 

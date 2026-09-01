@@ -62,7 +62,7 @@ namespace AsynCUDA13.Shared.RuntimeDtos
         public int? Count => (this.Pointers.LongLength == this.Lengths.LongLength) ? (global::System.Int32) this.Pointers.LongLength : null;
         public string LongCount => this.Pointers.LongLength == this.Lengths.LongLength ? this.Pointers.LongLength.ToString() : "N/A";
         public string TotalLength => this.Lengths.Sum(l => long.TryParse(l, out Int64 len) ? len : 0).ToString();
-        public string TotalSize => (long.TryParse(this.TotalLength, out Int64 totalLen) ? totalLen : 0 * this.ElementSize).ToString();
+        public string TotalSize => ((long.TryParse(this.TotalLength, out Int64 totalLen) ? totalLen : 0) * this.ElementSize).ToString();
 
 
         public string[] Lengths { get; set; } = [];

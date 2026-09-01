@@ -16,6 +16,8 @@ namespace AsynCUDA13.Media
 {
     public class AudioCollection : IAsyncDisposable, IMediaCollection
     {
+        private readonly IRollingFileMemoryLogger logger;
+
         public string ExportDirectory { get; set; } = Path.GetFullPath(Environment.GetEnvironmentVariable("SHARPAI_AUDIO_EXPORT_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "SharpAI_AudioExports"));
 
         private readonly ConcurrentDictionary<Guid, AudioObj> _audios = [];
@@ -33,8 +35,9 @@ namespace AsynCUDA13.Media
 
         public bool IsRecording => this.recordingCts != null && this.recordingCts?.IsCancellationRequested == false;
 
-        public AudioCollection(string? customExportDir = null, string[]? additionalRessourcePaths = null)
+        public AudioCollection(IRollingFileMemoryLogger logger, string? customExportDir = null, string[]? additionalRessourcePaths = null)
         {
+            this.logger = logger;
             if (!string.IsNullOrEmpty(customExportDir))
             {
                 this.ExportDirectory = Path.GetFullPath(customExportDir);
@@ -85,7 +88,7 @@ namespace AsynCUDA13.Media
             AudioObj? audioObj = null;
             try
             {
-                audioObj = new AudioObj(filePath);
+                audioObj = new AudioObj(this.logger, filePath);
                 this.AddAudio(audioObj);
             }
             catch
@@ -102,7 +105,7 @@ namespace AsynCUDA13.Media
             {
                 try
                 {
-                    var audioObj = new AudioObj(filePath);
+                    var audioObj = new AudioObj(this.logger, filePath);
                     this.AddAudio(audioObj);
                     return audioObj;
                 }
@@ -117,7 +120,7 @@ namespace AsynCUDA13.Media
         {
             long length = long.TryParse(info.Length, out var len) ? len : 0;
             long ptr = pointer ?? (long.TryParse(info.Pointer, out var p) ? p : 0);
-            AudioObj obj = new()
+            AudioObj obj = new AudioObj(this.logger)
             {
                 BitDepth = info.BitDepth,
                 Channels = info.Channels,
@@ -214,14 +217,14 @@ namespace AsynCUDA13.Media
                 deviceIndex = this.FindActiveMicrophoneIndex();
                 if (deviceIndex == -1)
                 {
-                    await StaticLogger.LogAsync("No recording devices found.");
+                    await this.logger.LogAsync("No recording devices found.");
                     return null;
                 }
             }
 
             if (this.recordingCts != null)
             {
-                await StaticLogger.LogAsync("Recording already in progress.").ConfigureAwait(false);
+                await this.logger.LogAsync("Recording already in progress.").ConfigureAwait(false);
                 return null;
             }
 
@@ -287,12 +290,12 @@ namespace AsynCUDA13.Media
             waveIn.RecordingStopped += (s, e) =>
             {
                 string name = $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}";
-                var audioObj = new AudioObj(sampleList.ToArray(), waveIn.WaveFormat.SampleRate, waveIn.WaveFormat.Channels, waveFormat.BitsPerSample, name);
+                var audioObj = new AudioObj(this.logger, sampleList.ToArray(), waveIn.WaveFormat.SampleRate, waveIn.WaveFormat.Channels, waveFormat.BitsPerSample, name);
                 tcs.TrySetResult(audioObj);
             };
 
             waveIn.StartRecording();
-            await StaticLogger.LogAsync($"Recording started on device {deviceIndex.Value} with format {waveFormat.SampleRate}Hz, {waveFormat.BitsPerSample}bit, {waveFormat.Channels}ch").ConfigureAwait(false);
+            await this.logger.LogAsync($"Recording started on device {deviceIndex.Value} with format {waveFormat.SampleRate}Hz, {waveFormat.BitsPerSample}bit, {waveFormat.Channels}ch").ConfigureAwait(false);
 
             // Wait until cancellation requested
             try
@@ -308,7 +311,7 @@ namespace AsynCUDA13.Media
                 catch { }
             }
 
-            await StaticLogger.LogAsync("Recording stopped. Processing audio...").ConfigureAwait(false);
+            await this.logger.LogAsync("Recording stopped. Processing audio...").ConfigureAwait(false);
             var result = await tcs.Task.ConfigureAwait(false);
 
             this.recordingCts.Dispose();
@@ -369,8 +372,7 @@ namespace AsynCUDA13.Media
 
         public bool RemoveAudio(Guid audioId, bool disposeRemoved = true)
         {
-            var audioObj = this._audios[audioId];
-            if (audioObj != null)
+            if (this._audios.TryRemove(audioId, out AudioObj? audioObj))
             {
                 if (disposeRemoved)
                 {
@@ -384,11 +386,11 @@ namespace AsynCUDA13.Media
         public bool RemoveAudio(string name, bool fuzzyMatch = false, bool disposeRemoved = true)
         {
             AudioObj? audioObj = this[name, fuzzyMatch];
-            if (audioObj != null)
+            if (audioObj != null && this._audios.TryRemove(audioObj.Id, out AudioObj? removed))
             {
                 if (disposeRemoved)
                 {
-                    audioObj.Dispose();
+                    removed.Dispose();
                 }
                 return true;
             }
