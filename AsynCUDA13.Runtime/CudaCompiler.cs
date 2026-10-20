@@ -895,10 +895,9 @@ namespace AsynCUDA13.Runtime
 
             Dictionary<string, Type> arguments = [];
 
-            // Regex to find kernel signature: __global__ followed by optional extern "C", then void function_name(args)
-            // Handles various whitespace/newline formats
+            // Match both the common extern "C" __global__ form and plain CUDA entry points.
             var pattern = new Regex(
-                @"__global__\s+(?:extern\s+""C""\s+)?void\s+(\w+)\s*\(([^)]*)\)",
+                @"(?:extern\s+""C""\s+)?__global__\s+void\s+(\w+)\s*\(([^)]*)\)",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline
             );
 

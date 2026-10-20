@@ -90,4 +90,97 @@
   <data name="SampleRate" xml:space="preserve"><value>Sample-Rate</value></data>
   <data name="Channels" xml:space="preserve"><value>Kanäle</value></data>
   <data name="BitDepth" xml:space="preserve"><value>Bit-Tiefe</value></data>
+  <data name="CadTitle" xml:space="preserve"><value>3D-CAD</value></data>
+  <data name="CadSubtitle" xml:space="preserve"><value>Parametrische Grundkörper und eigene Prismen direkt im 3D-Raum erstellen.</value></data>
+  <data name="CadBackendPrefix" xml:space="preserve"><value>Backend:</value></data>
+  <data name="CadBackendNotConnected" xml:space="preserve"><value>Nicht verbunden</value></data>
+  <data name="CadPanelLabel" xml:space="preserve"><value>3D-Arbeitsfläche</value></data>
+  <data name="CadStatusNavigation" xml:space="preserve"><value>Linke Maustaste: Ansicht drehen · Shift+Ziehen oder mittlere Taste: verschieben · Mausrad: Zoom</value></data>
+  <data name="CadLocalSaved" xml:space="preserve"><value>Lokal gespeichert</value></data>
+  <data name="CadSaveFailed" xml:space="preserve"><value>Speichern fehlgeschlagen</value></data>
+  <data name="CadSaveError" xml:space="preserve"><value>Lokales Speichern fehlgeschlagen:</value></data>
+  <data name="CadSavedLoadError" xml:space="preserve"><value>Gespeicherte Szene konnte nicht geladen werden:</value></data>
+  <data name="CadCanvasLabel" xml:space="preserve"><value>Interaktive 3D-CAD-Arbeitsfläche</value></data>
+  <data name="CadObjectCountOne" xml:space="preserve"><value>{0} Objekt</value></data>
+  <data name="CadObjectCountMany" xml:space="preserve"><value>{0} Objekte</value></data>
+  <data name="CadKeyboardHelp" xml:space="preserve"><value>G: Verschieben · Entf: Löschen · Strg+Z: Rückgängig · Esc: Abbrechen</value></data>
+  <data name="CadToolsLabel" xml:space="preserve"><value>CAD-Werkzeuge</value></data>
+  <data name="CadCreate" xml:space="preserve"><value>Erstellen</value></data>
+  <data name="CadShapeLabel" xml:space="preserve"><value>Grundkörper</value></data>
+  <data name="CadShapeCube" xml:space="preserve"><value>Würfel</value></data>
+  <data name="CadShapeSphere" xml:space="preserve"><value>Kugel</value></data>
+  <data name="CadShapePyramid" xml:space="preserve"><value>Pyramide</value></data>
+  <data name="CadShapePrism" xml:space="preserve"><value>Prisma (Skizze + Extrusion)</value></data>
+  <data name="CadShapePrismName" xml:space="preserve"><value>Prisma</value></data>
+  <data name="CadShapeCylinder" xml:space="preserve"><value>Zylinder</value></data>
+  <data name="CadAddCube" xml:space="preserve"><value>Würfel hinzufügen</value></data>
+  <data name="CadAddSphere" xml:space="preserve"><value>Kugel hinzufügen</value></data>
+  <data name="CadAddPyramid" xml:space="preserve"><value>Pyramide hinzufügen</value></data>
+  <data name="CadAddCylinder" xml:space="preserve"><value>Zylinder hinzufügen</value></data>
+  <data name="CadPrismTakeFootprint" xml:space="preserve"><value>Grundriss übernehmen</value></data>
+  <data name="CadPrismConfirm" xml:space="preserve"><value>Prisma bestätigen</value></data>
+  <data name="CadPrismHint" xml:space="preserve"><value>Beim Prisma 3 bis 128 Eckpunkte auf dem Raster anklicken, den Grundriss übernehmen, die Höhe durch Bewegung nach oben oder unten wählen und bestätigen.</value></data>
+  <data name="CadSelection" xml:space="preserve"><value>Auswahl</value></data>
+  <data name="CadNoSelection" xml:space="preserve"><value>Kein Objekt ausgewählt</value></data>
+  <data name="CadMoveTitle" xml:space="preserve"><value>Ausgewähltes Objekt mit der Maus verschieben (G)</value></data>
+  <data name="CadMove" xml:space="preserve"><value>Verschieben (G)</value></data>
+  <data name="CadDelete" xml:space="preserve"><value>Löschen</value></data>
+  <data name="CadUndo" xml:space="preserve"><value>Rückgängig</value></data>
+  <data name="CadRedo" xml:space="preserve"><value>Wiederholen</value></data>
+  <data name="CadScene" xml:space="preserve"><value>Szene</value></data>
+  <data name="CadObjectListLabel" xml:space="preserve"><value>Objekte in der Szene</value></data>
+  <data name="CadClearScene" xml:space="preserve"><value>Szene leeren</value></data>
+  <data name="CadFileAndBackend" xml:space="preserve"><value>Datei &amp; Backend</value></data>
+  <data name="CadExport" xml:space="preserve"><value>Szene exportieren</value></data>
+  <data name="CadImport" xml:space="preserve"><value>Szene importieren</value></data>
+  <data name="CadResetView" xml:space="preserve"><value>Ansicht zurücksetzen</value></data>
+  <data name="CadBackendHint" xml:space="preserve"><value>Jede Ansicht wird als Szene an das konfigurierte CUDA- oder OpenCL-Backend übertragen und dort pro Pixel gerendert. Nur Eingaben und Szenendatei bleiben im Browser; das gerenderte Bild kommt vom Backend.</value></data>
+  <data name="CadBackendRun" xml:space="preserve"><value>Mit Backend neu rendern</value></data>
+  <data name="CadBackendRunning" xml:space="preserve"><value>GPU-Kernel läuft …</value></data>
+  <data name="CadBackendRendering" xml:space="preserve"><value>Szene wird auf dem Backend gerendert …</value></data>
+  <data name="CadBackendRendered" xml:space="preserve"><value>Mit {0} gerendert ({1} × {2} Pixel).</value></data>
+  <data name="CadLastRenderTime" xml:space="preserve"><value>Letzte Renderdauer</value></data>
+  <data name="CadRenderDurationMilliseconds" xml:space="preserve"><value>{0:F1} ms</value></data>
+  <data name="CadRenderNotAvailable" xml:space="preserve"><value>Noch kein Rendern abgeschlossen</value></data>
+  <data name="CadBackendConnectionUnavailable" xml:space="preserve"><value>Backend-Verbindung nicht verfügbar; der Browser-Editor bleibt nutzbar. {0}</value></data>
+  <data name="CadOperationFailed" xml:space="preserve"><value>Backend-Vorgang fehlgeschlagen: {0}</value></data>
+  <data name="CadBackendUnsupported" xml:space="preserve"><value>Das konfigurierte Backend „{0}“ unterstützt keinen CAD-Kernel.</value></data>
+  <data name="CadBackendOffline" xml:space="preserve"><value>Das {0}-Backend ist nicht initialisiert. Bitte zuerst im Speicherbereich initialisieren.</value></data>
+  <data name="CadInvalidMesh" xml:space="preserve"><value>Das ausgewählte Objekt enthält kein gültiges Mesh.</value></data>
+  <data name="CadCompileFailed" xml:space="preserve"><value>Der {0}-CAD-Kernel konnte nicht kompiliert werden.</value></data>
+  <data name="CadPushFailed" xml:space="preserve"><value>Das Mesh konnte nicht in den Backend-Speicher übertragen werden.</value></data>
+  <data name="CadExecuteFailed" xml:space="preserve"><value>Der {0}-CAD-Kernel konnte nicht ausgeführt werden.</value></data>
+  <data name="CadPullFailed" xml:space="preserve"><value>Das transformierte Mesh konnte nicht aus dem Backend gelesen werden.</value></data>
+  <data name="CadPullInvalidFormat" xml:space="preserve"><value>Das Backend lieferte kein eindimensionales CAD-Mesh zurück.</value></data>
+  <data name="CadUnexpectedMeshSize" xml:space="preserve"><value>Das Backend lieferte eine unerwartete Mesh-Größe zurück.</value></data>
+  <data name="CadRenderInvalidSize" xml:space="preserve"><value>Die Renderauflösung ist ungültig oder überschreitet das erlaubte Maximum.</value></data>
+  <data name="CadRenderInvalidScene" xml:space="preserve"><value>Die an das Backend übertragene Szene oder Kamera ist ungültig.</value></data>
+  <data name="CadPrismPointLimit" xml:space="preserve"><value>Ein Prisma kann höchstens 128 Eckpunkte haben.</value></data>
+  <data name="CadBackendSuccess" xml:space="preserve"><value>Mesh mit {0} transformiert ({1} ms, {2} Vertices).</value></data>
+  <data name="CadStatusPrismTool" xml:space="preserve"><value>Prisma: Eckpunkte durch Klicken auf das Raster setzen. Mit Escape abbrechen.</value></data>
+  <data name="CadStatusSelectedTool" xml:space="preserve"><value>Werkzeug gewählt. „Hinzufügen“ erstellt den Grundkörper am Rasterursprung.</value></data>
+  <data name="CadStatusCreated" xml:space="preserve"><value>{{name}} erstellt. Mit G aktivieren und auf der Arbeitsfläche verschieben.</value></data>
+  <data name="CadStatusSelected" xml:space="preserve"><value>{{name}} ausgewählt. G oder „Verschieben“ aktiviert die Objektbewegung.</value></data>
+  <data name="CadPrismMinimum" xml:space="preserve"><value>Für ein Prisma mindestens drei Eckpunkte festlegen.</value></data>
+  <data name="CadPrismPointSet" xml:space="preserve"><value>Eckpunktzahl: {{count}}.</value></data>
+  <data name="CadPrismHeight" xml:space="preserve"><value>Grundriss übernommen: Maus nach oben oder unten bewegen, um die Extrusionshöhe einzustellen.</value></data>
+  <data name="CadPrismCreated" xml:space="preserve"><value>{{name}} erstellt. Weitere Eckpunkte beginnen eine neue Prismenskizze.</value></data>
+  <data name="CadPrismCancelled" xml:space="preserve"><value>Aktueller Zeichen- oder Extrusionsvorgang abgebrochen.</value></data>
+  <data name="CadSelectedDeleted" xml:space="preserve"><value>Ausgewähltes Objekt gelöscht.</value></data>
+  <data name="CadConfirmClear" xml:space="preserve"><value>Alle Objekte aus der Szene entfernen?</value></data>
+  <data name="CadSceneCleared" xml:space="preserve"><value>Szene geleert.</value></data>
+  <data name="CadUndoStatus" xml:space="preserve"><value>Letzte Änderung rückgängig gemacht.</value></data>
+  <data name="CadRedoStatus" xml:space="preserve"><value>Änderung wiederhergestellt.</value></data>
+  <data name="CadMoveSelect" xml:space="preserve"><value>Zum Verschieben zuerst ein Objekt auswählen.</value></data>
+  <data name="CadMoveActive" xml:space="preserve"><value>Verschieben aktiv: Objekt auf der Arbeitsfläche ziehen.</value></data>
+  <data name="CadMoveFinished" xml:space="preserve"><value>Objektverschiebung beendet.</value></data>
+  <data name="CadSceneExported" xml:space="preserve"><value>Szene als JSON exportiert.</value></data>
+  <data name="CadImportTooLarge" xml:space="preserve"><value>Die Szenendatei ist größer als 5 MB.</value></data>
+  <data name="CadImportInvalid" xml:space="preserve"><value>Ungültige oder zu große Szenendatei.</value></data>
+  <data name="CadImported" xml:space="preserve"><value>{{name}} importiert.</value></data>
+  <data name="CadImportFailed" xml:space="preserve"><value>Import fehlgeschlagen: {{message}}</value></data>
+  <data name="CadSelectObject" xml:space="preserve"><value>Bitte zuerst ein CAD-Objekt auswählen.</value></data>
+  <data name="CadMeshGenerationFailed" xml:space="preserve"><value>Für dieses Objekt konnten keine Mesh-Vertices erzeugt werden.</value></data>
+  <data name="CadInvalidResultMesh" xml:space="preserve"><value>Das Backend-Mesh ist ungültig oder die Auswahl wurde geändert.</value></data>
+  <data name="CadCanvasInitFailed" xml:space="preserve"><value>Die 3D-Arbeitsfläche konnte nicht initialisiert werden.</value></data>
 </root>

@@ -71,6 +71,7 @@ namespace AsynCUDA13.WebApp
             builder.Services.AddScoped<CompilerViewModel>();
             builder.Services.AddScoped<ExecuteViewModel>();
             builder.Services.AddScoped<FractalsViewModel>();
+            builder.Services.AddTransient<CadViewModel>();
 
             var app = builder.Build();
 

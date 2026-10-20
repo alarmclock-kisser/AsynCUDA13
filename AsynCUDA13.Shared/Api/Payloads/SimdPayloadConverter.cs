@@ -26,7 +26,9 @@ namespace AsynCUDA13.Shared.Api.Payloads
             }
 
             // 2. Fallback-Erkennung anhand der JSON-Eigenschaften
-            return root.TryGetProperty("Data2D", out _) || root.TryGetProperty("data2D", out _) || root.TryGetProperty("Chunks", out _)
+            return root.TryGetProperty("Data2D", out _) || root.TryGetProperty("data2D", out _) ||
+                   root.TryGetProperty("DataChunks", out _) || root.TryGetProperty("dataChunks", out _) ||
+                   root.TryGetProperty("Chunks", out _) || root.TryGetProperty("chunks", out _)
                 ?  root.Deserialize<SimdPayload2D>(options)
                 :  root.Deserialize<SimdPayload1D>(options);
         }

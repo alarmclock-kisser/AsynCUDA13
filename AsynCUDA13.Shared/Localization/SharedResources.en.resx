@@ -90,4 +90,97 @@
   <data name="SampleRate" xml:space="preserve"><value>Sample Rate</value></data>
   <data name="Channels" xml:space="preserve"><value>Channels</value></data>
   <data name="BitDepth" xml:space="preserve"><value>Bit Depth</value></data>
+  <data name="CadTitle" xml:space="preserve"><value>3D CAD</value></data>
+  <data name="CadSubtitle" xml:space="preserve"><value>Create parametric primitives and custom prisms in an interactive 3D workspace.</value></data>
+  <data name="CadBackendPrefix" xml:space="preserve"><value>Backend:</value></data>
+  <data name="CadBackendNotConnected" xml:space="preserve"><value>Not connected</value></data>
+  <data name="CadPanelLabel" xml:space="preserve"><value>3D workspace</value></data>
+  <data name="CadStatusNavigation" xml:space="preserve"><value>Left mouse: orbit · Shift+drag or middle mouse: pan · wheel: zoom</value></data>
+  <data name="CadLocalSaved" xml:space="preserve"><value>Saved locally</value></data>
+  <data name="CadSaveFailed" xml:space="preserve"><value>Save failed</value></data>
+  <data name="CadSaveError" xml:space="preserve"><value>Local save failed:</value></data>
+  <data name="CadSavedLoadError" xml:space="preserve"><value>Could not load the saved scene:</value></data>
+  <data name="CadCanvasLabel" xml:space="preserve"><value>Interactive 3D CAD workspace</value></data>
+  <data name="CadObjectCountOne" xml:space="preserve"><value>{0} object</value></data>
+  <data name="CadObjectCountMany" xml:space="preserve"><value>{0} objects</value></data>
+  <data name="CadKeyboardHelp" xml:space="preserve"><value>G: move · Delete: remove · Ctrl+Z: undo · Esc: cancel</value></data>
+  <data name="CadToolsLabel" xml:space="preserve"><value>CAD tools</value></data>
+  <data name="CadCreate" xml:space="preserve"><value>Create</value></data>
+  <data name="CadShapeLabel" xml:space="preserve"><value>Primitive</value></data>
+  <data name="CadShapeCube" xml:space="preserve"><value>Cube</value></data>
+  <data name="CadShapeSphere" xml:space="preserve"><value>Sphere</value></data>
+  <data name="CadShapePyramid" xml:space="preserve"><value>Pyramid</value></data>
+  <data name="CadShapePrism" xml:space="preserve"><value>Prism (sketch + extrude)</value></data>
+  <data name="CadShapePrismName" xml:space="preserve"><value>Prism</value></data>
+  <data name="CadShapeCylinder" xml:space="preserve"><value>Cylinder</value></data>
+  <data name="CadAddCube" xml:space="preserve"><value>Add cube</value></data>
+  <data name="CadAddSphere" xml:space="preserve"><value>Add sphere</value></data>
+  <data name="CadAddPyramid" xml:space="preserve"><value>Add pyramid</value></data>
+  <data name="CadAddCylinder" xml:space="preserve"><value>Add cylinder</value></data>
+  <data name="CadPrismTakeFootprint" xml:space="preserve"><value>Accept footprint</value></data>
+  <data name="CadPrismConfirm" xml:space="preserve"><value>Confirm prism</value></data>
+  <data name="CadPrismHint" xml:space="preserve"><value>For a prism, click 3 to 128 points on the grid, accept the footprint, move up or down to set its height, then confirm.</value></data>
+  <data name="CadSelection" xml:space="preserve"><value>Selection</value></data>
+  <data name="CadNoSelection" xml:space="preserve"><value>No object selected</value></data>
+  <data name="CadMoveTitle" xml:space="preserve"><value>Move the selected object with the mouse (G)</value></data>
+  <data name="CadMove" xml:space="preserve"><value>Move (G)</value></data>
+  <data name="CadDelete" xml:space="preserve"><value>Delete</value></data>
+  <data name="CadUndo" xml:space="preserve"><value>Undo</value></data>
+  <data name="CadRedo" xml:space="preserve"><value>Redo</value></data>
+  <data name="CadScene" xml:space="preserve"><value>Scene</value></data>
+  <data name="CadObjectListLabel" xml:space="preserve"><value>Objects in the scene</value></data>
+  <data name="CadClearScene" xml:space="preserve"><value>Clear scene</value></data>
+  <data name="CadFileAndBackend" xml:space="preserve"><value>Scene &amp; backend</value></data>
+  <data name="CadExport" xml:space="preserve"><value>Export scene</value></data>
+  <data name="CadImport" xml:space="preserve"><value>Import scene</value></data>
+  <data name="CadResetView" xml:space="preserve"><value>Reset view</value></data>
+  <data name="CadBackendHint" xml:space="preserve"><value>Each view is sent as a scene to the configured CUDA or OpenCL backend and rendered there per pixel. Only input and scene storage remain in the browser; the rendered image comes from the backend.</value></data>
+  <data name="CadBackendRun" xml:space="preserve"><value>Render again with backend</value></data>
+  <data name="CadBackendRunning" xml:space="preserve"><value>GPU kernel running …</value></data>
+  <data name="CadBackendRendering" xml:space="preserve"><value>Rendering scene on the backend …</value></data>
+  <data name="CadBackendRendered" xml:space="preserve"><value>Rendered with {0} ({1} × {2} pixels).</value></data>
+  <data name="CadLastRenderTime" xml:space="preserve"><value>Last render duration</value></data>
+  <data name="CadRenderDurationMilliseconds" xml:space="preserve"><value>{0:F1} ms</value></data>
+  <data name="CadRenderNotAvailable" xml:space="preserve"><value>No render completed yet</value></data>
+  <data name="CadBackendConnectionUnavailable" xml:space="preserve"><value>Backend connection unavailable; the browser editor is still usable. {0}</value></data>
+  <data name="CadOperationFailed" xml:space="preserve"><value>Backend operation failed: {0}</value></data>
+  <data name="CadBackendUnsupported" xml:space="preserve"><value>The configured backend '{0}' does not support a CAD kernel.</value></data>
+  <data name="CadBackendOffline" xml:space="preserve"><value>The {0} backend is not initialized. Initialize it in the Memory section first.</value></data>
+  <data name="CadInvalidMesh" xml:space="preserve"><value>The selected object does not contain a valid mesh.</value></data>
+  <data name="CadCompileFailed" xml:space="preserve"><value>The {0} CAD kernel could not be compiled.</value></data>
+  <data name="CadPushFailed" xml:space="preserve"><value>The mesh could not be uploaded to backend memory.</value></data>
+  <data name="CadExecuteFailed" xml:space="preserve"><value>The {0} CAD kernel could not be executed.</value></data>
+  <data name="CadPullFailed" xml:space="preserve"><value>The transformed mesh could not be read from the backend.</value></data>
+  <data name="CadPullInvalidFormat" xml:space="preserve"><value>The backend returned a non-1D CAD mesh.</value></data>
+  <data name="CadUnexpectedMeshSize" xml:space="preserve"><value>The backend returned an unexpected mesh size.</value></data>
+  <data name="CadRenderInvalidSize" xml:space="preserve"><value>The render resolution is invalid or exceeds the allowed maximum.</value></data>
+  <data name="CadRenderInvalidScene" xml:space="preserve"><value>The scene or camera sent to the backend is invalid.</value></data>
+  <data name="CadPrismPointLimit" xml:space="preserve"><value>A prism can have no more than 128 points.</value></data>
+  <data name="CadBackendSuccess" xml:space="preserve"><value>Mesh transformed with {0} ({1} ms, {2} vertices).</value></data>
+  <data name="CadStatusPrismTool" xml:space="preserve"><value>Prism: click the grid to add points. Press Escape to cancel.</value></data>
+  <data name="CadStatusSelectedTool" xml:space="preserve"><value>Tool selected. Add the primitive at the grid origin with the button.</value></data>
+  <data name="CadStatusCreated" xml:space="preserve"><value>{{name}} created. Press G and drag it on the workspace to move it.</value></data>
+  <data name="CadStatusSelected" xml:space="preserve"><value>{{name}} selected. Press G or choose Move to reposition it.</value></data>
+  <data name="CadPrismMinimum" xml:space="preserve"><value>Add at least three points for a prism.</value></data>
+  <data name="CadPrismPointSet" xml:space="preserve"><value>Sketch points: {{count}}.</value></data>
+  <data name="CadPrismHeight" xml:space="preserve"><value>Footprint accepted: move the mouse up or down to set the extrusion height.</value></data>
+  <data name="CadPrismCreated" xml:space="preserve"><value>{{name}} created. Click the grid to start another prism sketch.</value></data>
+  <data name="CadPrismCancelled" xml:space="preserve"><value>The current drawing or extrusion was cancelled.</value></data>
+  <data name="CadSelectedDeleted" xml:space="preserve"><value>Selected object deleted.</value></data>
+  <data name="CadConfirmClear" xml:space="preserve"><value>Remove all objects from the scene?</value></data>
+  <data name="CadSceneCleared" xml:space="preserve"><value>Scene cleared.</value></data>
+  <data name="CadUndoStatus" xml:space="preserve"><value>Undid the last change.</value></data>
+  <data name="CadRedoStatus" xml:space="preserve"><value>Change restored.</value></data>
+  <data name="CadMoveSelect" xml:space="preserve"><value>Select an object before moving it.</value></data>
+  <data name="CadMoveActive" xml:space="preserve"><value>Move mode: drag the object on the workspace.</value></data>
+  <data name="CadMoveFinished" xml:space="preserve"><value>Object move finished.</value></data>
+  <data name="CadSceneExported" xml:space="preserve"><value>Scene exported as JSON.</value></data>
+  <data name="CadImportTooLarge" xml:space="preserve"><value>The scene file is larger than 5 MB.</value></data>
+  <data name="CadImportInvalid" xml:space="preserve"><value>Invalid or oversized scene file.</value></data>
+  <data name="CadImported" xml:space="preserve"><value>{{name}} imported.</value></data>
+  <data name="CadImportFailed" xml:space="preserve"><value>Import failed: {{message}}</value></data>
+  <data name="CadSelectObject" xml:space="preserve"><value>Select a CAD object first.</value></data>
+  <data name="CadMeshGenerationFailed" xml:space="preserve"><value>Could not generate mesh vertices for this object.</value></data>
+  <data name="CadInvalidResultMesh" xml:space="preserve"><value>The backend mesh is invalid or the selection has changed.</value></data>
+  <data name="CadCanvasInitFailed" xml:space="preserve"><value>Could not initialize the 3D workspace.</value></data>
 </root>

@@ -14,6 +14,11 @@ namespace AsynCUDA13.WebApp.ViewModels
         event Action? StateChanged;
     }
 
+    public interface IViewModelLifecycle : IAsyncDisposable
+    {
+        Task OnAfterRenderAsync(bool firstRender);
+    }
+
     public abstract class ViewModelBase<TRequest, TResponse> : IViewModel where TRequest : class, new() where TResponse : class, new()
     {
         /// <summary>

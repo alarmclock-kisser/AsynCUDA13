@@ -15,6 +15,7 @@ namespace AsynCUDA13.Shared.Api.Payloads
 
             JObject jsonObject = JObject.Load(reader);
             bool is2D = jsonObject.GetValue("data2D", StringComparison.OrdinalIgnoreCase) != null ||
+                        jsonObject.GetValue("dataChunks", StringComparison.OrdinalIgnoreCase) != null ||
                         jsonObject.GetValue("chunks", StringComparison.OrdinalIgnoreCase) != null;
 
             ISimdPayload target = is2D ? new SimdPayload2D() : new SimdPayload1D();
@@ -24,7 +25,20 @@ namespace AsynCUDA13.Shared.Api.Payloads
 
         public override void WriteJson(JsonWriter writer, ISimdPayload? value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, value);
+            switch (value)
+            {
+                case null:
+                    writer.WriteNull();
+                    break;
+                case SimdPayload1D payload:
+                    serializer.Serialize(writer, new { payload.ElementType, payload.AsyncCall, payload.Data });
+                    break;
+                case SimdPayload2D payload:
+                    serializer.Serialize(writer, new { payload.ElementType, payload.AsyncCall, payload.DataChunks });
+                    break;
+                default:
+                    throw new JsonSerializationException($"Unsupported SIMD payload type '{value.GetType().FullName}'.");
+            }
         }
     }
 }

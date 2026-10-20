@@ -569,6 +569,22 @@ namespace AsynCUDA13.Client
             return response;
         }
 
+        public async Task<RuntimePushResponse?> PushBufferAsync(float[] values)
+        {
+            ArgumentNullException.ThrowIfNull(values);
+            if (values.Length == 0)
+            {
+                throw new ArgumentException("A device buffer must contain at least one value.", nameof(values));
+            }
+
+            var payload = await DataSerializer.SerializeAsync(values);
+            return await this.internalClient.PushAsync(new RuntimePushRequest
+            {
+                Payload = payload,
+                AsyncCall = true
+            });
+        }
+
         public async Task<RuntimePullResponse?> PullAsync(string indexPointerOrId, bool serverSided = true, bool freeBuffer = true)
         {
             DateTime started = DateTime.Now;

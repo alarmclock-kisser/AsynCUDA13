@@ -13,6 +13,7 @@ namespace AsynCUDA13.Shared.Api.Payloads
             string json = root.GetRawText();
 
             bool is2D = root.TryGetProperty("data2D", out _) || root.TryGetProperty("Data2D", out _) ||
+                        root.TryGetProperty("dataChunks", out _) || root.TryGetProperty("DataChunks", out _) ||
                         root.TryGetProperty("chunks", out _) || root.TryGetProperty("Chunks", out _);
 
             return is2D

@@ -17,4 +17,11 @@
     <ProjectReference Include="..\AsynCUDA13.Shared\AsynCUDA13.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\AsynCUDA13.Runtime\Kernels\CU\cad_transform_vertices.cu" Link="Kernels\CAD\cad_transform_vertices.cu" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\AsynCUDA13.OpenClBackend\Kernels\cad_transform_vertices.cl" Link="Kernels\CAD\cad_transform_vertices.cl" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\AsynCUDA13.Runtime\Kernels\CU\cad_render_scene.cu" Link="Kernels\CAD\cad_render_scene.cu" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\AsynCUDA13.OpenClBackend\Kernels\cad_render_scene.cl" Link="Kernels\CAD\cad_render_scene.cl" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

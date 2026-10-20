@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace AsynCUDA13.WebApp.ViewModels
 {
-    public abstract class ViewModelComponentBase<TViewModel> : ComponentBase, IDisposable
+    public abstract class ViewModelComponentBase<TViewModel> : ComponentBase, IAsyncDisposable
         where TViewModel : class, IViewModel
     {
         [Inject]
@@ -22,14 +22,26 @@ namespace AsynCUDA13.WebApp.ViewModels
             await this.LoadViewModelAsync();
         }
 
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (this.VM is IViewModelLifecycle lifecycle)
+            {
+                await lifecycle.OnAfterRenderAsync(firstRender);
+            }
+        }
+
         private void OnViewModelStateChanged()
         {
             _ = this.InvokeAsync(this.StateHasChanged);
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             this.VM.StateChanged -= this.OnViewModelStateChanged;
+            if (this.VM is IViewModelLifecycle lifecycle)
+            {
+                await lifecycle.DisposeAsync();
+            }
         }
     }
 

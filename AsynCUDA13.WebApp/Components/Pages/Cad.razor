@@ -1,0 +1,94 @@
+@page "/cad"
+@inherits ViewModelComponentBase<CadViewModel>
+@inject LanguageService L
+
+<PageTitle>@L["CadTitle"]</PageTitle>
+
+<div class="cad-page">
+    <header class="cad-heading">
+        <div>
+            <h1>@L["CadTitle"]</h1>
+            <p>@L["CadSubtitle"]</p>
+        </div>
+        <span class="cad-backend-badge">@L["CadBackendPrefix"] @VM.BackendLabel</span>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(VM.BackendMessage))
+    {
+        <div class="alert @(VM.BackendError ? "alert-danger" : "alert-info")" role="status">@VM.BackendMessage</div>
+    }
+
+    <div class="cad-workspace">
+        <section class="cad-view-panel" aria-label="@L["CadPanelLabel"]">
+            <div class="cad-view-toolbar">
+                <span id="cad-tool-status" role="status">@L["CadStatusNavigation"]</span>
+                <span id="cad-save-status" class="cad-save-status">@L["CadLocalSaved"]</span>
+            </div>
+            <canvas id="cad-canvas" class="cad-canvas" tabindex="0" aria-label="@L["CadCanvasLabel"]"></canvas>
+            <div class="cad-view-footer">
+                <span id="cad-object-count">@string.Format(L["CadObjectCountMany"], 0)</span>
+                <span>@L["CadKeyboardHelp"]</span>
+            </div>
+            <div class="cad-render-time" role="status" aria-live="polite">
+                <span>@L["CadLastRenderTime"]</span>
+                <strong>@VM.LastRenderDurationText</strong>
+            </div>
+        </section>
+
+        <aside class="cad-sidebar" aria-label="@L["CadToolsLabel"]">
+            <section class="cad-card">
+                <h2>@L["CadCreate"]</h2>
+                <label for="cad-shape-type">@L["CadShapeLabel"]</label>
+                <select id="cad-shape-type" class="form-select" value="@VM.SelectedShape" @onchange="VM.OnShapeChanged">
+                    <option value="cube">@L["CadShapeCube"]</option>
+                    <option value="sphere">@L["CadShapeSphere"]</option>
+                    <option value="pyramid">@L["CadShapePyramid"]</option>
+                    <option value="prism">@L["CadShapePrism"]</option>
+                    <option value="cylinder">@L["CadShapeCylinder"]</option>
+                </select>
+                <button id="cad-add-button" class="btn btn-primary w-100 mt-2" @onclick="VM.AddShapeAsync" disabled="@(VM.SelectedShape == "prism")">@VM.AddButtonText</button>
+                <div class="cad-prism-actions">
+                    <button id="cad-prism-complete" class="btn btn-outline-primary" @onclick="VM.CompletePrismSketchAsync">@L["CadPrismTakeFootprint"]</button>
+                    <button id="cad-prism-finish" class="btn btn-primary" @onclick="VM.FinishPrismAsync">@L["CadPrismConfirm"]</button>
+                </div>
+                <p class="cad-hint">@L["CadPrismHint"]</p>
+            </section>
+
+            <section class="cad-card">
+                <h2>@L["CadSelection"]</h2>
+                <div id="cad-selection-summary" class="cad-selection-summary">@L["CadNoSelection"]</div>
+                <div class="cad-button-grid">
+                    <button id="cad-move-button" class="btn btn-outline-secondary" @onclick="VM.ToggleMoveAsync" title="@L["CadMoveTitle"]">@L["CadMove"]</button>
+                    <button id="cad-delete-button" class="btn btn-outline-danger" @onclick="VM.DeleteSelectedAsync">@L["CadDelete"]</button>
+                    <button class="btn btn-outline-secondary" @onclick="VM.UndoAsync">@L["CadUndo"]</button>
+                    <button class="btn btn-outline-secondary" @onclick="VM.RedoAsync">@L["CadRedo"]</button>
+                </div>
+            </section>
+
+            <section class="cad-card">
+                <div class="cad-card-heading">
+                    <h2>@L["CadScene"]</h2>
+                    <span id="cad-object-count-side" class="badge text-bg-secondary">0</span>
+                </div>
+                <ol id="cad-object-list" class="cad-object-list" aria-label="@L["CadObjectListLabel"]"></ol>
+                <button class="btn btn-sm btn-outline-danger w-100" @onclick="VM.ClearSceneAsync">@L["CadClearScene"]</button>
+            </section>
+
+            <section class="cad-card">
+                <h2>@L["CadFileAndBackend"]</h2>
+                <div class="cad-button-grid">
+                    <button class="btn btn-outline-secondary" @onclick="VM.ExportSceneAsync">@L["CadExport"]</button>
+                    <button class="btn btn-outline-secondary" @onclick="VM.ImportSceneAsync">@L["CadImport"]</button>
+                    <button class="btn btn-outline-secondary" @onclick="VM.ResetViewAsync">@L["CadResetView"]</button>
+                    <button id="cad-backend-button" class="btn btn-success" @onclick="VM.RenderNowAsync">@L["CadBackendRun"]</button>
+                </div>
+                <input id="cad-import-file" type="file" accept="application/json,.json" hidden />
+                <p class="cad-hint">@L["CadBackendHint"]</p>
+            </section>
+        </aside>
+    </div>
+</div>
+
+@code {
+    protected override Task LoadViewModelAsync() => VM.LoadAsync();
+}

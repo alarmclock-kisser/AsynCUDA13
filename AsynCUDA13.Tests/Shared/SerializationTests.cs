@@ -1,6 +1,8 @@
 using AsynCUDA13.Shared.Api.Payloads;
+using AsynCUDA13.Shared.Api.Requests;
 using AsynCUDA13.Shared.RuntimeDtos;
 using AsynCUDA13.Shared.Serialization;
+using Newtonsoft.Json;
 using Shouldly;
 
 namespace AsynCUDA13.Tests.Shared;
@@ -88,6 +90,37 @@ public sealed class SerializationTests : TestBase
         parsed.Length.ShouldBe(2);
         parsed[0].ShouldBe(source[0].Cast<object>());
         parsed[1].ShouldBe(source[1].Cast<object>());
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void NewtonsoftSimdPayloadConverter_RoundTripsPayloadKinds(bool isTwoDimensional)
+    {
+        // Arrange
+        ISimdPayload payload = isTwoDimensional
+            ? new SimdPayload2D { ElementType = "float", AsyncCall = false, DataChunks = ["AQID", "BAUG"] }
+            : new SimdPayload1D { ElementType = "float", AsyncCall = true, Data = "AQIDBAUG" };
+        var request = new RuntimePushRequest { Payload = payload };
+
+        // Act
+        string json = JsonConvert.SerializeObject(request);
+        var roundTrip = JsonConvert.DeserializeObject<RuntimePushRequest>(json);
+
+        // Assert
+        roundTrip.ShouldNotBeNull();
+        if (isTwoDimensional)
+        {
+            var result = roundTrip.Payload.ShouldBeOfType<SimdPayload2D>();
+            result.AsyncCall.ShouldBeFalse();
+            result.DataChunks.ShouldBe(["AQID", "BAUG"]);
+        }
+        else
+        {
+            var result = roundTrip.Payload.ShouldBeOfType<SimdPayload1D>();
+            result.AsyncCall.ShouldBeTrue();
+            result.Data.ShouldBe("AQIDBAUG");
+        }
     }
 
     [TestMethod]
