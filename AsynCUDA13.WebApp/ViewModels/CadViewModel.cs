@@ -32,6 +32,7 @@ namespace AsynCUDA13.WebApp.ViewModels
         }
 
         public string SelectedShape { get; private set; } = "cube";
+        public bool AllowCameraBelowGround { get; private set; }
         public string BackendLabel => string.IsNullOrWhiteSpace(this.Api.BackendType) ? this._language["CadBackendNotConnected"] : this.Api.BackendType;
         public string AddButtonText => this.SelectedShape switch
         {
@@ -95,6 +96,25 @@ namespace AsynCUDA13.WebApp.ViewModels
         public async Task ImportSceneAsync() => await this.Js.InvokeVoidAsync("cadEditor.openImport");
         public async Task ResetViewAsync() => await this.Js.InvokeVoidAsync("cadEditor.resetView");
         public async Task RenderNowAsync() => await this.Js.InvokeVoidAsync("cadEditor.renderNow");
+
+        public async Task OnAllowCameraBelowGroundChangedAsync(ChangeEventArgs args)
+        {
+            bool allowed = args.Value is true;
+            await this.Js.InvokeVoidAsync("cadEditor.setAllowBelowGround", allowed);
+            this.AllowCameraBelowGround = allowed;
+        }
+
+        [JSInvokable]
+        public void OnCameraBelowGroundChanged(bool allowed)
+        {
+            if (this._disposed || this.AllowCameraBelowGround == allowed)
+            {
+                return;
+            }
+
+            this.AllowCameraBelowGround = allowed;
+            this.NotifyStateChanged(false);
+        }
 
         [JSInvokable]
         public async Task QueueBackendRenderAsync(IJSStreamReference sceneDataStream, int primitiveCount, float[] camera, int width, int height, long revision)

@@ -19,4 +19,8 @@
     <None Include="Kernels\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="AsynCUDA13.Tests" />
+  </ItemGroup>
+
 </Project>

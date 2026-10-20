@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -19,56 +20,60 @@ namespace AsynCUDA13.Shared.Serialization
 
         public static async Task<object[]?> ParseAsync(SimdPayload1D payload, string elementType, IRollingFileMemoryLogger logger)
         {
-            Type? t = Type.GetType(elementType, throwOnError: false, ignoreCase: true);
-            if (t == null)
-            {
-                await logger.LogAsync("[DataParser] Error parsing element type: " + elementType);
-                return null;
-            }
-
-            // Reflection to call the generic method ParseAsync<T> with the resolved type
-            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), [typeof(SimdPayload1D)]);
-
-            if (method?.MakeGenericMethod(t).Invoke(null, [payload]) is not Task task)
-            {
-                return null;
-            }
-
-            await task.ConfigureAwait(false);
-
-            // Get the result from the completed task
-            var resultProperty = task.GetType().GetProperty("Result");
-            var result = resultProperty?.GetValue(task);
-
-            return result is Array values
-                ? values.Cast<object>().ToArray()
-                : null;
+            var values = await ParseTypedAsync(payload, elementType, logger).ConfigureAwait(false);
+            return values?.Cast<object>().ToArray();
         }
 
         public static async Task<object[][]?> ParseAsync(SimdPayload2D payload, string elementType, IRollingFileMemoryLogger logger)
         {
-            Type? t = Type.GetType(elementType, throwOnError: false, ignoreCase: true);
-            if (t == null)
+            var rows = await ParseTypedAsync(payload, elementType, logger).ConfigureAwait(false);
+            return rows?.Cast<Array>().Select(row => row.Cast<object>().ToArray()).ToArray();
+        }
+
+        /// <summary>
+        /// Decodes a runtime-typed payload without boxing its elements. The result remains T[] or T[][].
+        /// Accepts CLR short names emitted by the serializer, full names and assembly-qualified names.
+        /// </summary>
+        public static async Task<Array?> ParseTypedAsync(ISimdPayload payload, string? elementType, IRollingFileMemoryLogger logger)
+        {
+            ArgumentNullException.ThrowIfNull(payload);
+            ArgumentNullException.ThrowIfNull(logger);
+            try
             {
-                await logger.LogAsync("[DataParser] Error parsing element type: " + elementType);
+                string name = elementType?.Trim() ?? string.Empty;
+                Type? type = string.IsNullOrEmpty(name) ? null
+                    : Type.GetType(name, throwOnError: false, ignoreCase: true)
+                        ?? Type.GetType($"System.{name}", throwOnError: false, ignoreCase: true);
+                if (type == null)
+                {
+                    logger.LogError($"[DataParser] Unknown element type: '{elementType}'.");
+                    return null;
+                }
+
+                var method = typeof(DataParser).GetMethod(nameof(ParseTypedCoreAsync), BindingFlags.Static | BindingFlags.NonPublic)!;
+                var task = (Task<Array?>)method.MakeGenericMethod(type).Invoke(null, [payload])!;
+                return await task.ConfigureAwait(false);
+            }
+            catch (ArgumentException ex)
+            {
+                logger.LogError($"[DataParser] Unsupported element type or payload '{elementType}': {ex.Message}");
                 return null;
             }
+        }
 
-            // Reflection to call the generic method ParseAsync<T> with the resolved type
-            var method = typeof(DataParser).GetMethod(nameof(ParseAsync), [typeof(SimdPayload2D)]);
-
-            if (method?.MakeGenericMethod(t).Invoke(null, [payload]) is not Task task)
+        private static async Task<Array?> ParseTypedCoreAsync<T>(ISimdPayload payload) where T : unmanaged
+        {
+            // Reflection does not enforce the unmanaged field restriction for every value type.
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             {
-                return null;
+                throw new ArgumentException($"Element type '{typeof(T)}' contains managed references.");
             }
-
-            await task.ConfigureAwait(false);
-
-            // Get the result from the completed task
-            var resultProperty = task.GetType().GetProperty("Result");
-            return resultProperty?.GetValue(task) is System.Collections.IEnumerable rows
-                ? rows.Cast<Array>().Select(row => row.Cast<object>().ToArray()).ToArray()
-                : null;
+            return payload switch
+            {
+                SimdPayload1D oneDimensional => await ParseAsync<T>(oneDimensional).ConfigureAwait(false),
+                SimdPayload2D twoDimensional => await ParseAsync<T>(twoDimensional).ConfigureAwait(false),
+                _ => throw new ArgumentException("Unsupported payload type.", nameof(payload))
+            };
         }
 
 

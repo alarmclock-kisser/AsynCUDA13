@@ -39,8 +39,10 @@ __kernel void radial_kaleidoscope_image_IP(
 	float sx = cx + r * cos(angle);
 	float sy = cy + r * sin(angle);
 
-	int si = (int)floor(sx);
-	int sj = (int)floor(sy);
+	// Clamp negatives first: truncation then matches floor followed by image clamping.
+	// Avoid the Intel CPU compiler's floating-point rounding lowering.
+	int si = convert_int_sat_rtz(fmax(sx, 0.0f));
+	int sj = convert_int_sat_rtz(fmax(sy, 0.0f));
 
 	if (si < 0) {
 		si = 0;

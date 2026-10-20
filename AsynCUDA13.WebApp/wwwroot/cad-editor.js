@@ -1,5 +1,6 @@
 (() => {
     const storageKey = "asynCUDA13.cad.scene.v1";
+    const defaultCamera = () => ({ target: [0, 0, 0], azimuth: 0.75, elevation: 0.62, distance: 12, allowBelowGround: false });
     let shapeNames = {};
     const state = {
         canvas: null,
@@ -19,7 +20,7 @@
         moveMode: false,
         sketchPoints: [],
         extrusion: null,
-        camera: { target: [0, 0, 0], azimuth: 0.75, elevation: 0.62, distance: 12 },
+        camera: defaultCamera(),
         pointer: null,
         lastPointerY: 0,
         history: [],
@@ -82,6 +83,7 @@
 
     function persist() {
         try {
+            constrainCamera();
             localStorage.setItem(storageKey, JSON.stringify({ scene: state.scene, camera: state.camera }));
             const label = getEl("cad-save-status");
             if (label) label.textContent = text("saved");
@@ -107,12 +109,46 @@
         try {
             const saved = JSON.parse(serialized);
             if (Array.isArray(saved.scene)) state.scene = saved.scene.filter(isValidShape).slice(0, 500);
-            if (saved.camera && Array.isArray(saved.camera.target) && saved.camera.target.length === 3 && saved.camera.target.every(Number.isFinite)) {
-                state.camera = { ...state.camera, ...saved.camera };
-            }
+            restoreCamera(saved.camera);
         } catch (error) {
             setStatus(`${text("savedLoadError")} ${error.message}`);
         }
+    }
+
+    function restoreCamera(camera) {
+        if (!camera || !Array.isArray(camera.target) || camera.target.length !== 3 || !camera.target.every(Number.isFinite)) return;
+        const defaults = defaultCamera();
+        state.camera = {
+            target: [...camera.target],
+            azimuth: Number.isFinite(camera.azimuth) ? camera.azimuth : defaults.azimuth,
+            elevation: Number.isFinite(camera.elevation) ? camera.elevation : defaults.elevation,
+            distance: Number.isFinite(camera.distance) ? camera.distance : defaults.distance,
+            allowBelowGround: camera.allowBelowGround === true
+        };
+        constrainCamera();
+    }
+
+    function constrainCamera() {
+        const camera = state.camera;
+        camera.distance = Math.max(2.5, Math.min(100, camera.distance));
+        camera.elevation = Math.max(camera.allowBelowGround ? -1.35 : 0.01, Math.min(1.35, camera.elevation));
+        if (!camera.allowBelowGround) {
+            // Keep the actual eye above the world floor, including after pan and zoom.
+            const eyeY = camera.target[1] + Math.sin(camera.elevation) * camera.distance;
+            if (eyeY < 0.05) camera.target[1] += 0.05 - eyeY;
+        }
+    }
+
+    function notifyCameraOption() {
+        return state.dotNetRef?.invokeMethodAsync("OnCameraBelowGroundChanged", state.camera.allowBelowGround)
+            .catch(error => setStatus(error.message));
+    }
+
+    function setAllowBelowGround(allowed) {
+        state.camera.allowBelowGround = allowed === true;
+        constrainCamera();
+        persist();
+        render();
     }
 
     function resizeCanvas() {
@@ -175,6 +211,7 @@
 
     function render() {
         if (!state.context || state.width <= 0 || state.height <= 0) return;
+        constrainCamera();
         updateControls();
         requestBackendRender();
     }
@@ -254,16 +291,13 @@
     }
 
     async function displayBackendFrame(streamReference, width, height, revision, message) {
-        try {
-            const bytes = new Uint8ClampedArray(await streamReference.arrayBuffer());
-            if (!state.canvas || revision !== state.renderRevision) return;
-            state.context.putImageData(new ImageData(bytes, width, height), 0, 0);
-            state.rendering = false;
-            setStatus(message);
-            updateControls();
-        } finally {
-            streamReference.dispose();
-        }
+        // The .NET caller owns and disposes its DotNetStreamReference after this promise completes.
+        const bytes = new Uint8ClampedArray(await streamReference.arrayBuffer());
+        if (!state.canvas || revision !== state.renderRevision) return;
+        state.context.putImageData(new ImageData(bytes, width, height), 0, 0);
+        state.rendering = false;
+        setStatus(message);
+        updateControls();
     }
 
     function backendRenderFailed(revision, message) {
@@ -607,9 +641,8 @@
             state.scene = imported.scene;
             state.scene.forEach((shape, index) => { shape.name = `${shapeNames[shape.kind]} ${index + 1}`; });
             state.selectedId = null;
-            if (imported.camera && Array.isArray(imported.camera.target) && imported.camera.target.length === 3 && imported.camera.target.every(Number.isFinite)) {
-                state.camera = { ...state.camera, ...imported.camera };
-            }
+            restoreCamera(imported.camera);
+            await notifyCameraOption();
             state.sketchPoints = [];
             state.extrusion = null;
             persist();
@@ -621,7 +654,7 @@
     }
 
     function resetView() {
-        state.camera = { target: [0, 0, 0], azimuth: 0.75, elevation: 0.62, distance: 12 };
+        state.camera = { ...defaultCamera(), allowBelowGround: state.camera.allowBelowGround };
         render();
         persist();
     }
@@ -657,7 +690,9 @@
         state.fileInput?.addEventListener("change", importFile, { signal });
         state.resizeObserver = new ResizeObserver(resizeCanvas);
         state.resizeObserver.observe(state.canvas);
+        state.camera = defaultCamera();
         loadPersisted();
+        notifyCameraOption();
         resizeCanvas();
         render();
         setStatus(text("statusNavigation"));
@@ -690,6 +725,7 @@
         exportScene,
         openImport,
         resetView,
+        setAllowBelowGround,
         renderNow: () => requestBackendRender(true),
         displayBackendFrame,
         backendRenderFailed

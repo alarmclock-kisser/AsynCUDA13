@@ -134,6 +134,8 @@
   <data name="CadExport" xml:space="preserve"><value>Szene exportieren</value></data>
   <data name="CadImport" xml:space="preserve"><value>Szene importieren</value></data>
   <data name="CadResetView" xml:space="preserve"><value>Ansicht zurücksetzen</value></data>
+  <data name="CadAllowCameraBelowGround" xml:space="preserve"><value>Kamera unter Boden erlauben</value></data>
+  <data name="CadAllowCameraBelowGroundHint" xml:space="preserve"><value>Ausgeschaltet bleibt die Kamera über der Bodenebene. Die Einstellung wird mit der Szene gespeichert und beim Zurücksetzen der Ansicht beibehalten.</value></data>
   <data name="CadBackendHint" xml:space="preserve"><value>Jede Ansicht wird als Szene an das konfigurierte CUDA- oder OpenCL-Backend übertragen und dort pro Pixel gerendert. Nur Eingaben und Szenendatei bleiben im Browser; das gerenderte Bild kommt vom Backend.</value></data>
   <data name="CadBackendRun" xml:space="preserve"><value>Mit Backend neu rendern</value></data>
   <data name="CadBackendRunning" xml:space="preserve"><value>GPU-Kernel läuft …</value></data>

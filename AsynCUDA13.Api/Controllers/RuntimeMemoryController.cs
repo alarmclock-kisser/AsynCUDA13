@@ -292,9 +292,7 @@ namespace AsynCUDA13.Api.Controllers
                 }
                 else
                 {
-                    data = (request.Payload is SimdPayload1D p1 ? await DataParser.ParseAsync(p1, request.ElementType, this.logger) ?? [] :
-                           request.Payload is SimdPayload2D p2 ? await DataParser.ParseAsync(p2, request.ElementType, this.logger) ?? [] :
-                           throw new ArgumentException("Unsupported payload type."));
+                    data = await DataParser.ParseTypedAsync(request.Payload, request.ElementType, this.logger);
                 }
 
                 if (data == null)
@@ -302,7 +300,7 @@ namespace AsynCUDA13.Api.Controllers
                     return this.StatusCode(400, new ProblemDetails
                     {
                         Title = "Invalid request",
-                        Detail = "The request payload could not be parsed.",
+                        Detail = $"The request payload could not be parsed as '{request.ElementType}'.",
                         Status = 400
                     });
                 }

@@ -18,6 +18,7 @@ namespace AsynCUDA13.OpenClBackend
     internal sealed partial class OpenClCompiler : IRuntimeCompiler, IDisposable
     {
         private readonly IRollingFileMemoryLogger _logger;
+        private readonly OpenClProgramBuilder _programBuilder;
 
         /// <summary>
         /// Matches the name of every <c>__kernel void</c> entry point in a kernel source file.
@@ -245,6 +246,7 @@ namespace AsynCUDA13.OpenClBackend
             this.Device = device;
             this.Register = register;
             this._logger = logger;
+            this._programBuilder = new OpenClProgramBuilder(logger);
 
             if (compileAll)
             {
@@ -314,67 +316,71 @@ namespace AsynCUDA13.OpenClBackend
                 return;
             }
 
+            int failedFiles = 0;
             foreach (string file in files)
             {
                 try
                 {
-                    this.CompileFile(file);
+                    if (!this.CompileFile(file))
+                    {
+                        failedFiles++;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    this._logger.Log($"OpenClCompiler: failed to compile '{Path.GetFileName(file)}'", ex);
+                    failedFiles++;
+                    this._logger.LogError($"OpenClCompiler: failed to compile '{file}': {ex.Message}");
                 }
             }
 
-            this._logger.LogSuccess($"OpenClCompiler: compiled {this.ClKernels.Count} kernel(s) from {files.Length} file(s).");
+            string summary = $"OpenClCompiler: compiled {this.ClKernels.Count} kernel(s) from {files.Length} file(s); {failedFiles} failed or skipped file(s).";
+            if (failedFiles == 0)
+            {
+                this._logger.LogSuccess(summary);
+            }
+            else
+            {
+                this._logger.LogWarning(summary);
+            }
         }
 
         /// <summary>
         /// Compiles a float kernel source file into a program and registers each <c>__kernel</c> it defines.
         /// </summary>
         /// <param name="file">The full path of the <c>*.cl</c> file to compile.</param>
-        private void CompileFile(string file)
+        private bool CompileFile(string file)
         {
             string source = ReadAllTextWithRetry(file);
             if (string.IsNullOrWhiteSpace(source))
             {
                 this._logger.LogWarning($"OpenClCompiler: '{Path.GetFileName(file)}' is empty, skipped.");
-                return;
+                return false;
             }
 
             CLProgram program = CL.CreateProgramWithSource(this.Context, source, out CLResultCode createCode);
             if (createCode != CLResultCode.Success)
             {
                 this._logger.LogError($"OpenClCompiler: CreateProgramWithSource failed for '{Path.GetFileName(file)}' ({createCode}).");
-                return;
+                return false;
             }
 
-            // Use the callback-free BuildProgram overload (numDevices, devices, options, userData, callback).
-            // OpenTK 4.9.x's delegate-based overload unconditionally marshals the callback delegate and throws
-            // ArgumentNullException ("d") for a null callback; passing IntPtr.Zero performs a blocking build
-            // without any notification callback, which is exactly what an in-memory compiler needs.
-            CLResultCode buildCode = CL.BuildProgram(program, 1, [this.Device], string.Empty, IntPtr.Zero, IntPtr.Zero);
-            if (buildCode != CLResultCode.Success)
-            {
-                string log = this.GetBuildLog(program);
-                this._logger.LogError($"OpenClCompiler: build failed for '{Path.GetFileName(file)}' ({buildCode}). Build log: {log}");
-                CL.ReleaseProgram(program);
-                return;
-            }
-
+            this.BuildProgram(program, Path.GetFullPath(file));
             this.Programs.Add(program);
 
+            bool succeeded = true;
             foreach (string kernelName in ExtractKernelNames(source))
             {
                 CLKernel kernel = CL.CreateKernel(program, kernelName, out CLResultCode kernelCode);
                 if (kernelCode != CLResultCode.Success)
                 {
                     this._logger.LogError($"OpenClCompiler: CreateKernel '{kernelName}' failed ({kernelCode}).");
+                    succeeded = false;
                     continue;
                 }
 
                 this.ClKernels[kernelName] = kernel;
             }
+            return succeeded;
         }
 
         /// <summary>
@@ -395,13 +401,8 @@ namespace AsynCUDA13.OpenClBackend
             {
                 throw new InvalidOperationException($"CreateProgramWithSource failed ({createCode}).");
             }
-            CLResultCode buildCode = CL.BuildProgram(program, 1, [this.Device], string.Empty, IntPtr.Zero, IntPtr.Zero);
-            if (buildCode != CLResultCode.Success)
-            {
-                string log = this.GetBuildLog(program);
-                CL.ReleaseProgram(program);
-                throw new InvalidOperationException($"BuildProgram failed ({buildCode}). Build log: {log}");
-            }
+            string sourceName = $"<source string: {string.Join(", ", ExtractKernelNames(kernelCode))}>";
+            this.BuildProgram(program, sourceName);
             this.Programs.Add(program);
             foreach (string kernelName in ExtractKernelNames(kernelCode))
             {
@@ -526,28 +527,39 @@ namespace AsynCUDA13.OpenClBackend
 
 
         /// <summary>
-        /// Reads the program build log for diagnostics.
+        /// Builds and releases the program on managed failure. Native process termination cannot be caught here.
         /// </summary>
-        private string GetBuildLog(CLProgram program)
+        private void BuildProgram(CLProgram program, string sourceName)
         {
             try
             {
-                if (CL.GetProgramBuildInfo(program, this.Device, ProgramBuildInfo.Log, out Byte[] bytes) == CLResultCode.Success && bytes != null)
-                {
-                    int length = bytes.Length;
-                    if (length > 0 && bytes[length - 1] == 0)
+                this._programBuilder.Build(sourceName, this.GetBuildDeviceDescription(), string.Empty,
+                    // OpenTK 4.9.x requires the callback-free overload for a null, blocking callback.
+                    () => CL.BuildProgram(program, 1, [this.Device], string.Empty, IntPtr.Zero, IntPtr.Zero),
+                    info =>
                     {
-                        length--;
-                    }
-
-                    return Encoding.ASCII.GetString(bytes, 0, length).Trim();
-                }
+                        CLResultCode code = CL.GetProgramBuildInfo(program, this.Device, info, out byte[] bytes);
+                        return (code, bytes);
+                    });
             }
             catch
             {
+                CL.ReleaseProgram(program);
+                throw;
             }
+        }
 
-            return "(unavailable)";
+        private string GetBuildDeviceDescription()
+        {
+            DeviceInfo[] fields = [DeviceInfo.Name, DeviceInfo.Vendor, DeviceInfo.DriverVersion, DeviceInfo.Version, DeviceInfo.OpenClCVersion];
+            return string.Join("; ", fields.Select(field =>
+            {
+                CLResultCode code = CL.GetDeviceInfo(this.Device, field, out byte[] bytes);
+                string value = code == CLResultCode.Success && bytes != null
+                    ? Encoding.UTF8.GetString(bytes).TrimEnd('\0')
+                    : $"unavailable ({code}, {(int)code})";
+                return $"{field}={value}";
+            }));
         }
 
         /// <summary>

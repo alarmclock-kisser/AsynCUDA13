@@ -15,6 +15,22 @@ typedef struct
 	float selected;
 } CadPrimitive;
 
+// Preserve ties away from zero without the Intel CPU compiler's VRNDSCALE lowering.
+inline float cad_round_grid(float value)
+{
+	uint bits = as_uint(value);
+	uint magnitude = bits & 0x7fffffffU;
+	uint sign = bits & 0x80000000U;
+	// Binary32 values at or above 2^23 are integral; preserve infinities and NaNs too.
+	if (magnitude >= 0x4b000000U) return value;
+	if (magnitude < 0x3f000000U) return as_float(sign);
+	if (magnitude < 0x3f800000U) return as_float(sign | 0x3f800000U);
+	uint fractionalBits = 150U - (magnitude >> 23);
+	uint mask = (1U << fractionalBits) - 1U;
+	uint rounded = (magnitude + (1U << (fractionalBits - 1U))) & ~mask;
+	return as_float(sign | rounded);
+}
+
 inline float3 cad_vec(float x, float y, float z)
 {
 	return (float3)(x, y, z);
@@ -473,8 +489,8 @@ __kernel void cad_render_scene(
 		{
 			float3 ground = cad_vec(eye.x + direction.x * groundDistance, 0.0f, eye.z + direction.z * groundDistance);
 			float lineWidth = fmax(0.006f, groundDistance * 1.5f / focalLength);
-			float nearestX = fabs(ground.x - round(ground.x));
-			float nearestZ = fabs(ground.z - round(ground.z));
+			float nearestX = fabs(ground.x - cad_round_grid(ground.x));
+			float nearestZ = fabs(ground.z - cad_round_grid(ground.z));
 			float fade = fmax(0.0f, 1.0f - groundDistance / 80.0f);
 			color = cad_vec(0.055f + 0.035f * fade, 0.075f + 0.045f * fade, 0.09f + 0.05f * fade);
 			if (nearestX < lineWidth || nearestZ < lineWidth)
@@ -482,8 +498,8 @@ __kernel void cad_render_scene(
 				color = cad_vec(0.15f, 0.20f, 0.23f);
 				if (fabs(ground.z) < lineWidth * 1.3f) color = cad_vec(0.43f, 0.16f, 0.17f);
 				if (fabs(ground.x) < lineWidth * 1.3f) color = cad_vec(0.14f, 0.36f, 0.39f);
-				if (fabs(ground.z) > lineWidth * 1.3f && fabs(round(ground.x) - ground.x) < lineWidth && fmod(fabs(round(ground.x)), 5.0f) < 0.01f) color = cad_vec(0.22f, 0.28f, 0.31f);
-				if (fabs(ground.x) > lineWidth * 1.3f && fabs(round(ground.z) - ground.z) < lineWidth && fmod(fabs(round(ground.z)), 5.0f) < 0.01f) color = cad_vec(0.22f, 0.28f, 0.31f);
+				if (fabs(ground.z) > lineWidth * 1.3f && fabs(cad_round_grid(ground.x) - ground.x) < lineWidth && fmod(fabs(cad_round_grid(ground.x)), 5.0f) < 0.01f) color = cad_vec(0.22f, 0.28f, 0.31f);
+				if (fabs(ground.x) > lineWidth * 1.3f && fabs(cad_round_grid(ground.z) - ground.z) < lineWidth && fmod(fabs(cad_round_grid(ground.z)), 5.0f) < 0.01f) color = cad_vec(0.22f, 0.28f, 0.31f);
 			}
 		}
 	}

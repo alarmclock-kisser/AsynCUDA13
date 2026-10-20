@@ -82,6 +82,13 @@
                     <button class="btn btn-outline-secondary" @onclick="VM.ResetViewAsync">@L["CadResetView"]</button>
                     <button id="cad-backend-button" class="btn btn-success" @onclick="VM.RenderNowAsync">@L["CadBackendRun"]</button>
                 </div>
+                <div class="form-check mt-3">
+                    <input id="cad-allow-below-ground" class="form-check-input" type="checkbox"
+                           checked="@VM.AllowCameraBelowGround" @onchange="VM.OnAllowCameraBelowGroundChangedAsync"
+                           aria-describedby="cad-allow-below-ground-hint" />
+                    <label class="form-check-label" for="cad-allow-below-ground">@L["CadAllowCameraBelowGround"]</label>
+                </div>
+                <p id="cad-allow-below-ground-hint" class="cad-hint">@L["CadAllowCameraBelowGroundHint"]</p>
                 <input id="cad-import-file" type="file" accept="application/json,.json" hidden />
                 <p class="cad-hint">@L["CadBackendHint"]</p>
             </section>
